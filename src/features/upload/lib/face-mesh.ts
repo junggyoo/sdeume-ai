@@ -3,6 +3,7 @@
 import * as faceapi from 'face-api.js';
 import type { FaceAnalysisResult, QualityIssue } from '../types';
 import { BUCKET_THRESHOLDS } from '../types';
+import { classifyBucket } from './bucket-classifier';
 
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
@@ -112,80 +113,8 @@ function calculateYawAngle(landmarks: faceapi.FaceLandmarks68): number {
   return Math.round(yawAngle * 10) / 10;
 }
 
-/**
- * Waterfall Logic: Classify face into bucket
- *
- * Step 0: Quality Filter (eyes closed, extreme angle, negative expression)
- * Step 1: Angle Classification (A: frontal, B: semi-profile)
- * Step 2: Smile Classification (C: happy expression regardless of angle)
- */
-function classifyWithWaterfallLogic(
-  yawAngle: number,
-  happyScore: number,
-  eyesOpen: boolean,
-  faceDetected: boolean
-): { bucket: 'A' | 'B' | 'C'; qualityIssues: QualityIssue[]; isUsable: boolean } {
-  const qualityIssues: QualityIssue[] = [];
-  const absYaw = Math.abs(yawAngle);
-
-  // No face detected
-  if (!faceDetected) {
-    return {
-      bucket: 'C',
-      qualityIssues: ['no_face'],
-      isUsable: false,
-    };
-  }
-
-  // Step 0: Quality Filter
-  if (!eyesOpen) {
-    qualityIssues.push('eyes_closed');
-  }
-
-  if (absYaw >= BUCKET_THRESHOLDS.EXTREME_YAW) {
-    qualityIssues.push('extreme_angle');
-  }
-
-  // Step 1: Angle-based classification (if angle is good)
-  if (absYaw < BUCKET_THRESHOLDS.FRONTAL_MAX_YAW) {
-    // Bucket A: Identity (frontal)
-    return {
-      bucket: 'A',
-      qualityIssues,
-      isUsable: qualityIssues.length === 0,
-    };
-  }
-
-  if (absYaw < BUCKET_THRESHOLDS.SIDE_MAX_YAW) {
-    // Bucket B: Structure (semi-profile)
-    return {
-      bucket: 'B',
-      qualityIssues,
-      isUsable: qualityIssues.length === 0,
-    };
-  }
-
-  // Step 2: For angles >= 35°, check if it's a smile shot worth keeping
-  if (happyScore >= BUCKET_THRESHOLDS.MIN_HAPPY_SCORE) {
-    // Bucket C: Vibe (smile shot) - keep despite angle
-    return {
-      bucket: 'C',
-      qualityIssues,
-      isUsable: qualityIssues.filter((i) => i !== 'extreme_angle').length === 0,
-    };
-  }
-
-  // Angle too extreme and no good expression - not ideal but classify as C
-  if (!qualityIssues.includes('extreme_angle')) {
-    qualityIssues.push('extreme_angle');
-  }
-
-  return {
-    bucket: 'C',
-    qualityIssues,
-    isUsable: false,
-  };
-}
+// Minimum face size ratio (face area / image area) for valid detection
+const MIN_FACE_SIZE_RATIO = 0.02; // Face should be at least 2% of image area
 
 /**
  * Analyze a face in an image using face-api.js with Waterfall Logic
@@ -197,22 +126,73 @@ export async function analyzeFace(
     await loadModels();
 
     // Detect face with landmarks and expressions
-    const detection = await faceapi
-      .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
+    // Use higher inputSize (608) and lower scoreThreshold (0.3) for better detection
+    const detectorOptions = new faceapi.TinyFaceDetectorOptions({
+      inputSize: 608,        // Higher = more accurate (default: 416)
+      scoreThreshold: 0.3,   // Lower = more lenient detection (default: 0.5)
+    });
+
+    // Detect ALL faces first to check for multiple faces
+    const allDetections = await faceapi
+      .detectAllFaces(imageElement, detectorOptions)
       .withFaceLandmarks()
       .withFaceExpressions();
 
-    if (!detection) {
+    // Check for multiple faces (not suitable for LoRA training)
+    if (allDetections.length > 1) {
+      console.log(`[face-api] Multiple faces detected: ${allDetections.length}`);
+      return {
+        faceDetected: true,
+        yawAngle: 0,
+        smileScore: 0,
+        eyesOpen: false,
+        bucket: 'D',
+        confidence: 0,
+        qualityIssues: ['multiple_faces'],
+        isUsable: false,
+        rejectionReason: '여러 얼굴 감지',
+      };
+    }
+
+    // No face detected
+    if (allDetections.length === 0) {
       console.log('[face-api] No face detected');
+      const noFaceResult = classifyBucket(0, 0, false, false);
       return {
         faceDetected: false,
         yawAngle: 0,
         smileScore: 0,
         eyesOpen: false,
-        bucket: 'C',
+        bucket: noFaceResult.bucket,
         confidence: 0,
-        qualityIssues: ['no_face'],
+        qualityIssues: noFaceResult.qualityIssues,
         isUsable: false,
+        rejectionReason: noFaceResult.rejectionReason,
+      };
+    }
+
+    const detection = allDetections[0];
+    const faceBox = detection.detection.box;
+    const imageWidth = imageElement.width || (imageElement as HTMLImageElement).naturalWidth;
+    const imageHeight = imageElement.height || (imageElement as HTMLImageElement).naturalHeight;
+
+    // Check if face is too small relative to image (e.g., full body shot)
+    const imageArea = imageWidth * imageHeight;
+    const faceArea = faceBox.width * faceBox.height;
+    const faceRatio = faceArea / imageArea;
+
+    if (faceRatio < MIN_FACE_SIZE_RATIO) {
+      console.log(`[face-api] Face too small: ${(faceRatio * 100).toFixed(2)}% of image`);
+      return {
+        faceDetected: true,
+        yawAngle: 0,
+        smileScore: 0,
+        eyesOpen: false,
+        bucket: 'D',
+        confidence: detection.detection.score,
+        qualityIssues: ['face_too_small'],
+        isUsable: false,
+        rejectionReason: '얼굴이 너무 작음',
       };
     }
 
@@ -226,8 +206,8 @@ export async function analyzeFace(
     const eyesOpen = eyeAspectRatio >= BUCKET_THRESHOLDS.MIN_EYE_ASPECT_RATIO;
     const happyScore = expressions.happy;
 
-    // Classify using Waterfall Logic
-    const classification = classifyWithWaterfallLogic(
+    // Classify using Waterfall Logic (imported from bucket-classifier)
+    const classification = classifyBucket(
       yawAngle,
       happyScore,
       eyesOpen,
@@ -236,8 +216,8 @@ export async function analyzeFace(
 
     console.log(
       `[face-api] Face detected - yaw: ${yawAngle}°, happy: ${(happyScore * 100).toFixed(1)}%, ` +
-        `EAR: ${eyeAspectRatio.toFixed(2)}, bucket: ${classification.bucket}, ` +
-        `usable: ${classification.isUsable}`
+        `EAR: ${eyeAspectRatio.toFixed(2)}, faceRatio: ${(faceRatio * 100).toFixed(1)}%, ` +
+        `bucket: ${classification.bucket}, usable: ${classification.isUsable}`
     );
 
     return {
@@ -249,18 +229,21 @@ export async function analyzeFace(
       confidence,
       qualityIssues: classification.qualityIssues,
       isUsable: classification.isUsable,
+      rejectionReason: classification.rejectionReason,
     };
   } catch (error) {
     console.error('[face-api] Analysis error:', error);
+    const errorResult = classifyBucket(0, 0, false, false);
     return {
       faceDetected: false,
       yawAngle: 0,
       smileScore: 0,
       eyesOpen: false,
-      bucket: 'C',
+      bucket: errorResult.bucket,
       confidence: 0,
-      qualityIssues: ['no_face'],
+      qualityIssues: errorResult.qualityIssues,
       isUsable: false,
+      rejectionReason: errorResult.rejectionReason,
     };
   }
 }

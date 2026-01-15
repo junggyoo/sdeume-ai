@@ -1,6 +1,6 @@
 export type UploadRole = 'groom' | 'bride';
 
-export type BucketType = 'A' | 'B' | 'C';
+export type BucketType = 'A' | 'B' | 'C' | 'D';
 
 export interface FaceAnalysisResult {
   faceDetected: boolean;
@@ -11,6 +11,7 @@ export interface FaceAnalysisResult {
   confidence: number;
   qualityIssues: QualityIssue[];
   isUsable: boolean; // Passed all quality checks
+  rejectionReason?: string; // Reason for D bucket classification
 }
 
 export interface Upload {
@@ -49,10 +50,12 @@ export interface QueuedFile {
 }
 
 export interface BucketSummary {
-  bucketA: number; // Identity: |yaw| < 10° (target: 8-10)
-  bucketB: number; // Structure: 10° <= |yaw| < 35° (target: 6-8)
-  bucketC: number; // Vibe: happy >= 0.7 or extreme angle
+  bucketA: number; // Identity: |yaw| <= 10° (target: 8-10)
+  bucketB: number; // Structure: 10° < |yaw| <= 35° (target: 6-8)
+  bucketC: number; // Vibe: happy >= 0.7 (smile shots)
+  bucketD: number; // Discard: rejected photos (no face, eyes closed, extreme angle)
   total: number;
+  usableCount: number; // A + B + C (photos usable for training)
 }
 
 export interface UploadAnalysis {
@@ -65,16 +68,16 @@ export interface UploadAnalysis {
 
 // Bucket classification thresholds (Waterfall Logic)
 export const BUCKET_THRESHOLDS = {
-  // Bucket A (Identity): |yaw| < 10° - Core frontal shots for identity learning
+  // Bucket A (Identity): |yaw| <= 10° - Core frontal shots for identity learning
   FRONTAL_MAX_YAW: 10,
-  // Bucket B (Structure): 10° <= |yaw| < 35° - Semi-profile for depth learning
+  // Bucket B (Structure): 10° < |yaw| <= 35° - Semi-profile for depth learning
   SIDE_MAX_YAW: 35,
-  // Beyond 35° needs happy expression to be useful, otherwise dropped
-  EXTREME_YAW: 40,
+  // Beyond 45° is always rejected (Bucket D)
+  EXTREME_YAW: 45,
   // Minimum happy expression score for Bucket C (Vibe shots)
   MIN_HAPPY_SCORE: 0.7,
-  // Eye Aspect Ratio threshold for eye closure detection
-  MIN_EYE_ASPECT_RATIO: 0.2,
+  // Eye Aspect Ratio threshold for eye closure detection (lowered for Asian eye shapes)
+  MIN_EYE_ASPECT_RATIO: 0.15,
   // Minimum image dimension for quality
   MIN_IMAGE_SIZE: 512,
 } as const;
@@ -83,6 +86,7 @@ export const BUCKET_TARGETS = {
   A: { min: 8, max: 10, label: '정면' },
   B: { min: 6, max: 8, label: '반측면' },
   C: { min: 0, max: Infinity, label: '스마일' },
+  D: { min: 0, max: 0, label: '제외' },
 } as const;
 
 // Quality check result
@@ -96,7 +100,9 @@ export type QualityIssue =
   | 'low_resolution'
   | 'no_face'
   | 'negative_expression'
-  | 'extreme_angle';
+  | 'extreme_angle'
+  | 'multiple_faces'
+  | 'face_too_small';
 
 // Upload requirements
 export const MIN_PHOTOS_PER_ROLE = 15; // Minimum photos per person (groom/bride)

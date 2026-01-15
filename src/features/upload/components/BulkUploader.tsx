@@ -100,14 +100,19 @@ interface QueueItemProps {
 }
 
 function QueueItem({ item, onRemove }: QueueItemProps) {
+  const isExcluded = item.analysis?.bucket === 'D';
+
   return (
-    <div className="relative group aspect-square">
+    <div className={cn('relative group aspect-square', isExcluded && 'opacity-50')}>
       {/* Image */}
       {item.previewUrl && (
         <img
           src={item.previewUrl}
           alt=""
-          className="w-full h-full object-cover rounded-lg"
+          className={cn(
+            'w-full h-full object-cover rounded-lg',
+            isExcluded && 'grayscale'
+          )}
         />
       )}
 
@@ -127,6 +132,15 @@ function QueueItem({ item, onRemove }: QueueItemProps) {
           <AlertCircle className="w-6 h-6 text-white" />
         )}
       </div>
+
+      {/* Excluded Overlay */}
+      {isExcluded && (
+        <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
+          <span className="text-white text-xs bg-black/50 px-2 py-1 rounded">
+            제외됨
+          </span>
+        </div>
+      )}
 
       {/* Bucket Badge */}
       {item.status === 'completed' && item.analysis && (
@@ -157,7 +171,8 @@ function BucketBadge({ bucket }: BucketBadgeProps) {
   const colorClasses: Record<BucketType, string> = {
     A: 'bg-accent-teal text-white',
     B: 'bg-accent-rose text-white',
-    C: 'bg-gray-500 text-white',
+    C: 'bg-amber-500 text-white',
+    D: 'bg-gray-400 text-white',
   };
 
   return (

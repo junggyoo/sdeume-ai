@@ -123,7 +123,9 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       bucketA: 0,
       bucketB: 0,
       bucketC: 0,
+      bucketD: 0,
       total: completedItems.length,
+      usableCount: 0,
     };
 
     completedItems.forEach((item) => {
@@ -138,9 +140,15 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           case 'C':
             summary.bucketC++;
             break;
+          case 'D':
+            summary.bucketD++;
+            break;
         }
       }
     });
+
+    // Calculate usable count (A + B + C, excluding D)
+    summary.usableCount = summary.bucketA + summary.bucketB + summary.bucketC;
 
     return summary;
   },

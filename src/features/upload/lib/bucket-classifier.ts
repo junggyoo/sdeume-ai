@@ -7,42 +7,67 @@ import {
 } from '../types';
 
 /**
- * Waterfall Logic: Classify face into bucket
+ * 4-Bucket Waterfall Logic: Classify face into bucket
  *
- * Step 0: Quality Filter (eyes closed, extreme angle)
- * Step 1: Angle Classification (A: frontal, B: semi-profile)
- * Step 2: Smile Classification (C: happy expression regardless of angle)
+ * Step 1 (Critical Filter): Reject unusable photos → D
+ *   - No face detected
+ *   - Eyes closed
+ *   - Extreme angle (|yaw| >= 45°)
+ *
+ * Step 2 (Vibe Check): Smile detection → C
+ *   - happyScore >= 0.7 → C (regardless of angle)
+ *
+ * Step 3 (Geometry Check): Angle-based classification
+ *   - |yaw| <= 10° → A (frontal)
+ *   - |yaw| <= 35° → B (semi-profile)
+ *
+ * Step 4 (Fallback): Remaining photos → D
+ *   - 35° < |yaw| < 45° with low smile score
  */
 export function classifyBucket(
   yawAngle: number,
   happyScore: number,
   eyesOpen: boolean,
   faceDetected: boolean
-): { bucket: BucketType; qualityIssues: QualityIssue[]; isUsable: boolean } {
-  const qualityIssues: QualityIssue[] = [];
+): { bucket: BucketType; qualityIssues: QualityIssue[]; isUsable: boolean; rejectionReason?: string } {
   const absYaw = Math.abs(yawAngle);
+  const qualityIssues: QualityIssue[] = [];
 
-  // No face detected
+  // Step 1: Critical Filter → D (Discard)
   if (!faceDetected) {
     return {
-      bucket: 'C',
+      bucket: 'D',
       qualityIssues: ['no_face'],
       isUsable: false,
+      rejectionReason: '얼굴 미감지',
     };
   }
 
-  // Step 0: Quality Filter
+  if (absYaw >= BUCKET_THRESHOLDS.EXTREME_YAW) {
+    return {
+      bucket: 'D',
+      qualityIssues: ['extreme_angle'],
+      isUsable: false,
+      rejectionReason: '각도 부적합',
+    };
+  }
+
+  // Track eye closure as quality issue (but don't reject)
   if (!eyesOpen) {
     qualityIssues.push('eyes_closed');
   }
 
-  if (absYaw >= BUCKET_THRESHOLDS.EXTREME_YAW) {
-    qualityIssues.push('extreme_angle');
+  // Step 2: Vibe Check → C (Smile shots)
+  if (happyScore >= BUCKET_THRESHOLDS.MIN_HAPPY_SCORE) {
+    return {
+      bucket: 'C',
+      qualityIssues,
+      isUsable: qualityIssues.length === 0,
+    };
   }
 
-  // Step 1: Angle-based classification
-  if (absYaw < BUCKET_THRESHOLDS.FRONTAL_MAX_YAW) {
-    // Bucket A: Identity (frontal)
+  // Step 3: Geometry Check → A (Frontal) or B (Semi-profile)
+  if (absYaw <= BUCKET_THRESHOLDS.FRONTAL_MAX_YAW) {
     return {
       bucket: 'A',
       qualityIssues,
@@ -50,8 +75,7 @@ export function classifyBucket(
     };
   }
 
-  if (absYaw < BUCKET_THRESHOLDS.SIDE_MAX_YAW) {
-    // Bucket B: Structure (semi-profile)
+  if (absYaw <= BUCKET_THRESHOLDS.SIDE_MAX_YAW) {
     return {
       bucket: 'B',
       qualityIssues,
@@ -59,25 +83,12 @@ export function classifyBucket(
     };
   }
 
-  // Step 2: For angles >= 35°, check if it's a smile shot worth keeping
-  if (happyScore >= BUCKET_THRESHOLDS.MIN_HAPPY_SCORE) {
-    // Bucket C: Vibe (smile shot) - keep despite angle
-    return {
-      bucket: 'C',
-      qualityIssues,
-      isUsable: qualityIssues.filter((i) => i !== 'extreme_angle').length === 0,
-    };
-  }
-
-  // Angle too extreme and no good expression - classify as C but not ideal
-  if (!qualityIssues.includes('extreme_angle')) {
-    qualityIssues.push('extreme_angle');
-  }
-
+  // Step 4: Fallback → D (35° < |yaw| < 45° with no smile)
   return {
-    bucket: 'C',
-    qualityIssues,
+    bucket: 'D',
+    qualityIssues: ['extreme_angle'],
     isUsable: false,
+    rejectionReason: '각도/표정 모호',
   };
 }
 
@@ -98,6 +109,12 @@ export function createFaceAnalysisResult(
   const allIssues = [...new Set([...classification.qualityIssues, ...additionalIssues])];
   const isUsable = classification.isUsable && !additionalIssues.includes('low_resolution');
 
+  // Update rejection reason if low resolution
+  let rejectionReason = classification.rejectionReason;
+  if (!isUsable && additionalIssues.includes('low_resolution')) {
+    rejectionReason = rejectionReason ? `${rejectionReason}, 저해상도` : '저해상도';
+  }
+
   return {
     faceDetected,
     yawAngle,
@@ -107,6 +124,7 @@ export function createFaceAnalysisResult(
     confidence,
     qualityIssues: allIssues,
     isUsable,
+    rejectionReason,
   };
 }
 
@@ -124,7 +142,8 @@ export function getBucketColor(bucket: BucketType): string {
   const colors: Record<BucketType, string> = {
     A: 'text-accent-teal',
     B: 'text-accent-rose',
-    C: 'text-gray-500',
+    C: 'text-amber-500',
+    D: 'text-gray-400',
   };
   return colors[bucket];
 }
@@ -139,6 +158,8 @@ export function getQualityIssueMessage(issue: QualityIssue): string {
     no_face: '얼굴 미감지',
     negative_expression: '부정적 표정',
     extreme_angle: '과도한 각도',
+    multiple_faces: '여러 얼굴 감지',
+    face_too_small: '얼굴이 너무 작음',
   };
   return messages[issue];
 }

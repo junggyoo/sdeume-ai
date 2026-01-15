@@ -20,29 +20,29 @@ export function BucketBoard({ summary, className }: BucketBoardProps) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">
-            업로드 진행률
+            학습 가능 사진
           </span>
           <span className="text-sm text-gray-500">
-            {summary.total} / {MIN_IMAGES_TO_PROCEED}장
+            {summary.usableCount} / {MIN_IMAGES_TO_PROCEED}장
           </span>
         </div>
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className={cn(
               'h-full transition-all duration-300',
-              summary.total >= MIN_IMAGES_TO_PROCEED
+              summary.usableCount >= MIN_IMAGES_TO_PROCEED
                 ? 'bg-accent-teal'
                 : 'bg-accent-rose'
             )}
             style={{
-              width: `${Math.min((summary.total / MIN_IMAGES_TO_PROCEED) * 100, 100)}%`,
+              width: `${Math.min((summary.usableCount / MIN_IMAGES_TO_PROCEED) * 100, 100)}%`,
             }}
           />
         </div>
       </div>
 
-      {/* Bucket Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Bucket Summary - 4 columns */}
+      <div className="grid grid-cols-4 gap-2">
         <BucketCard
           label={`${BUCKET_TARGETS.A.label} (A)`}
           count={summary.bucketA}
@@ -62,14 +62,22 @@ export function BucketBoard({ summary, className }: BucketBoardProps) {
           count={summary.bucketC}
           target={BUCKET_TARGETS.C}
           status="neutral"
-          colorClass="text-gray-500"
+          colorClass="text-amber-500"
+        />
+        <BucketCard
+          label={`${BUCKET_TARGETS.D.label} (D)`}
+          count={summary.bucketD}
+          target={BUCKET_TARGETS.D}
+          status="excluded"
+          colorClass="text-gray-400"
+          isExcluded
         />
       </div>
     </div>
   );
 }
 
-type BucketStatus = 'complete' | 'insufficient' | 'neutral';
+type BucketStatus = 'complete' | 'insufficient' | 'neutral' | 'excluded';
 
 function getBucketStatus(
   count: number,
@@ -86,6 +94,7 @@ interface BucketCardProps {
   target: { min: number; max: number; label: string };
   status: BucketStatus;
   colorClass: string;
+  isExcluded?: boolean;
 }
 
 function BucketCard({
@@ -94,6 +103,7 @@ function BucketCard({
   target,
   status,
   colorClass,
+  isExcluded,
 }: BucketCardProps) {
   return (
     <div
@@ -101,7 +111,8 @@ function BucketCard({
         'p-3 rounded-lg border text-center',
         status === 'complete' && 'border-accent-teal bg-accent-teal/5',
         status === 'insufficient' && 'border-amber-400 bg-amber-50',
-        status === 'neutral' && 'border-gray-200 bg-gray-50'
+        status === 'neutral' && 'border-gray-200 bg-gray-50',
+        status === 'excluded' && 'border-gray-200 bg-gray-100 opacity-60'
       )}
     >
       <div className="flex items-center justify-center gap-1 mb-1">
@@ -114,7 +125,7 @@ function BucketCard({
         )}
       </div>
       <span className="text-xs text-gray-600">{label}</span>
-      {target.min > 0 && (
+      {!isExcluded && target.min > 0 && (
         <div className="text-xs text-gray-400 mt-1">
           목표: {target.min}~{target.max === Infinity ? '+' : target.max}장
         </div>
