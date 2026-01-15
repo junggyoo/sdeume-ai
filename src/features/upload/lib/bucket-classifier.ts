@@ -11,18 +11,17 @@ import {
  *
  * Step 1 (Critical Filter): Reject unusable photos → D
  *   - No face detected
- *   - Eyes closed
- *   - Extreme angle (|yaw| >= 45°)
+ *   - Extreme angle (|yaw| >= 70°)
  *
  * Step 2 (Vibe Check): Smile detection → C
  *   - happyScore >= 0.7 → C (regardless of angle)
  *
  * Step 3 (Geometry Check): Angle-based classification
- *   - |yaw| <= 10° → A (frontal)
- *   - |yaw| <= 35° → B (semi-profile)
+ *   - |yaw| <= 12° → A (frontal)
+ *   - |yaw| <= 55° → B (semi-profile)
  *
  * Step 4 (Fallback): Remaining photos → D
- *   - 35° < |yaw| < 45° with low smile score
+ *   - 55° < |yaw| < 70° with low smile score (Dead Zone)
  */
 export function classifyBucket(
   yawAngle: number,
@@ -83,12 +82,12 @@ export function classifyBucket(
     };
   }
 
-  // Step 4: Fallback → D (35° < |yaw| < 45° with no smile)
+  // Step 4: Fallback → D (55° < |yaw| < 70° with no smile - Dead Zone)
   return {
     bucket: 'D',
     qualityIssues: ['extreme_angle'],
     isUsable: false,
-    rejectionReason: '각도/표정 모호',
+    rejectionReason: `측면 범위 초과(${absYaw}°)`,
   };
 }
 

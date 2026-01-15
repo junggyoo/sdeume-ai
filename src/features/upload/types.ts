@@ -50,10 +50,10 @@ export interface QueuedFile {
 }
 
 export interface BucketSummary {
-  bucketA: number; // Identity: |yaw| <= 10° (target: 8-10)
-  bucketB: number; // Structure: 10° < |yaw| <= 35° (target: 6-8)
+  bucketA: number; // Identity: |yaw| <= 12° (target: 8-10)
+  bucketB: number; // Structure: 12° < |yaw| <= 55° (target: 6-8)
   bucketC: number; // Vibe: happy >= 0.7 (smile shots)
-  bucketD: number; // Discard: rejected photos (no face, eyes closed, extreme angle)
+  bucketD: number; // Discard: rejected photos (no face, extreme angle > 70°)
   total: number;
   usableCount: number; // A + B + C (photos usable for training)
 }
@@ -67,13 +67,17 @@ export interface UploadAnalysis {
 }
 
 // Bucket classification thresholds (Waterfall Logic)
+// Note: calculateYawAngle uses 2D coordinates which causes foreshortening distortion
+// - Actual 30° head turn may be calculated as 40-45°
+// - Thresholds are adjusted higher to compensate for this distortion
 export const BUCKET_THRESHOLDS = {
-  // Bucket A (Identity): |yaw| <= 10° - Core frontal shots for identity learning
-  FRONTAL_MAX_YAW: 10,
-  // Bucket B (Structure): 10° < |yaw| <= 45° - Semi-profile for depth learning
-  SIDE_MAX_YAW: 45,
-  // Beyond 60° is always rejected (Bucket D)
-  EXTREME_YAW: 60,
+  // Bucket A (Identity): |yaw| <= 12° - Core frontal shots for identity learning
+  FRONTAL_MAX_YAW: 12,
+  // Bucket B (Structure): 12° < |yaw| <= 55° - Semi-profile for depth learning
+  // (calculated 55° ≈ actual visual 40° due to perspective distortion)
+  SIDE_MAX_YAW: 55,
+  // Beyond 70° is always rejected (Bucket D) - only extreme profiles excluded
+  EXTREME_YAW: 70,
   // Minimum happy expression score for Bucket C (Vibe shots)
   MIN_HAPPY_SCORE: 0.7,
   // Eye Aspect Ratio threshold for eye closure detection (lowered for Asian eye shapes)

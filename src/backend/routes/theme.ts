@@ -26,7 +26,7 @@ const getThemes = async (
   const { data, error } = await supabase
     .from('themes')
     .select('*')
-    .order('display_order', { ascending: true });
+    .order('sort_order', { ascending: true });
 
   if (error) {
     console.error('Error fetching themes:', error);
