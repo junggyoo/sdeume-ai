@@ -1,0 +1,23 @@
+# Modal AI Backend Requirements
+# Sdeume AI - Image Generation Pipeline
+
+# Modal SDK
+modal>=0.64.0
+
+# Supabase Client
+supabase>=2.0.0
+
+# Image Processing
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Video Generation (Viral Movie Maker)
+moviepy>=1.0.3
+
+# HTTP Client
+httpx>=0.25.0
+aiohttp>=3.9.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.0.0

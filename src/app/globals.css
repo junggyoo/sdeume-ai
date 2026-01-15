@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@utility container {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 2rem;
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  /* ===== Sdeume AI Design Tokens ===== */
+
+  /* Primary Colors */
+  --color-primary-desktop: #0E1B2A;
+  --color-primary-mobile: #1A2B3C;
+  --color-primary-hover: #14263A;
+  --color-primary-pressed: #0B1622;
+
+  /* Secondary & Surface */
+  --color-secondary: #F6F1EA;
+  --color-surface: #FAF8F5;
+
+  /* Accent Colors */
+  --color-accent-rose: #B9896E;
+  --color-accent-teal: #2E5E5E;
+
+  /* Semantic Colors */
+  --color-success: #2E7D66;
+  --color-warning: #C47F39;
+  --color-error: #B83A4B;
+  --color-info: #1F6FEB;
+
+  /* Grayscale */
+  --color-ink: #111827;
+  --color-body: #374151;
+  --color-sub: #6B7280;
+  --color-line: #E5E7EB;
+
+  /* States */
+  --color-disabled-bg: #7C8794;
+  --color-disabled-text: #E5E7EB;
+  --color-ghost-hover: #F1EBE3;
+
+  /* Shadcn UI Compatibility */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary-ui: hsl(var(--secondary-ui));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Border Radius */
+  --radius-card: 12px;
+  --radius-input: 10px;
+  --radius-image: 8px;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Shadows */
+  --shadow-sm: 0 6px 16px rgba(14, 27, 42, 0.08);
+  --shadow-md: 0 10px 24px rgba(14, 27, 42, 0.12);
+  --shadow-up: 0 -4px 12px rgba(14, 27, 42, 0.08);
+
+  /* Spacing */
+  --spacing-safe-bottom: 100px;
+
+  /* Typography */
+  --font-serif: 'Noto Serif KR', Georgia, serif;
+  --font-sans: 'Pretendard', Inter, sans-serif;
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-light-sweep: light-sweep 0.6s ease-in-out;
+  --animate-aurora-float: aurora-float 3s ease-in-out infinite alternate;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes light-sweep {
+    0% {
+      background-position: -100% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes aurora-float {
+    0% {
+      opacity: 0.06;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0.1;
+      transform: translateY(-10px);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer base {
+  :root {
+    /* Sdeume AI Theme Variables */
+    --background: 36 33% 98%; /* #FAF8F5 - Surface */
+    --foreground: 222 47% 11%; /* #111827 - Ink */
+    --card: 36 33% 98%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 212 50% 11%; /* #0E1B2A - Primary Desktop */
+    --primary-foreground: 0 0% 100%;
+    --secondary-ui: 30 30% 94%; /* #F6F1EA - Secondary */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 30 30% 94%;
+    --muted-foreground: 220 9% 46%; /* #6B7280 - Sub */
+    --accent: 23 32% 57%; /* #B9896E - Rose Gold */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 351 52% 47%; /* #B83A4B - Error */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%; /* #E5E7EB - Line */
+    --input: 220 13% 91%;
+    --ring: 212 50% 11%;
+    --radius: 0.625rem; /* 10px - radius.input */
+
+    /* Aurora Gradients */
+    --gradient-hero: linear-gradient(180deg, #F6F1EA 0%, #FAF8F5 100%);
+    --gradient-aurora-overlay: linear-gradient(180deg, rgba(14,27,42,0) 0%, rgba(14,27,42,0.06) 100%);
+    --gradient-accent-shine: linear-gradient(135deg, #B9896E 0%, rgba(185,137,110,0.9) 100%);
+
+    /* Chart Colors */
+    --chart-1: 23 32% 57%; /* Rose Gold */
+    --chart-2: 173 34% 28%; /* Teal */
+    --chart-3: 159 37% 33%; /* Success */
+    --chart-4: 30 54% 49%; /* Warning */
+    --chart-5: 351 52% 47%; /* Error */
+  }
+
+  .dark {
+    --background: 212 50% 11%; /* #0E1B2A - Primary Desktop */
+    --foreground: 30 30% 94%; /* #F6F1EA */
+    --card: 212 43% 15%;
+    --card-foreground: 30 30% 94%;
+    --popover: 212 50% 11%;
+    --popover-foreground: 30 30% 94%;
+    --primary: 30 30% 94%;
+    --primary-foreground: 212 50% 11%;
+    --secondary-ui: 212 43% 15%;
+    --secondary-foreground: 30 30% 94%;
+    --muted: 212 43% 15%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 23 32% 57%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 351 52% 47%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 212 43% 20%;
+    --input: 212 43% 20%;
+    --ring: 30 30% 94%;
+    --chart-1: 23 40% 65%;
+    --chart-2: 173 40% 40%;
+    --chart-3: 159 45% 45%;
+    --chart-4: 30 60% 55%;
+    --chart-5: 351 60% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
