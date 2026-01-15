@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import {
@@ -120,11 +120,12 @@ const getExampleById = async (
 };
 
 // =============================================================================
-// Route Registration
+// Chainable Routes (for Hono RPC type inference)
 // =============================================================================
 
-export const registerExampleRoutes = (app: Hono<AppEnv>) => {
-  app.get('/example/:id', async (c) => {
+export const exampleRoutes = new Hono<AppEnv>()
+  // GET /:id - Get example by ID
+  .get('/:id', async (c) => {
     const parsedParams = ExampleParamsSchema.safeParse({
       id: c.req.param('id'),
     });
@@ -158,4 +159,11 @@ export const registerExampleRoutes = (app: Hono<AppEnv>) => {
 
     return respond(c, result);
   });
+
+// =============================================================================
+// Legacy Registration (for backward compatibility)
+// =============================================================================
+
+export const registerExampleRoutes = (app: Hono<AppEnv>) => {
+  app.route('/example', exampleRoutes);
 };

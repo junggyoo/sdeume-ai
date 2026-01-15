@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   success,
@@ -59,24 +59,28 @@ const getThemeBySlug = async (
 };
 
 // =============================================================================
-// Route Registration
+// Chainable Routes (for Hono RPC type inference)
 // =============================================================================
 
-export function registerThemeRoutes(app: Hono<AppEnv>) {
-  // GET /themes - 테마 목록 조회
-  app.get('/themes', async (c) => {
+export const themeRoutes = new Hono<AppEnv>()
+  // GET / - 테마 목록 조회
+  .get('/', async (c) => {
     const supabase = getSupabase(c);
     const result = await getThemes(supabase);
     return respond(c, result);
-  });
-
-  // GET /themes/:slug - 테마 상세 조회
-  app.get('/themes/:slug', async (c) => {
+  })
+  // GET /:slug - 테마 상세 조회
+  .get('/:slug', async (c) => {
     const supabase = getSupabase(c);
     const slug = c.req.param('slug');
     const result = await getThemeBySlug(supabase, slug);
     return respond(c, result);
   });
 
-  return app;
-}
+// =============================================================================
+// Legacy Registration (for backward compatibility)
+// =============================================================================
+
+export const registerThemeRoutes = (app: Hono<AppEnv>) => {
+  app.route('/themes', themeRoutes);
+};

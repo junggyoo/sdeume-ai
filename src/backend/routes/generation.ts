@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -198,12 +198,12 @@ const getGenerationById = async (
 };
 
 // =============================================================================
-// Route Registration
+// Chainable Routes (for Hono RPC type inference)
 // =============================================================================
 
-export const registerGenerationRoutes = (app: Hono<AppEnv>) => {
+export const generationRoutes = new Hono<AppEnv>()
   // POST /generate - Create a new generation job
-  app.post('/generate', async (c) => {
+  .post('/', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -244,10 +244,9 @@ export const registerGenerationRoutes = (app: Hono<AppEnv>) => {
     }
 
     return respond(c, result);
-  });
-
+  })
   // GET /generate/:generationId - Get generation status with mock time-based logic
-  app.get('/generate/:generationId', async (c) => {
+  .get('/:generationId', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -295,4 +294,11 @@ export const registerGenerationRoutes = (app: Hono<AppEnv>) => {
 
     return respond(c, result);
   });
+
+// =============================================================================
+// Legacy Registration (for backward compatibility with other routes)
+// =============================================================================
+
+export const registerGenerationRoutes = (app: Hono<AppEnv>) => {
+  app.route('/generate', generationRoutes);
 };

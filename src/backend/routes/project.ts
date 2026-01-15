@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import {
@@ -175,12 +175,12 @@ const updateProject = async (
 };
 
 // =============================================================================
-// Route Registration
+// Chainable Routes (for Hono RPC type inference)
 // =============================================================================
 
-export const registerProjectRoutes = (app: Hono<AppEnv>) => {
-  // GET /projects - Get all projects for current user
-  app.get('/projects', async (c) => {
+export const projectRoutes = new Hono<AppEnv>()
+  // GET / - Get all projects for current user
+  .get('/', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -211,10 +211,9 @@ export const registerProjectRoutes = (app: Hono<AppEnv>) => {
     }
 
     return respond(c, result);
-  });
-
-  // POST /projects - Create a new project
-  app.post('/projects', async (c) => {
+  })
+  // POST / - Create a new project
+  .post('/', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -255,10 +254,9 @@ export const registerProjectRoutes = (app: Hono<AppEnv>) => {
     }
 
     return respond(c, result);
-  });
-
-  // GET /projects/:projectId - Get a specific project
-  app.get('/projects/:projectId', async (c) => {
+  })
+  // GET /:projectId - Get a specific project
+  .get('/:projectId', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -305,10 +303,9 @@ export const registerProjectRoutes = (app: Hono<AppEnv>) => {
     }
 
     return respond(c, result);
-  });
-
-  // PATCH /projects/:projectId - Update a project
-  app.patch('/projects/:projectId', async (c) => {
+  })
+  // PATCH /:projectId - Update a project
+  .patch('/:projectId', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
@@ -363,4 +360,11 @@ export const registerProjectRoutes = (app: Hono<AppEnv>) => {
 
     return respond(c, result);
   });
+
+// =============================================================================
+// Legacy Registration (for backward compatibility)
+// =============================================================================
+
+export const registerProjectRoutes = (app: Hono<AppEnv>) => {
+  app.route('/projects', projectRoutes);
 };

@@ -70,10 +70,10 @@ export interface UploadAnalysis {
 export const BUCKET_THRESHOLDS = {
   // Bucket A (Identity): |yaw| <= 10° - Core frontal shots for identity learning
   FRONTAL_MAX_YAW: 10,
-  // Bucket B (Structure): 10° < |yaw| <= 35° - Semi-profile for depth learning
-  SIDE_MAX_YAW: 35,
-  // Beyond 45° is always rejected (Bucket D)
-  EXTREME_YAW: 45,
+  // Bucket B (Structure): 10° < |yaw| <= 45° - Semi-profile for depth learning
+  SIDE_MAX_YAW: 45,
+  // Beyond 60° is always rejected (Bucket D)
+  EXTREME_YAW: 60,
   // Minimum happy expression score for Bucket C (Vibe shots)
   MIN_HAPPY_SCORE: 0.7,
   // Eye Aspect Ratio threshold for eye closure detection (lowered for Asian eye shapes)
