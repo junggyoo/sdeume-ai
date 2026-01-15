@@ -54,7 +54,7 @@ describe('classifyBucket', () => {
 
       expect(result.bucket).toBe('C');
       expect(result.qualityIssues).toContain('eyes_closed');
-      expect(result.isUsable).toBe(false); // eyes_closed이므로 isUsable은 false
+      expect(result.isUsable).toBe(true); // 눈 감아도 C 버킷이면 사용 가능
     });
   });
 
@@ -86,7 +86,7 @@ describe('classifyBucket', () => {
   });
 
   describe('Step 3: Geometry Check - B bucket (Semi-profile)', () => {
-    it('should return B when 12° < |yaw| <= 55°', () => {
+    it('should return B when 12° < |yaw| < 70° (all non-frontal angles before extreme)', () => {
       const result = classifyBucket(30, defaultHappyScore, eyesOpen, faceDetected);
 
       expect(result.bucket).toBe('B');
@@ -99,19 +99,19 @@ describe('classifyBucket', () => {
       expect(result.bucket).toBe('B');
     });
 
-    it('should return B when yaw = 55° (boundary)', () => {
-      const result = classifyBucket(55, defaultHappyScore, eyesOpen, faceDetected);
+    it('should return B when yaw = 65° (SIDE_MAX_YAW boundary)', () => {
+      const result = classifyBucket(65, defaultHappyScore, eyesOpen, faceDetected);
 
       expect(result.bucket).toBe('B');
     });
 
-    it('should return B when yaw = -55° (left boundary)', () => {
-      const result = classifyBucket(-55, defaultHappyScore, eyesOpen, faceDetected);
+    it('should return B when yaw = -65° (left SIDE_MAX_YAW boundary)', () => {
+      const result = classifyBucket(-65, defaultHappyScore, eyesOpen, faceDetected);
 
       expect(result.bucket).toBe('B');
     });
 
-    // 핵심 테스트: 이전에 D로 분류되던 각도들
+    // 핵심 테스트: 이전에 D로 분류되던 각도들 - 모두 B로 수용
     it('should return B when yaw = 39.5° (previously classified as D)', () => {
       const result = classifyBucket(39.5, defaultHappyScore, eyesOpen, faceDetected);
 
@@ -136,38 +136,53 @@ describe('classifyBucket', () => {
 
       expect(result.bucket).toBe('B');
     });
-  });
 
-  describe('Step 4: Fallback - D bucket (Dead Zone)', () => {
-    it('should return D when 55° < |yaw| < 70° with low smile', () => {
-      const result = classifyBucket(60, defaultHappyScore, eyesOpen, faceDetected);
-
-      expect(result.bucket).toBe('D');
-      expect(result.qualityIssues).toContain('extreme_angle');
-      expect(result.isUsable).toBe(false);
-      expect(result.rejectionReason).toContain('60');
-    });
-
-    it('should return D when yaw = 56° (just over side boundary)', () => {
+    // 56°~69° 구간도 이제 B로 수용 (Dead Zone 제거)
+    it('should return B when yaw = 56° (no more Dead Zone)', () => {
       const result = classifyBucket(56, defaultHappyScore, eyesOpen, faceDetected);
 
-      expect(result.bucket).toBe('D');
+      expect(result.bucket).toBe('B');
+      expect(result.isUsable).toBe(true);
     });
 
-    it('should return D when yaw = 69° (just under extreme)', () => {
+    it('should return B when yaw = 60° (no more Dead Zone)', () => {
+      const result = classifyBucket(60, defaultHappyScore, eyesOpen, faceDetected);
+
+      expect(result.bucket).toBe('B');
+      expect(result.isUsable).toBe(true);
+    });
+
+    it('should return B when yaw = 69° (just under EXTREME_YAW)', () => {
       const result = classifyBucket(69, defaultHappyScore, eyesOpen, faceDetected);
 
-      expect(result.bucket).toBe('D');
+      expect(result.bucket).toBe('B');
+      expect(result.isUsable).toBe(true);
     });
   });
 
   describe('Eyes closed quality issue', () => {
-    it('should track eyes_closed as quality issue but not reject', () => {
+    it('should track eyes_closed as quality issue but still be usable in A bucket', () => {
       const result = classifyBucket(10, defaultHappyScore, false, faceDetected);
 
       expect(result.bucket).toBe('A');
       expect(result.qualityIssues).toContain('eyes_closed');
-      expect(result.isUsable).toBe(false);
+      expect(result.isUsable).toBe(true); // 눈 감아도 A 버킷이면 사용 가능
+    });
+
+    it('should track eyes_closed as quality issue but still be usable in B bucket', () => {
+      const result = classifyBucket(30, defaultHappyScore, false, faceDetected);
+
+      expect(result.bucket).toBe('B');
+      expect(result.qualityIssues).toContain('eyes_closed');
+      expect(result.isUsable).toBe(true); // 눈 감아도 B 버킷이면 사용 가능
+    });
+
+    it('should track eyes_closed as quality issue but still be usable in C bucket', () => {
+      const result = classifyBucket(40, 0.8, false, faceDetected);
+
+      expect(result.bucket).toBe('C');
+      expect(result.qualityIssues).toContain('eyes_closed');
+      expect(result.isUsable).toBe(true); // 눈 감아도 C 버킷이면 사용 가능
     });
   });
 
@@ -177,11 +192,15 @@ describe('classifyBucket', () => {
     });
 
     it('should have correct SIDE_MAX_YAW value', () => {
-      expect(BUCKET_THRESHOLDS.SIDE_MAX_YAW).toBe(55);
+      expect(BUCKET_THRESHOLDS.SIDE_MAX_YAW).toBe(65);
     });
 
     it('should have correct EXTREME_YAW value', () => {
       expect(BUCKET_THRESHOLDS.EXTREME_YAW).toBe(70);
+    });
+
+    it('should have correct MIN_EYE_ASPECT_RATIO value (relaxed for Asian eyes)', () => {
+      expect(BUCKET_THRESHOLDS.MIN_EYE_ASPECT_RATIO).toBe(0.1);
     });
   });
 });

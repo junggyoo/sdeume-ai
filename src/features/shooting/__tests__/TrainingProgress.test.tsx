@@ -63,31 +63,34 @@ describe('TrainingProgress', () => {
       // First message should be visible
       expect(screen.getByText(TRAINING_MESSAGES[0])).toBeInTheDocument();
 
-      // Advance to next message
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.messageRotation + TIMING.messageTransition);
+      // Advance to trigger interval callback
+      act(() => {
+        vi.advanceTimersByTime(TIMING.messageRotation);
       });
 
-      await waitFor(() => {
-        expect(screen.getByText(TRAINING_MESSAGES[1])).toBeInTheDocument();
+      // Advance past the transition timeout
+      act(() => {
+        vi.advanceTimersByTime(TIMING.messageTransition + 50);
       });
+
+      expect(screen.getByText(TRAINING_MESSAGES[1])).toBeInTheDocument();
     });
 
     it('should loop back to first message after last', async () => {
       render(<TrainingProgress status="training" />);
 
       // Advance through all messages
-      const totalTime =
-        (TIMING.messageRotation + TIMING.messageTransition) *
-        TRAINING_MESSAGES.length;
+      for (let i = 0; i < TRAINING_MESSAGES.length; i++) {
+        act(() => {
+          vi.advanceTimersByTime(TIMING.messageRotation);
+        });
+        act(() => {
+          vi.advanceTimersByTime(TIMING.messageTransition + 50);
+        });
+      }
 
-      await act(async () => {
-        vi.advanceTimersByTime(totalTime);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(TRAINING_MESSAGES[0])).toBeInTheDocument();
-      });
+      // After cycling through all, it should be back to first
+      expect(screen.getByText(TRAINING_MESSAGES[0])).toBeInTheDocument();
     });
   });
 

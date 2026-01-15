@@ -4,15 +4,23 @@ import { DropImage } from '../components/DropImage';
 import { TIMING, BLUR_STAGES } from '../constants';
 import type { GenerationImage } from '@/features/generation/types';
 
-// Mock framer-motion
+// Mock framer-motion - pass through all props including data-testid
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({
       children,
       style,
+      initial,
+      animate,
+      transition,
       ...props
-    }: React.PropsWithChildren<{ style?: React.CSSProperties }>) => (
-      <div data-testid="motion-div" style={style} {...props}>
+    }: React.PropsWithChildren<{
+      style?: React.CSSProperties;
+      initial?: object;
+      animate?: object;
+      transition?: object;
+    }>) => (
+      <div style={style} {...props}>
         {children}
       </div>
     ),
@@ -65,82 +73,72 @@ describe('DropImage', () => {
   });
 
   describe('Blur Transitions', () => {
-    it('should transition to blur(8px) after 500ms (processing state)', async () => {
+    it('should transition to blur(8px) after 500ms (processing state)', () => {
       render(<DropImage image={mockImage} index={0} />);
 
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.blurToProcessing);
+      act(() => {
+        vi.advanceTimersByTime(TIMING.blurToProcessing + 50);
       });
 
       const container = screen.getByTestId('blur-container');
-      await waitFor(() => {
-        expect(container).toHaveStyle({ filter: BLUR_STAGES.processing });
-      });
+      expect(container).toHaveStyle({ filter: BLUR_STAGES.processing });
     });
 
-    it('should transition to blur(0px) after 1500ms (revealed state)', async () => {
+    it('should transition to blur(0px) after 1500ms (revealed state)', () => {
       render(<DropImage image={mockImage} index={0} />);
 
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.processingToRevealed);
+      act(() => {
+        vi.advanceTimersByTime(TIMING.processingToRevealed + 50);
       });
 
       const container = screen.getByTestId('blur-container');
-      await waitFor(() => {
-        expect(container).toHaveStyle({ filter: BLUR_STAGES.revealed });
-      });
+      expect(container).toHaveStyle({ filter: BLUR_STAGES.revealed });
     });
   });
 
   describe('Shimmer Overlay', () => {
-    it('should show shimmer overlay during processing state', async () => {
+    it('should show shimmer overlay during processing state', () => {
       render(<DropImage image={mockImage} index={0} />);
 
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.blurToProcessing);
+      act(() => {
+        vi.advanceTimersByTime(TIMING.blurToProcessing + 50);
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('shimmer-overlay')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('shimmer-overlay')).toBeInTheDocument();
     });
 
-    it('should hide shimmer overlay after revealed state', async () => {
+    it('should hide shimmer overlay after revealed state', () => {
       render(<DropImage image={mockImage} index={0} />);
 
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.processingToRevealed);
+      act(() => {
+        vi.advanceTimersByTime(TIMING.processingToRevealed + 50);
       });
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('shimmer-overlay')).not.toBeInTheDocument();
-      });
+      expect(screen.queryByTestId('shimmer-overlay')).not.toBeInTheDocument();
     });
   });
 
   describe('Callbacks', () => {
-    it('should call onDropComplete when image is revealed', async () => {
+    it('should call onDropComplete when image is revealed', () => {
       const onDropComplete = vi.fn();
       render(
         <DropImage image={mockImage} index={0} onDropComplete={onDropComplete} />
       );
 
-      await act(async () => {
-        vi.advanceTimersByTime(TIMING.processingToRevealed);
+      act(() => {
+        vi.advanceTimersByTime(TIMING.processingToRevealed + 50);
       });
 
-      await waitFor(() => {
-        expect(onDropComplete).toHaveBeenCalledTimes(1);
-      });
+      expect(onDropComplete).toHaveBeenCalledTimes(1);
     });
 
-    it('should not call onDropComplete before reveal', async () => {
+    it('should not call onDropComplete before reveal', () => {
       const onDropComplete = vi.fn();
       render(
         <DropImage image={mockImage} index={0} onDropComplete={onDropComplete} />
       );
 
-      await act(async () => {
+      act(() => {
         vi.advanceTimersByTime(TIMING.blurToProcessing - 100);
       });
 
@@ -152,22 +150,22 @@ describe('DropImage', () => {
     it('should have z-index equal to index', () => {
       render(<DropImage image={mockImage} index={5} />);
 
-      const motionDiv = screen.getByTestId('motion-div');
-      expect(motionDiv).toHaveStyle({ zIndex: 5 });
+      const dropImage = screen.getByTestId('drop-image');
+      expect(dropImage).toHaveStyle({ zIndex: 5 });
     });
 
     it('should have negative marginTop for index > 0', () => {
       render(<DropImage image={mockImage} index={3} />);
 
-      const motionDiv = screen.getByTestId('motion-div');
-      expect(motionDiv).toHaveStyle({ marginTop: '-20px' });
+      const dropImage = screen.getByTestId('drop-image');
+      expect(dropImage).toHaveStyle({ marginTop: '-20px' });
     });
 
     it('should have no marginTop for index 0', () => {
       render(<DropImage image={mockImage} index={0} />);
 
-      const motionDiv = screen.getByTestId('motion-div');
-      expect(motionDiv).toHaveStyle({ marginTop: 0 });
+      const dropImage = screen.getByTestId('drop-image');
+      expect(dropImage).toHaveStyle({ marginTop: 0 });
     });
   });
 });

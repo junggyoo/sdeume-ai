@@ -588,3 +588,11 @@ ADD COLUMN IF NOT EXISTS bride_upload_count INTEGER DEFAULT 0;
 
 COMMENT ON COLUMN public.projects.groom_upload_count IS 'Number of groom photos uploaded';
 COMMENT ON COLUMN public.projects.bride_upload_count IS 'Number of bride photos uploaded';
+-- Migration: Add images JSONB column to generations table
+-- Version: 0005
+-- Description: Stores generated image data for mock API responses
+
+ALTER TABLE public.generations
+ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]';
+
+COMMENT ON COLUMN public.generations.images IS 'Array of generated images: [{"url": "...", "is_blur": boolean}, ...]';

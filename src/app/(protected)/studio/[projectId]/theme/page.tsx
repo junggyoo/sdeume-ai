@@ -81,8 +81,8 @@ export default function ThemePage() {
         selectedThemeId: selectedTheme,
       },
     });
-    // TODO: Navigate to shooting page (MVP에서는 대시보드로)
-    router.push(`/dashboard`);
+    // Navigate to shooting page (Step 4)
+    router.push(`/studio/${params.projectId}/shooting`);
   };
 
   const handleBack = () => {

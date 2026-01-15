@@ -29,6 +29,10 @@ const GenerationIdParamSchema = z.object({
   generationId: z.string().uuid(),
 });
 
+const ProjectIdParamSchema = z.object({
+  projectId: z.string().uuid(),
+});
+
 type CreateGenerationInput = z.infer<typeof CreateGenerationSchema>;
 
 // =============================================================================
@@ -197,6 +201,40 @@ const getGenerationById = async (
   });
 };
 
+const getGenerationByProjectId = async (
+  supabase: SupabaseClient,
+  projectId: string,
+  userId: string
+): Promise<HandlerResult<Generation, GenerationServiceError>> => {
+  const { data, error } = await supabase
+    .from('generations')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return failure(404, generationErrorCodes.notFound, 'Generation not found');
+    }
+    return failure(500, generationErrorCodes.fetchError, error.message);
+  }
+
+  const generation = mapRowToGeneration(data);
+
+  // Apply mock status logic for development
+  const { status, images } = calculateMockStatusAndImages(generation.createdAt);
+
+  return success({
+    ...generation,
+    status,
+    images,
+    completedAt: status === 'completed' ? new Date().toISOString() : null,
+  });
+};
+
 // =============================================================================
 // Chainable Routes (for Hono RPC type inference)
 // =============================================================================
@@ -240,6 +278,55 @@ export const generationRoutes = new Hono<AppEnv>()
     if (!result.ok) {
       const errorResult = result as ErrorResult<GenerationServiceError, unknown>;
       logger.error('Failed to create generation', errorResult.error.message);
+      return respond(c, result);
+    }
+
+    return respond(c, result);
+  })
+  // GET /generate/project/:projectId - Get generation by project ID
+  .get('/project/:projectId', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    const parsedParams = ProjectIdParamSchema.safeParse({
+      projectId: c.req.param('projectId'),
+    });
+
+    if (!parsedParams.success) {
+      return respond(c, failure(400, 'INVALID_PARAMS', 'Invalid project ID'));
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) {
+      return respond(
+        c,
+        failure(401, 'UNAUTHORIZED', 'Authorization header required')
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return respond(c, failure(401, 'UNAUTHORIZED', 'Invalid token'));
+    }
+
+    const result = await getGenerationByProjectId(
+      supabase,
+      parsedParams.data.projectId,
+      user.id
+    );
+
+    if (!result.ok) {
+      const errorResult = result as ErrorResult<GenerationServiceError, unknown>;
+      if (errorResult.error.code === generationErrorCodes.notFound) {
+        logger.warn('Generation not found for project', parsedParams.data.projectId);
+      } else {
+        logger.error('Failed to fetch generation', errorResult.error.message);
+      }
       return respond(c, result);
     }
 

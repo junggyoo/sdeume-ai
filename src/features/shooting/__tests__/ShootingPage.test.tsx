@@ -9,13 +9,33 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+// Mock react-use
+vi.mock('react-use', () => ({
+  useNetworkState: () => ({ online: true }),
+}));
+
 // Mock useProject
 vi.mock('@/features/project/hooks/useProject', () => ({
   useProject: () => ({
     data: {
       id: 'test-project-123',
-      generationId: 'gen-123',
+      selectedThemeId: 'theme-123',
     },
+  }),
+}));
+
+// Create mock for useProjectGeneration
+const mockCreateGeneration = vi.fn().mockResolvedValue({ id: 'gen-123' });
+let mockProjectGeneration: { id: string } | null = { id: 'gen-123' };
+let mockIsLoadingGeneration = false;
+let mockIsCreating = false;
+
+vi.mock('@/features/generation/hooks/useProjectGeneration', () => ({
+  useProjectGeneration: () => ({
+    generation: mockProjectGeneration,
+    isLoading: mockIsLoadingGeneration,
+    createGeneration: mockCreateGeneration,
+    isCreating: mockIsCreating,
   }),
 }));
 
@@ -24,15 +44,15 @@ const mockConsumeNewImage = vi.fn();
 const mockClearNewImagesQueue = vi.fn();
 let mockGenerationData: Partial<Generation> | undefined = undefined;
 let mockNewImagesQueue: { url: string; is_blur: boolean }[] = [];
-let mockIsLoading = false;
-let mockError: Error | null = null;
+let mockIsPollingLoading = false;
+let mockPollingError: Error | null = null;
 
 vi.mock('@/features/generation/hooks/useGenerationJob', () => ({
   useGenerationJob: () => ({
     generation: mockGenerationData,
-    isLoading: mockIsLoading,
+    isLoading: mockIsPollingLoading,
     isPolling: true,
-    error: mockError,
+    error: mockPollingError,
     newImagesQueue: mockNewImagesQueue,
     consumeNewImage: mockConsumeNewImage,
     clearNewImagesQueue: mockClearNewImagesQueue,
@@ -61,8 +81,11 @@ describe('ShootingPage', () => {
     vi.clearAllMocks();
     mockGenerationData = undefined;
     mockNewImagesQueue = [];
-    mockIsLoading = false;
-    mockError = null;
+    mockIsPollingLoading = false;
+    mockPollingError = null;
+    mockProjectGeneration = { id: 'gen-123' };
+    mockIsLoadingGeneration = false;
+    mockIsCreating = false;
   });
 
   describe('Phase Determination', () => {
@@ -123,7 +146,7 @@ describe('ShootingPage', () => {
 
     it('should show error state when status is failed', async () => {
       mockGenerationData = { status: 'failed' as GenerationStatus, images: [] };
-      mockError = new Error('Generation failed');
+      mockPollingError = new Error('Generation failed');
 
       render(<ShootingPage />);
 
@@ -137,7 +160,7 @@ describe('ShootingPage', () => {
 
   describe('Loading State', () => {
     it('should show loading state when data is loading', () => {
-      mockIsLoading = true;
+      mockIsLoadingGeneration = true;
       mockGenerationData = undefined;
 
       render(<ShootingPage />);

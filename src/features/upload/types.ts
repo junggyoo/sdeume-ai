@@ -51,9 +51,9 @@ export interface QueuedFile {
 
 export interface BucketSummary {
   bucketA: number; // Identity: |yaw| <= 12° (target: 8-10)
-  bucketB: number; // Structure: 12° < |yaw| <= 55° (target: 6-8)
+  bucketB: number; // Structure: 12° < |yaw| < 70° (target: 6-8, no Dead Zone)
   bucketC: number; // Vibe: happy >= 0.7 (smile shots)
-  bucketD: number; // Discard: rejected photos (no face, extreme angle > 70°)
+  bucketD: number; // Discard: rejected photos (no face, extreme angle >= 70°)
   total: number;
   usableCount: number; // A + B + C (photos usable for training)
 }
@@ -73,15 +73,16 @@ export interface UploadAnalysis {
 export const BUCKET_THRESHOLDS = {
   // Bucket A (Identity): |yaw| <= 12° - Core frontal shots for identity learning
   FRONTAL_MAX_YAW: 12,
-  // Bucket B (Structure): 12° < |yaw| <= 55° - Semi-profile for depth learning
-  // (calculated 55° ≈ actual visual 40° due to perspective distortion)
-  SIDE_MAX_YAW: 55,
+  // Bucket B (Structure): 12° < |yaw| < 70° - All semi-profile angles before extreme
+  // Widened to 65° to accept more side angles (no Dead Zone)
+  SIDE_MAX_YAW: 65,
   // Beyond 70° is always rejected (Bucket D) - only extreme profiles excluded
   EXTREME_YAW: 70,
   // Minimum happy expression score for Bucket C (Vibe shots)
   MIN_HAPPY_SCORE: 0.7,
-  // Eye Aspect Ratio threshold for eye closure detection (lowered for Asian eye shapes)
-  MIN_EYE_ASPECT_RATIO: 0.15,
+  // Eye Aspect Ratio threshold for eye closure detection
+  // Relaxed to 0.1 for Asian eye shapes, side angles, and low angle shots
+  MIN_EYE_ASPECT_RATIO: 0.1,
   // Minimum image dimension for quality
   MIN_IMAGE_SIZE: 512,
 } as const;
