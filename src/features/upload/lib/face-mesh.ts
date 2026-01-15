@@ -113,8 +113,10 @@ function calculateYawAngle(landmarks: faceapi.FaceLandmarks68): number {
   return Math.round(yawAngle * 10) / 10;
 }
 
-// Minimum face size ratio (face area / image area) for valid detection
-const MIN_FACE_SIZE_RATIO = 0.02; // Face should be at least 2% of image area
+// Thresholds for valid face detection
+const MIN_FACE_SIZE_RATIO = 0.02; // Face should be at least 2% of image area for final classification
+const SIGNIFICANT_FACE_SIZE_RATIO = 0.03; // Face should be at least 3% to be counted as "significant"
+const SIGNIFICANT_FACE_CONFIDENCE = 0.4; // Minimum confidence to be counted as "significant"
 
 /**
  * Analyze a face in an image using face-api.js with Waterfall Logic
@@ -138,22 +140,6 @@ export async function analyzeFace(
       .withFaceLandmarks()
       .withFaceExpressions();
 
-    // Check for multiple faces (not suitable for LoRA training)
-    if (allDetections.length > 1) {
-      console.log(`[face-api] Multiple faces detected: ${allDetections.length}`);
-      return {
-        faceDetected: true,
-        yawAngle: 0,
-        smileScore: 0,
-        eyesOpen: false,
-        bucket: 'D',
-        confidence: 0,
-        qualityIssues: ['multiple_faces'],
-        isUsable: false,
-        rejectionReason: '여러 얼굴 감지',
-      };
-    }
-
     // No face detected
     if (allDetections.length === 0) {
       console.log('[face-api] No face detected');
@@ -171,18 +157,69 @@ export async function analyzeFace(
       };
     }
 
-    const detection = allDetections[0];
-    const faceBox = detection.detection.box;
+    // Calculate face metrics
     const imageWidth = imageElement.width || (imageElement as HTMLImageElement).naturalWidth;
     const imageHeight = imageElement.height || (imageElement as HTMLImageElement).naturalHeight;
+    const imageArea = imageWidth * imageHeight;
+
+    const facesWithMetrics = allDetections.map((d) => ({
+      detection: d,
+      faceArea: d.detection.box.width * d.detection.box.height,
+      faceRatio: (d.detection.box.width * d.detection.box.height) / imageArea,
+      confidence: d.detection.score,
+    }));
+
+    // Filter for SIGNIFICANT faces: high confidence AND large enough size
+    // This filters out background posters, small faces, and false positives
+    const significantFaces = facesWithMetrics.filter(
+      (f) => f.confidence >= SIGNIFICANT_FACE_CONFIDENCE && f.faceRatio >= SIGNIFICANT_FACE_SIZE_RATIO
+    );
+
+    console.log(
+      `[face-api] Detected ${allDetections.length} face(s), ` +
+      `${significantFaces.length} significant (conf≥${SIGNIFICANT_FACE_CONFIDENCE}, size≥${SIGNIFICANT_FACE_SIZE_RATIO * 100}%)`
+    );
+
+    // Check for multiple significant faces (not suitable for LoRA training)
+    if (significantFaces.length > 1) {
+      console.log(`[face-api] Multiple significant faces detected: ${significantFaces.length}`);
+      return {
+        faceDetected: true,
+        yawAngle: 0,
+        smileScore: 0,
+        eyesOpen: false,
+        bucket: 'D',
+        confidence: 0,
+        qualityIssues: ['multiple_faces'],
+        isUsable: false,
+        rejectionReason: '여러 얼굴 감지',
+      };
+    }
+
+    // No significant face found
+    if (significantFaces.length === 0) {
+      console.log('[face-api] No significant face detected (low confidence or too small)');
+      return {
+        faceDetected: false,
+        yawAngle: 0,
+        smileScore: 0,
+        eyesOpen: false,
+        bucket: 'D',
+        confidence: 0,
+        qualityIssues: ['no_face'],
+        isUsable: false,
+        rejectionReason: '얼굴 미감지',
+      };
+    }
+
+    // Use the single significant face
+    const largestFace = significantFaces[0];
+
+    const detection = largestFace.detection;
 
     // Check if face is too small relative to image (e.g., full body shot)
-    const imageArea = imageWidth * imageHeight;
-    const faceArea = faceBox.width * faceBox.height;
-    const faceRatio = faceArea / imageArea;
-
-    if (faceRatio < MIN_FACE_SIZE_RATIO) {
-      console.log(`[face-api] Face too small: ${(faceRatio * 100).toFixed(2)}% of image`);
+    if (largestFace.faceRatio < MIN_FACE_SIZE_RATIO) {
+      console.log(`[face-api] Face too small: ${(largestFace.faceRatio * 100).toFixed(2)}% of image`);
       return {
         faceDetected: true,
         yawAngle: 0,
@@ -216,7 +253,7 @@ export async function analyzeFace(
 
     console.log(
       `[face-api] Face detected - yaw: ${yawAngle}°, happy: ${(happyScore * 100).toFixed(1)}%, ` +
-        `EAR: ${eyeAspectRatio.toFixed(2)}, faceRatio: ${(faceRatio * 100).toFixed(1)}%, ` +
+        `EAR: ${eyeAspectRatio.toFixed(2)}, faceRatio: ${(largestFace.faceRatio * 100).toFixed(1)}%, ` +
         `bucket: ${classification.bucket}, usable: ${classification.isUsable}`
     );
 

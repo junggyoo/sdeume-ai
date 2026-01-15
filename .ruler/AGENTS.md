@@ -46,11 +46,9 @@ use following libraries for specific functionalities:
 - src/features/[featureName]/components/\*: Components for specific feature
 - src/features/[featureName]/constants/\*
 - src/features/[featureName]/hooks/\*
-- src/features/[featureName]/backend/route.ts: Hono 라우터 정의
-- src/features/[featureName]/backend/service.ts: Supabase/비즈니스 로직
-- src/features/[featureName]/backend/error.ts: 상황별 error code 정의
-- src/features/[featureName]/backend/schema.ts: 요청/응답 zod 스키마 정의
-- src/features/[featureName]/lib/\*: 클라이언트 측 DTO 재노출 등
+- src/features/[featureName]/types.ts: 프론트/백엔드 공유 타입 정의
+- src/features/[featureName]/lib/\*: 클라이언트 측 DTO, 유틸리티 등
+- src/backend/routes/[featureName].ts: Hono 라우터 + 서비스 + 스키마 + 에러코드 통합 파일
 - supabase/migrations: Supabase SQL migration 파일 (예시 테이블 포함)
 
 ## Backend Layer (Hono + Next.js)
@@ -64,8 +62,9 @@ use following libraries for specific functionalities:
   4. `registerExampleRoutes(app)` 등 기능별 라우터 등록 (모든 라우터는 `src/features/[feature]/backend/route.ts` 에서 정의).
 - `src/backend/hono/context.ts` 의 `AppEnv` 는 `c.get`/`c.var` 로 접근 가능한 `supabase`, `logger`, `config` 키를 제공한다. 절대 `c.env` 를 직접 수정하지 않는다.
 - 공통 HTTP 응답 헬퍼는 `src/backend/http/response.ts`에서 제공하며, 모든 라우터/서비스는 `success`/`failure`/`respond` 패턴을 사용한다.
-- 기능별 백엔드 로직은 `src/features/[feature]/backend/service.ts`(Supabase 접근), `schema.ts`(요청/응답 zod 정의), `route.ts`(Hono 라우터)로 분리한다.
-- 프런트엔드가 동일 스키마를 사용할 경우 `src/features/[feature]/lib/dto.ts`에서 backend/schema를 재노출해 React Query 훅 등에서 재사용한다.
+- 기능별 백엔드 로직은 `src/backend/routes/[feature].ts` 단일 파일에 통합한다 (라우터 + 서비스 + 스키마 + 에러코드).
+- 프런트/백엔드 공유 타입은 `src/features/[feature]/types.ts`에 정의하고, 백엔드에서 import하여 사용한다.
+- 프런트엔드 전용 스키마가 필요한 경우 `src/features/[feature]/lib/dto.ts`에서 별도 정의한다.
 - 새 테이블이나 시드 데이터는 반드시 `supabase/migrations` 에 SQL 파일로 추가하고, Supabase에 적용 여부를 사용자에게 위임한다.
 - 프론트엔드 레이어는 전부 Client Component (`"use client"`) 로 유지하고, 서버 상태는 `@tanstack/react-query` 로만 관리한다.
 
