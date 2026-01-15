@@ -3,6 +3,8 @@ import { errorBoundary } from '@/backend/middleware/error';
 import { withAppContext } from '@/backend/middleware/context';
 import { withSupabase } from '@/backend/middleware/supabase';
 import { registerExampleRoutes } from '@/features/example/backend/route';
+import { registerProjectRoutes } from '@/features/project/backend/route';
+import { registerThemeRoutes } from '@/features/theme/backend/route';
 import type { AppEnv } from '@/backend/hono/context';
 
 let singletonApp: Hono<AppEnv> | null = null;
@@ -12,13 +14,15 @@ export const createHonoApp = () => {
     return singletonApp;
   }
 
-  const app = new Hono<AppEnv>();
+  const app = new Hono<AppEnv>().basePath('/api');
 
   app.use('*', errorBoundary());
   app.use('*', withAppContext());
   app.use('*', withSupabase());
 
   registerExampleRoutes(app);
+  registerProjectRoutes(app);
+  registerThemeRoutes(app);
 
   singletonApp = app;
 

@@ -3,12 +3,16 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Support both new (SECRET_KEY) and legacy (SERVICE_ROLE_KEY) naming
+const getSecretKey = () =>
+  process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getSecretKey()!,
     {
       cookies: {
         getAll() {
@@ -33,7 +37,7 @@ export async function createClient() {
 export async function createPureClient() {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getSecretKey()!,
     {
       cookies: {
         getAll() {

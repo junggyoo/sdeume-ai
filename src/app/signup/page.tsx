@@ -29,7 +29,7 @@ export default function SignupPage({ params }: SignupPageProps) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectedFrom = searchParams.get("redirectedFrom") ?? "/";
+      const redirectedFrom = searchParams.get("redirectedFrom") ?? "/dashboard";
       router.replace(redirectedFrom);
     }
   }, [isAuthenticated, router, searchParams]);
@@ -79,7 +79,7 @@ export default function SignupPage({ params }: SignupPageProps) {
 
         await refresh();
 
-        const redirectedFrom = searchParams.get("redirectedFrom") ?? "/";
+        const redirectedFrom = searchParams.get("redirectedFrom") ?? "/dashboard";
 
         if (result.data.session) {
           router.replace(redirectedFrom);

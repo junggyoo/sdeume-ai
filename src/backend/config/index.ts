@@ -3,7 +3,8 @@ import type { AppConfig } from '@/backend/hono/context';
 
 const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Support both new (SECRET_KEY) and legacy (SERVICE_ROLE_KEY) naming
+  SUPABASE_SECRET_KEY: z.string().min(1),
 });
 
 let cachedConfig: AppConfig | null = null;
@@ -39,7 +40,9 @@ export const getAppConfig = (): AppConfig => {
 
   const parsed = envSchema.safeParse({
     SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    // Fallback to legacy SERVICE_ROLE_KEY if SECRET_KEY is not set
+    SUPABASE_SECRET_KEY:
+      process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
   });
 
   if (!parsed.success) {
@@ -52,7 +55,7 @@ export const getAppConfig = (): AppConfig => {
   cachedConfig = {
     supabase: {
       url: parsed.data.SUPABASE_URL,
-      serviceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
+      serviceRoleKey: parsed.data.SUPABASE_SECRET_KEY,
     },
   } satisfies AppConfig;
 
