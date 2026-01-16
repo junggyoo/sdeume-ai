@@ -31,6 +31,17 @@
   --color-accent-rose: #B9896E;
   --color-accent-teal: #2E5E5E;
 
+  /* Romantic Tech Aurora Colors */
+  --color-aurora-indigo: #6366F1;
+  --color-aurora-purple: #A855F7;
+  --color-aurora-pink: #EC4899;
+  --color-aurora-violet: #8B5CF6;
+
+  /* Classic Aurora Colors */
+  --color-aurora-teal: #86E3FF;
+  --color-aurora-lilac: #C7B9FF;
+  --color-aurora-warm: #FFD6A5;
+
   /* Semantic Colors */
   --color-success: #2E7D66;
   --color-warning: #C47F39;
@@ -101,7 +112,14 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-light-sweep: light-sweep 0.6s ease-in-out;
   --animate-aurora-float: aurora-float 3s ease-in-out infinite alternate;
+  --animate-aurora-wave-slow: aurora-wave-slow 90s ease-in-out infinite;
   --animate-spin-slow: spin-slow 3s linear infinite;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-blur: 12px;
+  --glass-shadow: 0 8px 32px rgba(14, 27, 42, 0.08);
 
   @keyframes spin-slow {
     from {
@@ -143,6 +161,28 @@
     100% {
       opacity: 0.1;
       transform: translateY(-10px);
+    }
+  }
+  @keyframes aurora-wave-slow {
+    0% {
+      transform: translateX(0) translateY(0) rotate(0deg);
+      opacity: var(--aurora-opacity-start, 0.06);
+    }
+    25% {
+      transform: translateX(5%) translateY(-3%) rotate(1deg);
+      opacity: var(--aurora-opacity-mid, 0.08);
+    }
+    50% {
+      transform: translateX(-3%) translateY(2%) rotate(-1deg);
+      opacity: var(--aurora-opacity-end, 0.1);
+    }
+    75% {
+      transform: translateX(2%) translateY(-5%) rotate(0.5deg);
+      opacity: var(--aurora-opacity-mid, 0.08);
+    }
+    100% {
+      transform: translateX(0) translateY(0) rotate(0deg);
+      opacity: var(--aurora-opacity-start, 0.06);
     }
   }
 }

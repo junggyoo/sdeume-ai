@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Upload, Loader2, X, Check, AlertCircle } from 'lucide-react';
 import type { QueuedFile, BucketType } from '../types';
@@ -75,7 +75,7 @@ export function BulkUploader({
         <input
           type="file"
           multiple
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,.webp,.heic,.heif"
           onChange={handleChange}
           disabled={disabled || isProcessing}
           className="hidden"
@@ -99,8 +99,12 @@ interface QueueItemProps {
   onRemove: (id: string) => void;
 }
 
-function QueueItem({ item, onRemove }: QueueItemProps) {
+const QueueItem = memo(function QueueItem({ item, onRemove }: QueueItemProps) {
   const isExcluded = item.analysis?.bucket === 'D';
+
+  const handleRemove = useCallback(() => {
+    onRemove(item.id);
+  }, [item.id, onRemove]);
 
   return (
     <div className={cn('relative group aspect-square', isExcluded && 'opacity-50')}>
@@ -109,6 +113,8 @@ function QueueItem({ item, onRemove }: QueueItemProps) {
         <img
           src={item.previewUrl}
           alt=""
+          decoding="async"
+          loading="lazy"
           className={cn(
             'w-full h-full object-cover rounded-lg',
             isExcluded && 'grayscale'
@@ -149,7 +155,7 @@ function QueueItem({ item, onRemove }: QueueItemProps) {
 
       {/* Remove Button */}
       <button
-        onClick={() => onRemove(item.id)}
+        onClick={handleRemove}
         className={cn(
           'absolute top-1 right-1 w-6 h-6 rounded-full',
           'bg-black/50 text-white',
@@ -161,7 +167,7 @@ function QueueItem({ item, onRemove }: QueueItemProps) {
       </button>
     </div>
   );
-}
+});
 
 interface BucketBadgeProps {
   bucket: BucketType;

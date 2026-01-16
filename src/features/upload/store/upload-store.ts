@@ -7,6 +7,14 @@ import type {
   FaceAnalysisResult,
 } from '../types';
 
+const BATCH_SIZE = 5;
+
+const yieldToMain = (): Promise<void> => {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => setTimeout(resolve, 0));
+  });
+};
+
 interface UploadStore {
   // Current selected role
   activeRole: UploadRole;
@@ -16,8 +24,11 @@ interface UploadStore {
   groomQueue: QueuedFile[];
   brideQueue: QueuedFile[];
 
-  // Add files to queue
+  // Add files to queue (synchronous - for backward compatibility)
   addToQueue: (files: File[], role: UploadRole) => QueuedFile[];
+
+  // Add files to queue (async with batch processing for better UI responsiveness)
+  addToQueueAsync: (files: File[], role: UploadRole) => Promise<QueuedFile[]>;
 
   // Update queue item
   updateQueueItem: (
@@ -71,6 +82,39 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
     }));
 
     return newItems;
+  },
+
+  addToQueueAsync: async (files, role) => {
+    if (files.length === 0) return [];
+
+    const allItems: QueuedFile[] = [];
+    const queueKey = role === 'groom' ? 'groomQueue' : 'brideQueue';
+
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      const batchItems: QueuedFile[] = batch.map((file) => ({
+        id: uuidv4(),
+        file,
+        role,
+        status: 'pending' as const,
+        progress: 0,
+        previewUrl: URL.createObjectURL(file),
+      }));
+
+      allItems.push(...batchItems);
+
+      // Incremental state update
+      set((state) => ({
+        [queueKey]: [...state[queueKey], ...batchItems],
+      }));
+
+      // Yield to main thread between batches (except for last batch)
+      if (i + BATCH_SIZE < files.length) {
+        await yieldToMain();
+      }
+    }
+
+    return allItems;
   },
 
   updateQueueItem: (id, role, updates) => {

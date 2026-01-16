@@ -42,7 +42,7 @@ export function useBulkUpload({
 
   const {
     getQueue,
-    addToQueue,
+    addToQueueAsync,
     updateQueueItem,
     removeFromQueue,
     clearQueue: clearStoreQueue,
@@ -132,8 +132,8 @@ export function useBulkUpload({
       setIsProcessing(true);
       setProcessingCount(fileArray.length);
 
-      // Add to queue
-      const newItems = addToQueue(fileArray, role);
+      // Add to queue with async batch processing for better UI responsiveness
+      const newItems = await addToQueueAsync(fileArray, role);
 
       // Yield before starting to ensure UI updates
       await yieldToMain();
@@ -150,7 +150,7 @@ export function useBulkUpload({
       setIsProcessing(false);
       setProcessingCount(0);
     },
-    [role, addToQueue, processFile, yieldToMain]
+    [role, addToQueueAsync, processFile, yieldToMain]
   );
 
   // Remove file from queue
