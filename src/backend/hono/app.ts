@@ -6,6 +6,7 @@ import { exampleRoutes } from '@/backend/routes/example';
 import { projectRoutes } from '@/backend/routes/project';
 import { themeRoutes } from '@/backend/routes/theme';
 import { generationRoutes } from '@/backend/routes/generation';
+import { shootRoutes } from '@/backend/routes/shoot';
 import type { AppEnv } from '@/backend/hono/context';
 
 // =============================================================================
@@ -30,7 +31,8 @@ const createTypedRoutes = () => {
     .route('/example', exampleRoutes)
     .route('/projects', projectRoutes)
     .route('/themes', themeRoutes)
-    .route('/generate', generationRoutes);
+    .route('/generate', generationRoutes)
+    .route('/shoot', shootRoutes);
 };
 
 // Type export for Hono RPC client

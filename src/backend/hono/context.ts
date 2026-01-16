@@ -8,6 +8,13 @@ export type AppConfig = {
     url: string;
     serviceRoleKey: string;
   };
+  fal?: {
+    apiKey: string;
+    webhookSecret: string;
+  };
+  modal?: {
+    endpointUrl: string;
+  };
 };
 
 export type AppVariables = {
