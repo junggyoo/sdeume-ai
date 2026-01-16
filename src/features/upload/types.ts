@@ -12,6 +12,14 @@ export interface FaceAnalysisResult {
   qualityIssues: QualityIssue[];
   isUsable: boolean; // Passed all quality checks
   rejectionReason?: string; // Reason for D bucket classification
+  faceBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export interface Upload {

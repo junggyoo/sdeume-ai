@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 import { useProject } from '@/features/project/hooks/useProject';
 import { useProjectGeneration } from '@/features/generation/hooks/useProjectGeneration';
@@ -13,7 +14,11 @@ import {
   ResultGallery,
   ImageLightbox,
   RerollButton,
+  MovieGeneratorBtn,
+  MovieProcessingModal,
+  MoviePreviewModal,
 } from '@/features/reveal/components';
+import { useMovieMaker } from '@/features/reveal/hooks/useMovieMaker';
 import {
   downloadImage,
   downloadAllImages,
@@ -25,6 +30,7 @@ import type { GenerationImage } from '@/features/generation/types';
 export default function RevealPage() {
   const params = useParams<{ projectId: string }>();
   const projectId = params.projectId;
+  const { toast } = useToast();
 
   // 프로젝트 데이터
   const { data: project, isLoading: isProjectLoading } = useProject(projectId);
@@ -44,6 +50,34 @@ export default function RevealPage() {
   const [isOpened, setIsOpened] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GenerationImage | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // 영상 생성 훅 (이미지 URL 배열 전달)
+  const imageUrls = generation?.images?.map((img) => img.url) ?? [];
+  const {
+    generateMovie,
+    cancelGeneration,
+    downloadVideo,
+    closePreviewModal,
+    isProcessing: isMovieProcessing,
+    progress: movieProgress,
+    videoUrl,
+    error: movieError,
+    isSupported: isMovieSupported,
+    isProcessingModalOpen,
+    isPreviewModalOpen,
+  } = useMovieMaker({ images: imageUrls });
+
+  // 영상 생성 에러 표시
+  useEffect(() => {
+    if (movieError) {
+      console.error('Movie generation error:', movieError.message);
+      toast({
+        variant: 'destructive',
+        title: '영상 생성 실패',
+        description: movieError.message,
+      });
+    }
+  }, [movieError, toast]);
 
   // 로딩 상태 통합
   const isLoading = isProjectLoading || isGenerationLoading || isJobLoading;
@@ -200,6 +234,15 @@ export default function RevealPage() {
               isLoading={isDownloading}
             />
 
+            {/* 영상 생성 버튼 */}
+            <div className="flex justify-center mt-6">
+              <MovieGeneratorBtn
+                onClick={generateMovie}
+                disabled={isMovieProcessing}
+                isSupported={isMovieSupported}
+              />
+            </div>
+
             {/* Re-roll 버튼 */}
             <div className="flex justify-center mt-8">
               <RerollButton remainingCount={1} />
@@ -214,6 +257,21 @@ export default function RevealPage() {
         isOpen={!!selectedImage}
         onClose={handleCloseLightbox}
         onDownload={() => selectedImage && handleDownloadSingle(selectedImage)}
+      />
+
+      {/* 영상 생성 모달 */}
+      <MovieProcessingModal
+        isOpen={isProcessingModalOpen}
+        progress={movieProgress}
+        onCancel={cancelGeneration}
+      />
+
+      {/* 영상 미리보기 모달 */}
+      <MoviePreviewModal
+        isOpen={isPreviewModalOpen}
+        videoUrl={videoUrl}
+        onClose={closePreviewModal}
+        onDownload={downloadVideo}
       />
     </div>
   );

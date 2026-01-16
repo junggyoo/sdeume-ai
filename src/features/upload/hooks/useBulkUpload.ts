@@ -78,6 +78,15 @@ export function useBulkUpload({
     return `${messages.join('과 ')}이 더 필요해요`;
   })();
 
+  // Yield to main thread to allow UI updates (prevents spinner jank)
+  const yieldToMain = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }, []);
+
   // Process a single file
   const processFile = useCallback(
     async (item: QueuedFile) => {
@@ -85,9 +94,15 @@ export function useBulkUpload({
         // Update status to analyzing
         updateQueueItem(item.id, role, { status: 'analyzing', progress: 10 });
 
+        // Yield before heavy operations
+        await yieldToMain();
+
         // Compress image
         const processed = await processImage(item.file);
         updateQueueItem(item.id, role, { progress: 40 });
+
+        // Yield between compression and analysis
+        await yieldToMain();
 
         // Analyze face
         const analysis = await analyzeFaceFromFile(processed.file);
@@ -105,7 +120,7 @@ export function useBulkUpload({
         });
       }
     },
-    [role, updateQueueItem, onUploadComplete]
+    [role, updateQueueItem, onUploadComplete, yieldToMain]
   );
 
   // Add files to queue and process
@@ -120,22 +135,22 @@ export function useBulkUpload({
       // Add to queue
       const newItems = addToQueue(fileArray, role);
 
-      // Process all files concurrently (with limit)
-      const CONCURRENT_LIMIT = 3;
-      const chunks: QueuedFile[][] = [];
+      // Yield before starting to ensure UI updates
+      await yieldToMain();
 
-      for (let i = 0; i < newItems.length; i += CONCURRENT_LIMIT) {
-        chunks.push(newItems.slice(i, i + CONCURRENT_LIMIT));
-      }
-
-      for (const chunk of chunks) {
-        await Promise.all(chunk.map(processFile));
+      // Process files sequentially to prevent main thread blocking
+      // This ensures smoother UI updates and spinner animation
+      for (let i = 0; i < newItems.length; i++) {
+        await processFile(newItems[i]);
+        setProcessingCount(newItems.length - i - 1);
+        // Yield after each file to allow UI to update
+        await yieldToMain();
       }
 
       setIsProcessing(false);
       setProcessingCount(0);
     },
-    [role, addToQueue, processFile]
+    [role, addToQueue, processFile, yieldToMain]
   );
 
   // Remove file from queue

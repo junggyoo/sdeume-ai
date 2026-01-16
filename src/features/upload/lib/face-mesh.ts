@@ -130,10 +130,9 @@ export async function analyzeFace(
 	try {
 		await loadModels();
 
-		// Detect face with landmarks and expressions
-		// SSD Mobilenet v1 is more accurate for side profile detection than TinyFaceDetector
+		// Detect face with landmarks and expressions using SSD Mobilenet v1
 		const detectorOptions = new faceapi.SsdMobilenetv1Options({
-			minConfidence: 0.5, // SSD model handles side profiles well at 0.5 threshold
+			minConfidence: 0.5,
 		});
 
 		// Detect ALL faces first to check for multiple faces
@@ -284,6 +283,14 @@ export async function analyzeFace(
 			qualityIssues: classification.qualityIssues,
 			isUsable: classification.isUsable,
 			rejectionReason: classification.rejectionReason,
+			faceBox: {
+				x: Math.round(detection.detection.box.x),
+				y: Math.round(detection.detection.box.y),
+				width: Math.round(detection.detection.box.width),
+				height: Math.round(detection.detection.box.height),
+			},
+			imageWidth,
+			imageHeight,
 		};
 	} catch (error) {
 		console.error("[face-api] Analysis error:", error);

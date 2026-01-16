@@ -53,9 +53,10 @@ type GenerationServiceError =
 // Mock Data
 // =============================================================================
 
-const MOCK_IMAGE_URLS = Array.from(
-  { length: 12 },
-  (_, i) => `https://via.placeholder.com/512?text=Image+${i + 1}`
+// 인물/풍경 이미지가 포함된 picsum.photos 이미지 ID 목록
+const PICSUM_IMAGE_IDS = [237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248];
+const MOCK_IMAGE_URLS = PICSUM_IMAGE_IDS.map(
+  (id) => `https://picsum.photos/id/${id}/1080/1920`
 );
 
 // =============================================================================

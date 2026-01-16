@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useProject } from '@/features/project/hooks/useProject';
 import { useUpdateProject } from '@/features/project/hooks/useUpdateProject';
 import { useUploadStore } from '@/features/upload/store/upload-store';
 import { useBulkUpload } from '@/features/upload/hooks/useBulkUpload';
+import { preloadFaceModels } from '@/features/upload/lib/face-mesh';
 import { StickyCTA } from '@/features/studio/components/StickyCTA';
 import { RoleTabs } from '@/features/upload/components/RoleTabs';
 import { OXGuide } from '@/features/upload/components/OXGuide';
@@ -21,6 +23,11 @@ export default function UploadPage() {
   const router = useRouter();
   const { data: project } = useProject(params.projectId);
   const updateProject = useUpdateProject();
+
+  // Preload face detection models on page mount
+  useEffect(() => {
+    preloadFaceModels().catch(console.error);
+  }, []);
 
   // Upload store
   const { activeRole, setActiveRole, getBucketSummary } = useUploadStore();
@@ -59,10 +66,10 @@ export default function UploadPage() {
       projectId: params.projectId,
       input: {
         currentStep: 2,
-        status: 'optimizing',
+        status: 'theme_selecting',
       },
     });
-    router.push(`/studio/${params.projectId}/optimize`);
+    router.push(`/studio/${params.projectId}/theme`);
   };
 
   const handleBack = () => {
@@ -126,7 +133,7 @@ export default function UploadPage() {
       <StickyCTA
         onNext={handleNext}
         onBack={handleBack}
-        nextLabel="최적화하기"
+        nextLabel="테마 선택하기"
         backLabel="대시보드"
         isNextDisabled={!canProceed}
         isLoading={updateProject.isPending}

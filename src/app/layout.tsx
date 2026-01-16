@@ -4,6 +4,7 @@ import Providers from "./providers";
 import { loadCurrentUser } from "@/features/auth/server/load-current-user";
 import { CurrentUserProvider } from "@/features/auth/context/current-user-context";
 import { notoSerifKR, inter } from "@/lib/fonts";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Sdeume AI | AI 웨딩 화보 스튜디오",
@@ -46,6 +47,7 @@ export default async function RootLayout({
           <CurrentUserProvider initialState={currentUser}>
             {children}
           </CurrentUserProvider>
+          <Toaster />
         </Providers>
       </body>
     </html>

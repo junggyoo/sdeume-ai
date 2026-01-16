@@ -145,8 +145,10 @@ export function useGenerationJob(
     }
 
     // Detect new images (diffing logic)
-    if (prevData && currentData.images.length > prevData.images.length) {
-      const prevUrls = new Set(prevData.images.map((img) => img.url));
+    if (currentData.images.length > 0) {
+      const prevUrls = prevData
+        ? new Set(prevData.images.map((img) => img.url))
+        : new Set<string>();
       const newImages = currentData.images.filter(
         (img) => !prevUrls.has(img.url)
       );

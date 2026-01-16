@@ -1,14 +1,13 @@
 export type ProjectStatus =
   | 'draft'
   | 'uploading'
-  | 'optimizing'
   | 'theme_selecting'
   | 'training'
   | 'generating'
   | 'completed'
   | 'failed';
 
-export type ProjectStep = 1 | 2 | 3 | 4 | 5;
+export type ProjectStep = 1 | 2 | 3 | 4;
 
 export interface Project {
   id: string;

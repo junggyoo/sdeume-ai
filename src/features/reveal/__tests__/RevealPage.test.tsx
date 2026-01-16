@@ -171,7 +171,7 @@ describe('RevealPage', () => {
     mockUseParams.mockReturnValue({ projectId: 'proj-456' });
     mockUseRouter.mockReturnValue({ push: vi.fn(), replace: vi.fn() });
     mockUseProject.mockReturnValue({
-      data: { id: 'proj-456', name: 'Test Project', currentStep: 5 },
+      data: { id: 'proj-456', name: 'Test Project', currentStep: 4 },
       isLoading: false,
     });
   });

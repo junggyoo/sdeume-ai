@@ -15,7 +15,6 @@ import { ko } from 'date-fns/locale';
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: '초안', color: 'bg-gray-100 text-gray-600' },
   uploading: { label: '업로드 중', color: 'bg-blue-100 text-blue-600' },
-  optimizing: { label: '최적화 중', color: 'bg-purple-100 text-purple-600' },
   theme_selecting: { label: '테마 선택', color: 'bg-pink-100 text-pink-600' },
   training: { label: '학습 중', color: 'bg-amber-100 text-amber-600' },
   generating: { label: '생성 중', color: 'bg-green-100 text-green-600' },

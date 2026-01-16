@@ -40,7 +40,6 @@ const UpdateProjectSchema = z.object({
     .enum([
       'draft',
       'uploading',
-      'optimizing',
       'theme_selecting',
       'training',
       'generating',
@@ -48,7 +47,7 @@ const UpdateProjectSchema = z.object({
       'failed',
     ])
     .optional(),
-  currentStep: z.number().int().min(1).max(5).optional(),
+  currentStep: z.number().int().min(1).max(4).optional(),
   selectedThemeId: z.string().uuid().optional(),
 });
 
