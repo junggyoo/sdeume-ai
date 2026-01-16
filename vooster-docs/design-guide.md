@@ -123,29 +123,26 @@
   - 자동화/기본값 우선, 불안감 최소화(“나중에 바꿀 수 있어요”)
   - 상단 Stepper로 현재 위치 명료, 하단 Sticky CTA로 언제든 진행
 - Navigation
-  - Header: 좌 로고 / 우 “무료 체험”
-  - Stepper(5단계): Upload → Optimize → Theme → Shooting → Reveal
+  - Header: 좌 로고 / 우 "무료 체험"
+  - Stepper(4단계): Upload → Theme → Shooting → Reveal
   - Footer: Sticky CTA 고정
 - Step Flows(PRD 준수)
   1) Guidance & Upload
      - 신랑/신부 탭 분리, 3초 O/X 가이드
-     - “사진 한 번에 선택(20~30장)” CTA
+     - "사진 한 번에 선택(20~30장)" CTA
      - 자동 분류: A 정면(8–10), B 반측면(6–8), C 표정/기타
      - Gap Filling: 부족 각도만 콕 집어 요청
-     - Soft Pass: 15장 이상 진행 허용(“5장 더하면 퀄리티 UP”)
-  2) Optimization (Smart Mix)
-     - 동일 의상/배경 50%↑ 시 하이브리드 크롭 자동
-     - One-touch Edit: 탭으로 얼굴/상반신 토글
-     - 연출: “AI 작가가 조명과 구도를 체크하고 있어요…” 스캐너 효과
-  3) Theme Selection
+     - Soft Pass: 15장 이상 진행 허용("5장 더하면 퀄리티 UP")
+  2) Theme Selection
      - 3개 테마(화이트/가든/클래식) 모션 썸네일
      - 얼굴 버블 롱프레스 → 오버레이(가상 피팅)
      - 바텀 시트 룩북(8종 포즈) + AI 추천 뱃지
-  4) Shooting (2-Phase)
-     - Phase 1(10–15분): Deep Navy + 오로라 앰비언트, “앱 닫아도 괜찮아요”, 촬영 시작 알림 기본 ON
-     - Phase 2(5분): Drop & Blur → “디테일 보정 중…” 라이트 스윕
+     - 스튜디오 스탠바이 로딩 화면: "AI 디렉터가 촬영 스탠바이를 하고 있습니다..."
+  3) Shooting (2-Phase)
+     - Phase 1(10–15분): Deep Navy + 오로라 앰비언트, "앱 닫아도 괜찮아요", 촬영 시작 알림 기본 ON
+     - Phase 2(5분): Drop & Blur → "디테일 보정 중…" 라이트 스윕
      - 상태: 학습 중 → 촬영 준비 → 촬영 중 → 보정 중
-  5) Reveal & Share
+  4) Reveal & Share
      - 왁스 실링 언박싱 → Gallery
      - 고화질 다운로드, 티어별 Re-roll(Free 불가, Basic 1회/4장)
      - Viral Movie Maker(15초 Reels/Shorts)

@@ -7,7 +7,7 @@
 - Marketing (비로그인)
   - Home (랜딩)
   - Themes (프리뷰/모션 썸네일)
-  - How It Works (프로세스 안내: 5단계)
+  - How It Works (프로세스 안내: 4단계)
   - Pricing (티어 비교)
   - FAQ
   - Refund Policy
@@ -23,7 +23,6 @@
     - Notifications (푸시/이메일 설정)
   - Project (/:projectId)
     - Upload (Guidance & Upload)
-    - Optimize (Smart Mix)
     - Theme (Theme Selection)
     - Shooting (Training/Generating)
     - Reveal (언박싱)
@@ -50,12 +49,11 @@
 2) 로그인(소셜/이메일 Magic Link)
 3) 새 프로젝트 생성(신랑/신부 선택) → Upload (20~30장 대량 선택)
 4) AI 자동 분류(A/B/C) → 부족 각도만 추가 요청 → Soft Pass 허용(15장+)
-5) Optimize(Smart Mix 자동) → 원터치 줌 토글 확인
-6) Theme 선택(모션 썸네일 탐색 → 얼굴 버블 오버레이 → 룩북 바텀시트) → “이 테마로 촬영”
-7) Shooting Phase 1(학습 10–15분) 푸시 ON → 앱 닫기 가능
-8) Shooting Phase 2(생성 5분) Drop & Blur → 디테일링
-9) Reveal(왁스 실링 언박싱) → Gallery 확인
-10) Viral Movie Maker 15초 미리보기 → 인스타 스토리 원클릭 공유
+5) Theme 선택(스튜디오 스탠바이 로딩 → 모션 썸네일 탐색 → 얼굴 버블 오버레이 → 룩북 바텀시트) → "이 테마로 촬영"
+6) Shooting Phase 1(학습 10–15분) 푸시 ON → 앱 닫기 가능
+7) Shooting Phase 2(생성 5분) Drop & Blur → 디테일링
+8) Reveal(왁스 실링 언박싱) → Gallery 확인
+9) Viral Movie Maker 15초 미리보기 → 인스타 스토리 원클릭 공유
 
 핵심 과업 2: Free → 유료 업그레이드(티어 전환)
 1) Gallery에서 다운로드/리롤 제한 노출(Free: 리롤 불가)
@@ -80,7 +78,7 @@
 - Global Topbar
   - Marketing: 좌 로고 / 우 메뉴(Themes, How It Works, Pricing, FAQ) + Primary “무료 체험”
   - In-Flow(App): 좌 로고 + 현재 프로젝트명/상태, 우측 보조(도움말, 프로필)
-- Stepper (Upload → Optimize → Theme → Shooting → Reveal)
+- Stepper (Upload → Theme → Shooting → Reveal)
   - 현재 단계 Deep Navy, 완료 단계 Teal, 미도달 회색
   - 모바일: 얇은 바/도트 형태, 데스크톱: 라벨+아이콘
 - Sticky CTA (모바일 우선)
@@ -125,7 +123,6 @@
     - /app/refund/:caseId (Depth 3)
   - /app/studio/:projectId (Depth 2)
     - /app/studio/:projectId/upload (Depth 3)
-    - /app/studio/:projectId/ optimize (Depth 3)
     - /app/studio/:projectId/theme (Depth 3)
     - /app/studio/:projectId/shooting (Depth 3)
     - /app/studio/:projectId/reveal (Depth 3)
@@ -150,8 +147,7 @@
 | Login/Signup | 소셜 버튼(Apple/Google/Kakao), Email Magic Link, 개인정보/동의 |
 | Dashboard | 진행 중/완료 프로젝트 카드, 상태 배지(학습/촬영/보정/완료), 최근 알림 |
 | Studio Upload | 신랑/신부 탭, 3초 O/X 움짤, 대량 선택(20~30장), 실시간 버킷 분류(A/B/C), Gap Filling 프롬프트, Soft Pass 안내 |
-| Studio Optimize | Smart Mix 결과 모자이크, 원터치 줌 토글, 스캐너 연출, 품질 팁 |
-| Studio Theme | 모션 썸네일 그리드, 얼굴 버블 롱프레스 오버레이, 룩북 바텀시트, “이 테마로 촬영” CTA |
+| Studio Theme | 스튜디오 스탠바이 로딩 화면, 모션 썸네일 그리드, 얼굴 버블 롱프레스 오버레이, 룩북 바텀시트, "이 테마로 촬영" CTA |
 | Studio Shooting | Phase 1(학습) 상태카드+푸시 토글, Phase 2 Drop & Blur, Light Sweep “디테일 보정 중” |
 | Studio Reveal | 왁스 실링 언박싱, 베스트컷 하이라이트, 다운로드 CTAs, 환불 배너 |
 | Studio Gallery | Masonry 2–3열(모바일 2), 고화질 미리보기, 리롤/리터치 제한 표시, 선택 다운로드 |
@@ -174,10 +170,9 @@
 - 로더: 오로라 앰비언트(대기), Light Sweep(디테일링), Blur→Sharpen 프리로드
 - 푸시/알림: 학습 완료→촬영 시작, 무비 생성 완료
 
-업로드/최적화
+업로드
 - 대량 선택 드래그/멀티픽커, 진행률 표시, 실패 파일 재시도
-- AI Gap Filling 카드(“옆모습 3장 더 필요”) + 자동 스크롤 포커스
-- One-touch Edit: 탭으로 얼굴/상반신 즉시 전환(180–240ms)
+- AI Gap Filling 카드("옆모습 3장 더 필요") + 자동 스크롤 포커스
 
 테마/촬영
 - 얼굴 버블 롱프레스→오버레이, 해제 시 원복 애니메이션
@@ -211,7 +206,7 @@
 - 인증: /auth/login, /auth/signup, /auth/magic-link?token=...
 - 앱 대시보드: /app/dashboard, /app/dashboard/projects
 - 결제: /app/billing/plan, /app/billing/history
-- 프로젝트: /app/studio/:projectId/(upload|optimize|theme|shooting|reveal|gallery|movie|reroll)
+- 프로젝트: /app/studio/:projectId/(upload|theme|shooting|reveal|gallery|movie|reroll)
 - 환불: /app/refund/(eligibility|request|:caseId)
 
 파라미터/예시
@@ -264,10 +259,6 @@ SEO 베스트 프랙티스
   - OXGuide(3초 루프)
   - BucketBoard(A/B/C 카운터, 목표치)
   - GapFillingPrompt
-- Optimize
-  - MosaicGrid(정사각/직사각 혼합)
-  - OneTouchToggle(얼굴/상반신)
-  - ScanEffectBanner
 - Theme
   - MotionThumbnail(시네마그래프)
   - FaceBubble(롱프레스 오버레이)
