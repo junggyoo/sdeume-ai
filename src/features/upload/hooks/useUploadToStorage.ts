@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { getHonoClient } from '@/lib/remote/hono-client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useUploadStore } from '../store/upload-store';
 import type { UploadRole, QueuedFile, Upload } from '../types';
 
@@ -29,7 +29,15 @@ const uploadSingleImage = async (
   projectId: string,
   item: QueuedFile
 ): Promise<Upload> => {
-  const client = getHonoClient();
+  // Get auth token
+  const supabase = getSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
 
   const formData = new FormData();
   formData.append('file', item.file);
@@ -45,12 +53,19 @@ const uploadSingleImage = async (
     })
   );
 
-  const response = await client.api.upload.$post({
+  // Use direct fetch for FormData upload (Hono RPC doesn't support FormData well)
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      // Don't set Content-Type - browser will set it with boundary for FormData
+    },
     body: formData,
   });
 
   if (!response.ok) {
-    throw new Error('Failed to upload image');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || 'Failed to upload image');
   }
 
   const result = (await response.json()) as UploadResult;

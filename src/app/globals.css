@@ -22,28 +22,28 @@
   --black: #0E1B2A;
   --transparent: transparent;
 
-  /* ===== Prismatic Color Palette ===== */
+  /* ===== Prismatic Color Palette (Antigravity) ===== */
   --prism-white: #FFFFFF;
-  --prism-pink: #FFE4EC;
-  --prism-blue: #E4F1FF;
-  --prism-violet: #F0E4FF;
+  --prism-pink: #FFD1FF;    /* 더 선명한 파스텔 핑크 */
+  --prism-blue: #D1F4FF;    /* 더 선명한 파스텔 블루 */
+  --prism-violet: #E5D9F2;  /* 더 선명한 파스텔 바이올렛 */
   --prism-peach: #FFE8E0;
 
-  /* Light Mode Text - Antigravity Theme */
-  --text-hero: #0E1B2A;
-  --text-body: #475569;
-  --text-muted: #94A3B8;
+  /* Light Mode Text - 모든 텍스트 #111827로 통일하여 최대 가독성 확보 */
+  --text-hero: #111827;
+  --text-body: #111827;
+  --text-muted: #111827;
 
-  /* ===== Giant Typography Scale ===== */
-  --text-display-hero: clamp(4rem, 12vw, 10rem);   /* ~160px */
-  --text-display-lg: clamp(3rem, 8vw, 7rem);       /* ~112px */
-  --text-display-md: clamp(2.5rem, 6vw, 5rem);     /* ~80px */
-  --text-display-sm: clamp(2rem, 4vw, 3.5rem);     /* ~56px */
+  /* ===== Giant Typography Scale (1.5x 증가 - 매거진 스타일) ===== */
+  --text-display-hero: clamp(6rem, 18vw, 15rem);   /* ~240px */
+  --text-display-lg: clamp(4.5rem, 12vw, 10.5rem); /* ~168px */
+  --text-display-md: clamp(3.75rem, 9vw, 7.5rem);  /* ~120px */
+  --text-display-sm: clamp(3rem, 6vw, 5.25rem);    /* ~84px */
 
-  /* ===== Antigravity Spacing (2x) ===== */
-  --space-section: clamp(8rem, 16vw, 16rem);
-  --space-element: clamp(4rem, 8vw, 8rem);
-  --space-content: clamp(2rem, 4vw, 4rem);
+  /* ===== Antigravity Spacing (2x 증가 - 시원한 여백) ===== */
+  --space-section: clamp(16rem, 32vw, 32rem);
+  --space-element: clamp(8rem, 16vw, 16rem);
+  --space-content: clamp(4rem, 8vw, 8rem);
 
   /* ===== Liquid Glass Variables ===== */
   --liquid-glass-bg: rgba(255, 255, 255, 0.3);
@@ -374,5 +374,113 @@
   }
   body {
     @apply bg-background text-foreground;
+    word-break: keep-all;
+    font-weight: 400;
+  }
+}
+
+/* ===== Prismatic White Utility Classes ===== */
+@layer utilities {
+  /* Giant Typography - 모바일 최적화 */
+  .text-giant {
+    font-size: clamp(3rem, 12vw, 15rem);
+    font-family: var(--font-serif);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: #111827;
+  }
+
+  /* 모바일에서 더 작은 크기 적용 */
+  @media (max-width: 768px) {
+    .text-giant {
+      font-size: clamp(2.5rem, 10vw, 4rem);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  /* CTA 버튼 Glow 효과 */
+  .cta-glow {
+    position: relative;
+    box-shadow:
+      0 0 20px rgba(255, 209, 255, 0.5),
+      0 0 40px rgba(229, 217, 242, 0.3),
+      0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .cta-glow::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--prism-pink),
+      var(--prism-violet),
+      var(--prism-blue)
+    );
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(8px);
+    transition: opacity 0.3s ease;
+  }
+
+  .cta-glow:hover::before {
+    opacity: 0.9;
+  }
+
+  .cta-glow:hover {
+    box-shadow:
+      0 0 30px rgba(255, 209, 255, 0.7),
+      0 0 60px rgba(229, 217, 242, 0.5),
+      0 12px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Prismatic Gradient Text */
+  .text-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--prism-pink) 0%,
+      var(--prism-violet) 50%,
+      var(--prism-blue) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Liquid Glass Button */
+  .glass-button {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 9999px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+  }
+
+  /* Floating Text Effect */
+  .floating-text {
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Section spacing */
+  .section-spacing {
+    padding-top: var(--space-section);
+    padding-bottom: var(--space-section);
   }
 }

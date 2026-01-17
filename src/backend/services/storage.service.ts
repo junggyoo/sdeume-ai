@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import JSZip from 'jszip';
+import sharp from 'sharp';
 import {
   success,
   failure,
@@ -7,6 +8,14 @@ import {
 } from '@/backend/http/response';
 import { processGeneratedImage } from './image-processor.service';
 import type { UploadRole } from '@/features/upload/types';
+import { STORAGE_BUCKET, SIGNED_URL_EXPIRY } from '@/backend/config/storage';
+
+// =============================================================================
+// Training Image Constants
+// =============================================================================
+
+const TRAINING_IMAGE_MAX_SIZE = 1024; // Max dimension for training images
+const TRAINING_IMAGE_QUALITY = 85; // JPEG quality (0-100)
 
 // =============================================================================
 // Types
@@ -33,13 +42,6 @@ const storageErrorCodes = {
 type StorageErrorCode = (typeof storageErrorCodes)[keyof typeof storageErrorCodes];
 
 // =============================================================================
-// Constants
-// =============================================================================
-
-const BUCKET_NAME = 'sdeume-storage';
-const SIGNED_URL_EXPIRY = 60 * 60; // 1 hour in seconds
-
-// =============================================================================
 // uploadTrainingImage
 // =============================================================================
 
@@ -58,7 +60,7 @@ export const uploadTrainingImage = async (
   const uint8Array = new Uint8Array(arrayBuffer);
 
   const { error: uploadError } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(STORAGE_BUCKET)
     .upload(filePath, uint8Array, {
       contentType: file.type,
       upsert: false,
@@ -70,7 +72,7 @@ export const uploadTrainingImage = async (
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
   return success(publicUrl);
 };
@@ -99,7 +101,7 @@ export const createTrainingZip = async (
     return failure(400, storageErrorCodes.noImagesFound, 'No images found for training');
   }
 
-  // 2. Download images and add to ZIP
+  // 2. Download images, compress, and add to ZIP
   const zip = new JSZip();
 
   for (let i = 0; i < uploads.length; i++) {
@@ -111,8 +113,18 @@ export const createTrainingZip = async (
     }
 
     const arrayBuffer = await response.arrayBuffer();
+
+    // Compress image using Sharp for smaller ZIP size
+    const compressedBuffer = await sharp(Buffer.from(arrayBuffer))
+      .resize(TRAINING_IMAGE_MAX_SIZE, TRAINING_IMAGE_MAX_SIZE, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: TRAINING_IMAGE_QUALITY })
+      .toBuffer();
+
     const fileName = `image_${i.toString().padStart(3, '0')}.jpg`;
-    zip.file(fileName, arrayBuffer);
+    zip.file(fileName, compressedBuffer);
   }
 
   // 3. Generate ZIP blob
@@ -124,7 +136,7 @@ export const createTrainingZip = async (
   const zipUint8Array = new Uint8Array(zipArrayBuffer);
 
   const { error: uploadError } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(STORAGE_BUCKET)
     .upload(zipPath, zipUint8Array, {
       contentType: 'application/zip',
       upsert: true,
@@ -136,7 +148,7 @@ export const createTrainingZip = async (
 
   // 5. Create signed URL for Fal.ai to access
   const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(STORAGE_BUCKET)
     .createSignedUrl(zipPath, SIGNED_URL_EXPIRY);
 
   if (signedUrlError || !signedUrlData?.signedUrl) {
@@ -173,7 +185,7 @@ export const uploadGeneratedImage = async (
   // Upload original
   const originalPath = `generated/${projectId}/${generationId}/${index}_original.webp`;
   const { error: originalError } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(STORAGE_BUCKET)
     .upload(originalPath, originalBuffer, {
       contentType: 'image/webp',
       upsert: true,
@@ -186,7 +198,7 @@ export const uploadGeneratedImage = async (
   // Upload thumbnail
   const thumbnailPath = `generated/${projectId}/${generationId}/${index}_thumbnail.webp`;
   const { error: thumbnailError } = await supabase.storage
-    .from(BUCKET_NAME)
+    .from(STORAGE_BUCKET)
     .upload(thumbnailPath, thumbnailBuffer, {
       contentType: 'image/webp',
       upsert: true,
@@ -199,11 +211,11 @@ export const uploadGeneratedImage = async (
   // Get public URLs
   const {
     data: { publicUrl: originalUrl },
-  } = supabase.storage.from(BUCKET_NAME).getPublicUrl(originalPath);
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(originalPath);
 
   const {
     data: { publicUrl: thumbnailUrl },
-  } = supabase.storage.from(BUCKET_NAME).getPublicUrl(thumbnailPath);
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(thumbnailPath);
 
   return success({
     originalUrl,

@@ -10,6 +10,7 @@ import {
 } from '@/backend/http/response';
 import { getLogger, getSupabase, type AppEnv } from '@/backend/hono/context';
 import type { Upload, UploadRole, BucketType } from '@/features/upload/types';
+import { STORAGE_BUCKET } from '@/backend/config/storage';
 
 // =============================================================================
 // Types
@@ -132,7 +133,7 @@ const uploadImageToStorage = async (
   const uint8Array = new Uint8Array(arrayBuffer);
 
   const { error: uploadError } = await supabase.storage
-    .from('sdeume-storage')
+    .from(STORAGE_BUCKET)
     .upload(filePath, uint8Array, {
       contentType: file.type,
       upsert: false,
@@ -144,7 +145,7 @@ const uploadImageToStorage = async (
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from('sdeume-storage').getPublicUrl(filePath);
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
   return success(publicUrl);
 };
@@ -233,10 +234,10 @@ const deleteUpload = async (
 
   // Extract file path from URL and delete from storage
   const originalUrl = upload.original_url as string;
-  if (originalUrl.includes('sdeume-storage')) {
-    const urlParts = originalUrl.split('sdeume-storage/');
+  if (originalUrl.includes(STORAGE_BUCKET)) {
+    const urlParts = originalUrl.split(`${STORAGE_BUCKET}/`);
     if (urlParts[1]) {
-      await supabase.storage.from('sdeume-storage').remove([urlParts[1]]);
+      await supabase.storage.from(STORAGE_BUCKET).remove([urlParts[1]]);
     }
   }
 
