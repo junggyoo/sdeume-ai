@@ -1,6 +1,6 @@
 "use client";
 
-import * as faceapi from "face-api.js";
+import * as faceapi from "@vladmandic/face-api";
 import type { FaceAnalysisResult, QualityIssue } from "../types";
 import { BUCKET_THRESHOLDS } from "../types";
 import { classifyBucket } from "./bucket-classifier";

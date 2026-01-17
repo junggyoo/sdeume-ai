@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock face-api.js before importing face-mesh
-vi.mock("face-api.js", () => ({
+// Mock @vladmandic/face-api before importing face-mesh
+vi.mock("@vladmandic/face-api", () => ({
 	nets: {
 		ssdMobilenetv1: {
 			loadFromUri: vi.fn().mockResolvedValue(undefined),
@@ -24,8 +24,8 @@ vi.mock("face-api.js", () => ({
 	detectAllFaces: vi.fn(),
 }));
 
-// Import face-api.js after mocking
-import * as faceapi from "face-api.js";
+// Import @vladmandic/face-api after mocking
+import * as faceapi from "@vladmandic/face-api";
 
 // Reset module state between tests
 beforeEach(() => {

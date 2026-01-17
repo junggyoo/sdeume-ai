@@ -1,36 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-// Mock framer-motion
-let mockReducedMotion = false;
-vi.mock('framer-motion', () => ({
-  useReducedMotion: () => mockReducedMotion,
-}));
-
-// Mock IntersectionObserver
-let mockIsIntersecting = true;
-const mockIntersectionObserver = vi.fn();
-
+// Mock CSS.supports for testing environments
 beforeEach(() => {
-  mockReducedMotion = false;
-  mockIsIntersecting = true;
-
-  mockIntersectionObserver.mockImplementation((callback: IntersectionObserverCallback) => {
-    // Immediately invoke the callback with mocked entry
-    setTimeout(() => {
-      callback(
-        [{ isIntersecting: mockIsIntersecting } as IntersectionObserverEntry],
-        {} as IntersectionObserver
-      );
-    }, 0);
-    return {
-      observe: vi.fn(),
-      unobserve: vi.fn(),
-      disconnect: vi.fn(),
-    };
+  vi.stubGlobal('CSS', {
+    supports: vi.fn().mockReturnValue(true),
   });
-
-  vi.stubGlobal('IntersectionObserver', mockIntersectionObserver);
 });
 
 afterEach(() => {
@@ -38,7 +13,6 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// Import component after mocks
 import { AuroraBackground } from './AuroraBackground';
 
 describe('AuroraBackground', () => {
@@ -50,13 +24,6 @@ describe('AuroraBackground', () => {
       expect(container).toBeInTheDocument();
     });
 
-    it('should render aurora layers', () => {
-      render(<AuroraBackground />);
-
-      const layers = screen.getAllByTestId(/^aurora-layer-/);
-      expect(layers.length).toBeGreaterThanOrEqual(4);
-    });
-
     it('should render children when provided', () => {
       render(
         <AuroraBackground>
@@ -66,190 +33,214 @@ describe('AuroraBackground', () => {
 
       expect(screen.getByTestId('child-content')).toBeInTheDocument();
     });
-  });
 
-  describe('Props - intensity', () => {
-    it('should apply low intensity (0.3) with reduced opacity', () => {
-      render(<AuroraBackground intensity={0.3} />);
-
-      const container = screen.getByTestId('aurora-background');
-      // Intensity 0.3 should result in reduced opacity on layers
-      expect(container).toHaveAttribute('data-intensity', '0.3');
-    });
-
-    it('should apply high intensity (1.0) with full opacity', () => {
-      render(<AuroraBackground intensity={1.0} />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-intensity', '1');
-    });
-
-    it('should use default intensity (0.5) when not provided', () => {
-      render(<AuroraBackground />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-intensity', '0.5');
-    });
-  });
-
-  describe('Props - hue', () => {
-    it('should apply classic hue colors', () => {
-      render(<AuroraBackground hue="classic" />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-hue', 'classic');
-    });
-
-    it('should apply romantic hue colors (Indigo/Purple/Pink/Violet)', () => {
-      render(<AuroraBackground hue="romantic" />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-hue', 'romantic');
-    });
-
-    it('should use romantic as default hue', () => {
-      render(<AuroraBackground />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-hue', 'romantic');
-    });
-  });
-
-  describe('Props - spotlight', () => {
-    it('should apply spotlight mask when enabled', () => {
-      render(<AuroraBackground spotlight />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-spotlight', 'true');
-    });
-
-    it('should position spotlight at custom position', () => {
+    it('should render children with correct z-index (above aurora layer)', () => {
       render(
-        <AuroraBackground
-          spotlight
-          spotlightPosition={{ x: 30, y: 70 }}
-        />
+        <AuroraBackground>
+          <div data-testid="child-content">Test Content</div>
+        </AuroraBackground>
       );
 
       const container = screen.getByTestId('aurora-background');
-      expect(container.style.getPropertyValue('--spotlight-x')).toBe('30%');
-      expect(container.style.getPropertyValue('--spotlight-y')).toBe('70%');
+      const childContent = screen.getByTestId('child-content');
+
+      // Children should be rendered within the container
+      expect(container).toContainElement(childContent);
     });
 
-    it('should use center position (50%, 50%) as default when spotlight is enabled', () => {
-      render(<AuroraBackground spotlight />);
+    it('should render aurora effect layer', () => {
+      render(<AuroraBackground />);
 
-      const container = screen.getByTestId('aurora-background');
-      expect(container.style.getPropertyValue('--spotlight-x')).toBe('50%');
-      expect(container.style.getPropertyValue('--spotlight-y')).toBe('50%');
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toBeInTheDocument();
     });
   });
 
-  describe('Accessibility', () => {
-    it('should have aria-hidden="true" for decorative content', () => {
+  describe('Props - showRadialGradient', () => {
+    it('should apply radial gradient mask when showRadialGradient is true (default)', () => {
+      render(<AuroraBackground showRadialGradient={true} />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveAttribute('data-radial-gradient', 'true');
+    });
+
+    it('should not apply radial gradient mask when showRadialGradient is false', () => {
+      render(<AuroraBackground showRadialGradient={false} />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveAttribute('data-radial-gradient', 'false');
+    });
+
+    it('should default showRadialGradient to true', () => {
       render(<AuroraBackground />);
 
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('aria-hidden', 'true');
-    });
-
-    it('should have pointer-events-none to prevent interaction blocking', () => {
-      render(<AuroraBackground />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveClass('pointer-events-none');
-    });
-
-    it('should respect prefers-reduced-motion', async () => {
-      mockReducedMotion = true;
-
-      // Re-import to get fresh mock state
-      vi.resetModules();
-      const { AuroraBackground: FreshAurora } = await import('./AuroraBackground');
-
-      render(<FreshAurora />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-reduced-motion', 'true');
-    });
-
-    it('should disable animation when disableAnimation prop is true', () => {
-      render(<AuroraBackground disableAnimation />);
-
-      const container = screen.getByTestId('aurora-background');
-      expect(container).toHaveAttribute('data-animated', 'false');
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveAttribute('data-radial-gradient', 'true');
     });
   });
 
-  describe('IntersectionObserver - Viewport Awareness', () => {
-    it('should animate when in viewport', async () => {
-      mockIsIntersecting = true;
-
-      render(<AuroraBackground />);
-
-      // Wait for IntersectionObserver callback
-      await vi.waitFor(() => {
-        const container = screen.getByTestId('aurora-background');
-        expect(container).toHaveAttribute('data-in-view', 'true');
-      });
-    });
-
-    it('should pause animation when out of viewport', async () => {
-      mockIsIntersecting = false;
-
-      render(<AuroraBackground />);
-
-      await vi.waitFor(() => {
-        const container = screen.getByTestId('aurora-background');
-        expect(container).toHaveAttribute('data-in-view', 'false');
-      });
-    });
-  });
-
-  describe('CSS Custom Properties', () => {
-    it('should set animation duration CSS variable', () => {
-      render(<AuroraBackground />);
-
-      const container = screen.getByTestId('aurora-background');
-      // Default 90s slow wave animation
-      expect(container.style.getPropertyValue('--aurora-duration')).toBe('90s');
-    });
-
-    it('should apply custom className', () => {
+  describe('Props - className', () => {
+    it('should apply custom className to container', () => {
       render(<AuroraBackground className="custom-class" />);
 
       const container = screen.getByTestId('aurora-background');
       expect(container).toHaveClass('custom-class');
     });
+
+    it('should merge custom className with default classes', () => {
+      render(<AuroraBackground className="min-h-[90vh]" />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveClass('min-h-[90vh]');
+      expect(container).toHaveClass('relative');
+    });
   });
 
-  describe('Romantic Tech Colors', () => {
-    it('should render Indigo layer for romantic hue', () => {
-      render(<AuroraBackground hue="romantic" />);
+  describe('Props - HTML attributes', () => {
+    it('should pass through HTML div attributes', () => {
+      render(<AuroraBackground id="my-aurora" data-custom="value" />);
 
-      const indigoLayer = screen.getByTestId('aurora-layer-indigo');
-      expect(indigoLayer).toBeInTheDocument();
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveAttribute('id', 'my-aurora');
+      expect(container).toHaveAttribute('data-custom', 'value');
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have aria-hidden="true" on decorative aurora layer', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveAttribute('aria-hidden', 'true');
     });
 
-    it('should render Purple layer for romantic hue', () => {
-      render(<AuroraBackground hue="romantic" />);
+    it('should have pointer-events-none on aurora layer to prevent interaction blocking', () => {
+      render(<AuroraBackground />);
 
-      const purpleLayer = screen.getByTestId('aurora-layer-purple');
-      expect(purpleLayer).toBeInTheDocument();
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveClass('pointer-events-none');
     });
 
-    it('should render Pink layer for romantic hue', () => {
-      render(<AuroraBackground hue="romantic" />);
+    it('should allow children to receive pointer events', () => {
+      render(
+        <AuroraBackground>
+          <button data-testid="clickable-button">Click Me</button>
+        </AuroraBackground>
+      );
 
-      const pinkLayer = screen.getByTestId('aurora-layer-pink');
-      expect(pinkLayer).toBeInTheDocument();
+      const button = screen.getByTestId('clickable-button');
+      // Button should not have pointer-events-none
+      expect(button).not.toHaveClass('pointer-events-none');
+    });
+  });
+
+  describe('Dark Mode Support', () => {
+    it('should have dark mode classes for background', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      // Check for dark mode variant class pattern
+      expect(container.className).toMatch(/dark:/);
     });
 
-    it('should render Violet layer for romantic hue', () => {
-      render(<AuroraBackground hue="romantic" />);
+    it('should have dark mode classes for aurora effect', () => {
+      render(<AuroraBackground />);
 
-      const violetLayer = screen.getByTestId('aurora-layer-violet');
-      expect(violetLayer).toBeInTheDocument();
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      // Check for dark mode variant class pattern
+      expect(auroraLayer.className).toMatch(/dark:/);
+    });
+  });
+
+  describe('Animation', () => {
+    it('should have animation class for aurora effect', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      // Should have aurora animation related classes
+      expect(auroraLayer.className).toMatch(/animate-aurora|after:animate-aurora/);
+    });
+
+    it('should support reduced motion preference via CSS', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      // Should have motion-reduce variant for animation
+      expect(auroraLayer.className).toMatch(/motion-reduce:/);
+    });
+  });
+
+  describe('Layout', () => {
+    it('should use flex layout for centering children', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveClass('flex');
+      expect(container).toHaveClass('items-center');
+      expect(container).toHaveClass('justify-center');
+    });
+
+    it('should have full viewport height by default', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveClass('h-[100vh]');
+    });
+
+    it('should allow height override via className', () => {
+      render(<AuroraBackground className="h-auto min-h-screen" />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveClass('h-auto');
+      expect(container).toHaveClass('min-h-screen');
+    });
+  });
+
+  describe('Visual Effects', () => {
+    it('should have blur effect on aurora layer', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer.className).toMatch(/blur/);
+    });
+
+    it('should have overflow hidden on aurora container', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      const overflowContainer = container.querySelector('.overflow-hidden');
+      expect(overflowContainer).toBeInTheDocument();
+    });
+
+    it('should use will-change for performance optimization', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      expect(auroraLayer).toHaveClass('will-change-transform');
+    });
+  });
+
+  describe('Color Scheme', () => {
+    it('should have indigo/purple/pink/violet aurora colors in gradient', () => {
+      render(<AuroraBackground />);
+
+      const auroraLayer = screen.getByTestId('aurora-effect-layer');
+      // Check for aurora gradient CSS variable references in className
+      expect(auroraLayer.className).toMatch(/--aurora/);
+    });
+
+    it('should have light mode background color', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container).toHaveClass('bg-zinc-50');
+    });
+
+    it('should have dark mode background color', () => {
+      render(<AuroraBackground />);
+
+      const container = screen.getByTestId('aurora-background');
+      expect(container.className).toMatch(/dark:bg-/);
     });
   });
 });
