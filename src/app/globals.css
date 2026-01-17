@@ -15,12 +15,40 @@
 }
 
 @theme {
-  /* ===== Sdeume AI Design Tokens ===== */
+  /* ===== Sdeume AI Design Tokens - Antigravity Prismatic White ===== */
 
   /* Aceternity Aurora Variables */
   --white: #ffffff;
   --black: #0E1B2A;
   --transparent: transparent;
+
+  /* ===== Prismatic Color Palette ===== */
+  --prism-white: #FFFFFF;
+  --prism-pink: #FFE4EC;
+  --prism-blue: #E4F1FF;
+  --prism-violet: #F0E4FF;
+  --prism-peach: #FFE8E0;
+
+  /* Light Mode Text - Antigravity Theme */
+  --text-hero: #0E1B2A;
+  --text-body: #475569;
+  --text-muted: #94A3B8;
+
+  /* ===== Giant Typography Scale ===== */
+  --text-display-hero: clamp(4rem, 12vw, 10rem);   /* ~160px */
+  --text-display-lg: clamp(3rem, 8vw, 7rem);       /* ~112px */
+  --text-display-md: clamp(2.5rem, 6vw, 5rem);     /* ~80px */
+  --text-display-sm: clamp(2rem, 4vw, 3.5rem);     /* ~56px */
+
+  /* ===== Antigravity Spacing (2x) ===== */
+  --space-section: clamp(8rem, 16vw, 16rem);
+  --space-element: clamp(4rem, 8vw, 8rem);
+  --space-content: clamp(2rem, 4vw, 4rem);
+
+  /* ===== Liquid Glass Variables ===== */
+  --liquid-glass-bg: rgba(255, 255, 255, 0.3);
+  --liquid-glass-border: rgba(255, 255, 255, 0.5);
+  --liquid-glass-blur: 24px;
 
   --indigo-500: #6366F1;
   --indigo-400: #818CF8;
@@ -28,19 +56,19 @@
   --pink-300: #F9A8D4;
   --violet-300: #C4B5FD;
 
-  /* Primary Colors */
+  /* Primary Colors - Dark Mode Default */
   --color-primary-desktop: #0E1B2A;
   --color-primary-mobile: #1A2B3C;
   --color-primary-hover: #14263A;
   --color-primary-pressed: #0B1622;
 
-  /* Secondary & Surface */
-  --color-secondary: #F6F1EA;
-  --color-surface: #FAF8F5;
+  /* Secondary & Surface - Dark Theme */
+  --color-secondary: #1E293B;
+  --color-surface: #0E1B2A;
 
-  /* Accent Colors */
-  --color-accent-rose: #B9896E;
-  --color-accent-teal: #2E5E5E;
+  /* Accent Colors - Aurora Based */
+  --color-accent-rose: #EC4899;
+  --color-accent-teal: #86E3FF;
 
   /* Romantic Tech Aurora Colors */
   --color-aurora-indigo: #6366F1;
@@ -54,21 +82,21 @@
   --color-aurora-warm: #FFD6A5;
 
   /* Semantic Colors */
-  --color-success: #2E7D66;
-  --color-warning: #C47F39;
-  --color-error: #B83A4B;
-  --color-info: #1F6FEB;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --color-info: #60A5FA;
 
-  /* Grayscale */
-  --color-ink: #111827;
-  --color-body: #374151;
-  --color-sub: #6B7280;
-  --color-line: #E5E7EB;
+  /* Grayscale - Dark Theme */
+  --color-ink: #F8FAFC;
+  --color-body: #CBD5E1;
+  --color-sub: #94A3B8;
+  --color-line: rgba(255, 255, 255, 0.1);
 
-  /* States */
-  --color-disabled-bg: #7C8794;
-  --color-disabled-text: #E5E7EB;
-  --color-ghost-hover: #F1EBE3;
+  /* States - Dark Theme */
+  --color-disabled-bg: #334155;
+  --color-disabled-text: #64748B;
+  --color-ghost-hover: rgba(255, 255, 255, 0.05);
 
   /* Shadcn UI Compatibility */
   --color-border: hsl(var(--border));
@@ -106,10 +134,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* Shadows */
-  --shadow-sm: 0 6px 16px rgba(14, 27, 42, 0.08);
-  --shadow-md: 0 10px 24px rgba(14, 27, 42, 0.12);
-  --shadow-up: 0 -4px 12px rgba(14, 27, 42, 0.08);
+  /* Shadows - Dark Theme */
+  --shadow-sm: 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.4);
+  --shadow-up: 0 -4px 12px rgba(0, 0, 0, 0.3);
 
   /* Spacing */
   --spacing-safe-bottom: 100px;
@@ -127,11 +155,11 @@
   --animate-spin-slow: spin-slow 3s linear infinite;
   --animate-aurora: aurora 60s linear infinite;
 
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.2);
+  /* Glassmorphism - Dark Theme */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --glass-blur: 12px;
-  --glass-shadow: 0 8px 32px rgba(14, 27, 42, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
   @keyframes spin-slow {
     from {
@@ -205,6 +233,56 @@
       background-position: 350% 50%, 350% 50%;
     }
   }
+
+  /* ===== Blob Float Animations ===== */
+  @keyframes blob-float {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(10%, 15%) scale(1.05);
+    }
+    50% {
+      transform: translate(-5%, 10%) scale(0.95);
+    }
+    75% {
+      transform: translate(8%, -5%) scale(1.02);
+    }
+  }
+
+  @keyframes blob-float-delay {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(-8%, 10%) scale(0.98);
+    }
+    50% {
+      transform: translate(12%, -8%) scale(1.04);
+    }
+    75% {
+      transform: translate(-6%, 12%) scale(1.01);
+    }
+  }
+
+  @keyframes blob-float-delay-2 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(6%, -12%) scale(1.03);
+    }
+    50% {
+      transform: translate(-10%, 6%) scale(0.97);
+    }
+    75% {
+      transform: translate(4%, 8%) scale(1.02);
+    }
+  }
+
+  --animate-blob-float: blob-float 20s ease-in-out infinite;
+  --animate-blob-float-delay: blob-float-delay 25s ease-in-out infinite;
+  --animate-blob-float-delay-2: blob-float-delay-2 30s ease-in-out infinite;
 }
 
 /*

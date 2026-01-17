@@ -8,6 +8,8 @@ export type GenerationStatus =
 export interface GenerationImage {
   url: string;
   is_blur: boolean;
+  thumbnail_url?: string;
+  blur_hash?: string;
 }
 
 export interface Generation {
@@ -24,6 +26,12 @@ export interface Generation {
   completedAt: string | null;
   errorMessage: string | null;
   createdAt: string;
+  // LoRA training fields
+  groomFalJobId?: string | null;
+  groomLoraUrl?: string | null;
+  brideFalJobId?: string | null;
+  brideLoraUrl?: string | null;
+  trainingCompletedAt?: string | null;
 }
 
 export interface GenerationRow {
@@ -40,4 +48,10 @@ export interface GenerationRow {
   completed_at: string | null;
   error_message: string | null;
   created_at: string;
+  // LoRA training fields (snake_case for DB)
+  groom_fal_job_id?: string | null;
+  groom_lora_url?: string | null;
+  bride_fal_job_id?: string | null;
+  bride_lora_url?: string | null;
+  training_completed_at?: string | null;
 }

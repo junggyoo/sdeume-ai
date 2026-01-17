@@ -1,4 +1,10 @@
-import { cn } from "@/lib/utils";
+"use client";
+
+import {
+  ScrollReveal,
+  StaggerContainer,
+  StaggerItem,
+} from "@/components/ui/scroll-reveal";
 
 interface BeforeAfterItem {
   id: number;
@@ -75,13 +81,23 @@ const trustBadges: TrustBadge[] = [
 
 function BeforeAfterCard({ item }: { item: BeforeAfterItem }) {
   return (
-    <div className="overflow-hidden rounded-[12px] bg-white shadow-[var(--shadow-sm)]">
-      {/* 비포 & 애프터 이미지 영역 */}
-      <div className="flex">
+    <div className="overflow-hidden">
+      {/* 비포 & 애프터 이미지 영역 - subtle shadow로 float */}
+      <div
+        className="flex overflow-hidden rounded-lg"
+        style={{
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
+        }}
+      >
         {/* Before */}
         <div className="relative flex-1">
-          <div className="flex aspect-[4/5] items-center justify-center bg-gray-100">
-            <span className="text-sm text-[var(--color-sub)]">Before</span>
+          <div
+            className="flex aspect-[4/5] items-center justify-center"
+            style={{ backgroundColor: "var(--prism-blue)" }}
+          >
+            <span style={{ color: "var(--text-muted)" }} className="text-sm">
+              Before
+            </span>
           </div>
           <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white">
             Before
@@ -89,17 +105,25 @@ function BeforeAfterCard({ item }: { item: BeforeAfterItem }) {
         </div>
         {/* After */}
         <div className="relative flex-1">
-          <div className="flex aspect-[4/5] items-center justify-center bg-[var(--color-secondary)]">
-            <span className="text-sm text-[var(--color-sub)]">After</span>
+          <div
+            className="flex aspect-[4/5] items-center justify-center"
+            style={{ backgroundColor: "var(--prism-pink)" }}
+          >
+            <span style={{ color: "var(--text-muted)" }} className="text-sm">
+              After
+            </span>
           </div>
-          <span className="absolute bottom-2 left-2 rounded bg-[var(--color-accent-rose)] px-2 py-0.5 text-xs text-white">
+          <span
+            className="absolute bottom-2 left-2 rounded px-2 py-0.5 text-xs text-white"
+            style={{ backgroundColor: "var(--color-accent-rose)" }}
+          >
             After
           </span>
         </div>
       </div>
       {/* 라벨 */}
-      <div className="p-3 text-center">
-        <p className="text-sm font-medium text-[var(--color-body)]">
+      <div className="pt-4 text-center">
+        <p className="text-sm font-medium" style={{ color: "var(--text-body)" }}>
           {item.label}
         </p>
       </div>
@@ -110,46 +134,60 @@ function BeforeAfterCard({ item }: { item: BeforeAfterItem }) {
 export function SocialProofSection() {
   return (
     <section
-      className="bg-[var(--color-secondary)] py-16 md:py-24"
+      className="py-[var(--space-section)]"
       aria-labelledby="proof-heading"
     >
       <div className="container mx-auto px-4">
         {/* 섹션 헤더 */}
-        <div className="mb-12 text-center">
+        <ScrollReveal className="mb-16 text-center">
           <h2
             id="proof-heading"
-            className="mb-4 font-serif text-3xl font-bold text-[var(--color-ink)] md:text-4xl"
+            className="mb-4 font-serif font-bold"
+            style={{
+              fontSize: "var(--text-display-md)",
+              color: "var(--text-hero)",
+            }}
           >
             실제 사용자 결과물
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-[var(--color-body)]">
+          <p
+            className="mx-auto max-w-2xl text-lg"
+            style={{ color: "var(--text-body)" }}
+          >
             일반 셀카가 하이엔드 웨딩 화보로 변신합니다
           </p>
-        </div>
+        </ScrollReveal>
 
-        {/* 비포 & 애프터 그리드 */}
-        <div className="mb-12 grid gap-6 md:grid-cols-3">
+        {/* 비포 & 애프터 그리드 - Stagger Animation */}
+        <StaggerContainer
+          className="mb-16 grid gap-8 md:grid-cols-3"
+          staggerDelay={0.12}
+        >
           {beforeAfterItems.map((item) => (
-            <BeforeAfterCard key={item.id} item={item} />
+            <StaggerItem key={item.id}>
+              <BeforeAfterCard item={item} />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
-        {/* 신뢰 배지 */}
-        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
-          {trustBadges.map((badge, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-[var(--shadow-sm)]"
-            >
-              <span className="text-[var(--color-accent-teal)]">
-                {badge.icon}
-              </span>
-              <span className="text-sm font-medium text-[var(--color-ink)]">
-                {badge.label}
-              </span>
-            </div>
-          ))}
-        </div>
+        {/* 신뢰 배지 - 배경 없음, 아이콘 + 텍스트만 */}
+        <ScrollReveal>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {trustBadges.map((badge, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <span style={{ color: "var(--color-accent-teal)" }}>
+                  {badge.icon}
+                </span>
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--text-hero)" }}
+                >
+                  {badge.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

@@ -1,4 +1,10 @@
-import { cn } from "@/lib/utils";
+"use client";
+
+import {
+  ScrollReveal,
+  StaggerContainer,
+  StaggerItem,
+} from "@/components/ui/scroll-reveal";
 
 interface UvpItem {
   icon: React.ReactNode;
@@ -10,7 +16,7 @@ const uvpItems: UvpItem[] = [
   {
     icon: (
       <svg
-        className="h-8 w-8"
+        className="h-10 w-10"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -30,7 +36,7 @@ const uvpItems: UvpItem[] = [
   {
     icon: (
       <svg
-        className="h-8 w-8"
+        className="h-10 w-10"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -50,7 +56,7 @@ const uvpItems: UvpItem[] = [
   {
     icon: (
       <svg
-        className="h-8 w-8"
+        className="h-10 w-10"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -73,21 +79,30 @@ interface UvpCardProps extends UvpItem {
   className?: string;
 }
 
-function UvpCard({ icon, title, description, className }: UvpCardProps) {
+function UvpCard({ icon, title, description }: UvpCardProps) {
   return (
-    <div
-      className={cn(
-        "group flex flex-col items-center rounded-[12px] bg-white p-6 text-center shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-md)]",
-        className
-      )}
-    >
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent-rose)]/10 text-[var(--color-accent-rose)] transition-colors group-hover:bg-[var(--color-accent-rose)]/20">
+    <div className="group flex flex-col items-center text-center">
+      {/* 아이콘 - 배경 원형 제거, 색상만 유지 */}
+      <div
+        className="mb-6 transition-transform duration-300 group-hover:scale-110"
+        style={{ color: "var(--color-accent-rose)" }}
+      >
         {icon}
       </div>
-      <h3 className="mb-2 font-serif text-xl font-semibold text-[var(--color-ink)]">
+      <h3
+        className="mb-3 font-serif font-semibold"
+        style={{
+          fontSize: "var(--text-display-sm)",
+          color: "var(--text-hero)",
+          lineHeight: 1.1,
+        }}
+      >
         {title}
       </h3>
-      <p className="text-sm leading-relaxed text-[var(--color-body)]">
+      <p
+        className="max-w-xs text-base leading-relaxed"
+        style={{ color: "var(--text-body)" }}
+      >
         {description}
       </p>
     </div>
@@ -97,29 +112,41 @@ function UvpCard({ icon, title, description, className }: UvpCardProps) {
 export function UvpSection() {
   return (
     <section
-      className="bg-[var(--color-surface)] py-16 md:py-24"
+      className="py-[var(--space-section)]"
       aria-labelledby="uvp-heading"
     >
       <div className="container mx-auto px-4">
         {/* 섹션 헤더 */}
-        <div className="mb-12 text-center">
+        <ScrollReveal className="mb-16 text-center">
           <h2
             id="uvp-heading"
-            className="mb-4 font-serif text-3xl font-bold text-[var(--color-ink)] md:text-4xl"
+            className="mb-4 font-serif font-bold"
+            style={{
+              fontSize: "var(--text-display-md)",
+              color: "var(--text-hero)",
+            }}
           >
             왜 스드메 AI인가요?
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-[var(--color-body)]">
+          <p
+            className="mx-auto max-w-2xl text-lg"
+            style={{ color: "var(--text-body)" }}
+          >
             스튜디오 촬영의 한계를 넘어, AI가 만드는 새로운 웨딩 경험
           </p>
-        </div>
+        </ScrollReveal>
 
-        {/* UVP 카드 그리드 */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* UVP 카드 그리드 - Stagger Animation */}
+        <StaggerContainer
+          className="grid gap-[var(--space-element)] md:grid-cols-2 lg:grid-cols-3"
+          staggerDelay={0.15}
+        >
           {uvpItems.map((item, index) => (
-            <UvpCard key={index} {...item} />
+            <StaggerItem key={index}>
+              <UvpCard {...item} />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );

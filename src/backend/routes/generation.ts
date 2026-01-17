@@ -8,13 +8,19 @@ import {
   type HandlerResult,
   type ErrorResult,
 } from '@/backend/http/response';
-import { getLogger, getSupabase, type AppEnv } from '@/backend/hono/context';
+import { getLogger, getSupabase, getConfig, type AppEnv } from '@/backend/hono/context';
+import {
+  startLoraTrainingForGeneration,
+  handleFalWebhookForGeneration,
+  triggerModalGeneration,
+} from '@/backend/services/generation.service';
+import { verifyFalWebhookSignature, parseFalWebhookPayload } from '@/backend/services/fal-client';
 import type {
   Generation,
   GenerationRow,
-  GenerationImage,
   GenerationStatus,
 } from '@/features/generation/types';
+import type { FalWebhookPayload } from '@/features/shooting/types';
 
 // =============================================================================
 // Schemas
@@ -44,20 +50,12 @@ const generationErrorCodes = {
   createError: 'GENERATION_CREATE_ERROR',
   fetchError: 'GENERATION_FETCH_ERROR',
   invalidProject: 'GENERATION_INVALID_PROJECT',
+  trainingError: 'GENERATION_TRAINING_ERROR',
+  webhookError: 'WEBHOOK_ERROR',
 } as const;
 
 type GenerationServiceError =
   (typeof generationErrorCodes)[keyof typeof generationErrorCodes];
-
-// =============================================================================
-// Mock Data
-// =============================================================================
-
-// 인물/풍경 이미지가 포함된 picsum.photos 이미지 ID 목록
-const PICSUM_IMAGE_IDS = [237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248];
-const MOCK_IMAGE_URLS = PICSUM_IMAGE_IDS.map(
-  (id) => `https://picsum.photos/id/${id}/1080/1920`
-);
 
 // =============================================================================
 // Helpers
@@ -77,53 +75,13 @@ const mapRowToGeneration = (row: GenerationRow): Generation => ({
   completedAt: row.completed_at,
   errorMessage: row.error_message,
   createdAt: row.created_at,
+  // LoRA fields
+  groomFalJobId: row.groom_fal_job_id,
+  groomLoraUrl: row.groom_lora_url,
+  brideFalJobId: row.bride_fal_job_id,
+  brideLoraUrl: row.bride_lora_url,
+  trainingCompletedAt: row.training_completed_at,
 });
-
-/**
- * Calculate mock status and images based on elapsed time since creation.
- * This is stateless - it only modifies the response, not the database.
- *
- * Timeline:
- * - 0-5s:   queued
- * - 5-15s:  training
- * - 15-40s: generating (1 image per 2 seconds)
- * - 40s+:   completed (all 12 images)
- */
-const calculateMockStatusAndImages = (
-  createdAt: string
-): { status: GenerationStatus; images: GenerationImage[] } => {
-  const elapsedSeconds = (Date.now() - new Date(createdAt).getTime()) / 1000;
-
-  // Phase 1: 0-5s = queued
-  if (elapsedSeconds < 5) {
-    return { status: 'queued', images: [] };
-  }
-
-  // Phase 2: 5-15s = training
-  if (elapsedSeconds < 15) {
-    return { status: 'training', images: [] };
-  }
-
-  // Phase 3: 15-40s = generating (1 image per 2 seconds)
-  if (elapsedSeconds < 40) {
-    const generatingSeconds = elapsedSeconds - 15;
-    const imageCount = Math.min(12, Math.floor(generatingSeconds / 2) + 1);
-    const images: GenerationImage[] = MOCK_IMAGE_URLS.slice(0, imageCount).map(
-      (url) => ({
-        url,
-        is_blur: true,
-      })
-    );
-    return { status: 'generating', images };
-  }
-
-  // Phase 4: 40s+ = completed (all 12 images, unblurred)
-  const images: GenerationImage[] = MOCK_IMAGE_URLS.map((url) => ({
-    url,
-    is_blur: false,
-  }));
-  return { status: 'completed', images };
-};
 
 // =============================================================================
 // Service Functions
@@ -189,17 +147,7 @@ const getGenerationById = async (
     return failure(500, generationErrorCodes.fetchError, error.message);
   }
 
-  const generation = mapRowToGeneration(data);
-
-  // Apply mock status logic for development
-  const { status, images } = calculateMockStatusAndImages(generation.createdAt);
-
-  return success({
-    ...generation,
-    status,
-    images,
-    completedAt: status === 'completed' ? new Date().toISOString() : null,
-  });
+  return success(mapRowToGeneration(data));
 };
 
 const getGenerationByProjectId = async (
@@ -223,17 +171,7 @@ const getGenerationByProjectId = async (
     return failure(500, generationErrorCodes.fetchError, error.message);
   }
 
-  const generation = mapRowToGeneration(data);
-
-  // Apply mock status logic for development
-  const { status, images } = calculateMockStatusAndImages(generation.createdAt);
-
-  return success({
-    ...generation,
-    status,
-    images,
-    completedAt: status === 'completed' ? new Date().toISOString() : null,
-  });
+  return success(mapRowToGeneration(data));
 };
 
 // =============================================================================
@@ -241,10 +179,11 @@ const getGenerationByProjectId = async (
 // =============================================================================
 
 export const generationRoutes = new Hono<AppEnv>()
-  // POST /generate - Create a new generation job
+  // POST /generate - Create a new generation job and start LoRA training
   .post('/', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
+    const config = getConfig(c);
 
     const authHeader = c.req.header('Authorization');
     if (!authHeader) {
@@ -274,16 +213,185 @@ export const generationRoutes = new Hono<AppEnv>()
       );
     }
 
-    const result = await createGeneration(supabase, user.id, parsedBody.data);
+    // 1. Create generation record
+    const createResult = await createGeneration(supabase, user.id, parsedBody.data);
 
-    if (!result.ok) {
-      const errorResult = result as ErrorResult<GenerationServiceError, unknown>;
+    if (!createResult.ok) {
+      const errorResult = createResult as ErrorResult<GenerationServiceError, unknown>;
       logger.error('Failed to create generation', errorResult.error.message);
-      return respond(c, result);
+      return respond(c, createResult);
     }
 
-    return respond(c, result);
+    const generation = createResult.data;
+
+    // 2. Start LoRA training
+    const falConfig = {
+      apiKey: config.fal?.apiKey || process.env.FAL_KEY || '',
+      webhookSecret: config.fal?.webhookSecret || process.env.FAL_WEBHOOK_SECRET || '',
+      webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/generate/webhooks/fal`,
+    };
+
+    const trainingResult = await startLoraTrainingForGeneration(
+      supabase,
+      generation.id,
+      parsedBody.data.projectId,
+      falConfig
+    );
+
+    if (!trainingResult.ok) {
+      const trainingError = trainingResult as ErrorResult<string, unknown>;
+      logger.error('Failed to start LoRA training', trainingError.error.message);
+      // Update generation status to failed
+      await supabase
+        .from('generations')
+        .update({
+          status: 'failed',
+          error_message: trainingError.error.message,
+        })
+        .eq('id', generation.id);
+
+      return respond(c, failure(500, generationErrorCodes.trainingError, trainingError.error.message));
+    }
+
+    logger.info('Generation created and training started', {
+      generationId: generation.id,
+      groomFalJobId: trainingResult.data.groomFalJobId,
+      brideFalJobId: trainingResult.data.brideFalJobId,
+    });
+
+    return respond(c, success({
+      ...generation,
+      status: 'training' as GenerationStatus,
+      groomFalJobId: trainingResult.data.groomFalJobId,
+      brideFalJobId: trainingResult.data.brideFalJobId,
+    }, 201));
   })
+
+  // POST /generate/webhooks/fal - Fal.ai webhook handler
+  .post('/webhooks/fal', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+    const config = getConfig(c);
+
+    // Get raw body for signature verification
+    const rawBody = await c.req.text();
+    const signature = c.req.header('X-Fal-Signature') || '';
+
+    // Verify signature
+    const webhookSecret = config.fal?.webhookSecret || process.env.FAL_WEBHOOK_SECRET || '';
+    const isValid = verifyFalWebhookSignature(rawBody, signature, webhookSecret);
+
+    if (!isValid) {
+      logger.warn('Invalid Fal webhook signature');
+      return respond(
+        c,
+        failure(401, generationErrorCodes.webhookError, 'Invalid webhook signature')
+      );
+    }
+
+    // Parse payload
+    let payload: FalWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return respond(c, failure(400, 'INVALID_PAYLOAD', 'Invalid JSON payload'));
+    }
+
+    const parseResult = parseFalWebhookPayload(payload);
+    if (!parseResult.ok) {
+      const parseError = parseResult as ErrorResult<string, unknown>;
+      logger.error('Failed to parse Fal webhook payload', parseError.error.message);
+      return respond(c, failure(400, 'INVALID_PAYLOAD', parseError.error.message));
+    }
+
+    const parsedPayload = parseResult.data;
+
+    logger.info('Received Fal webhook for generation', {
+      requestId: parsedPayload.requestId,
+      status: parsedPayload.status,
+    });
+
+    // Handle COMPLETED status
+    if (parsedPayload.status === 'COMPLETED' && parsedPayload.loraUrl) {
+      const webhookResult = await handleFalWebhookForGeneration(
+        supabase,
+        parsedPayload.requestId,
+        parsedPayload.loraUrl
+      );
+
+      if (!webhookResult.ok) {
+        const webhookError = webhookResult as ErrorResult<string, unknown>;
+        logger.error('Failed to handle Fal webhook', webhookError.error.message);
+        return respond(c, failure(500, generationErrorCodes.webhookError, webhookError.error.message));
+      }
+
+      logger.info('LoRA training completed', {
+        generationId: webhookResult.data.generationId,
+        role: webhookResult.data.role,
+        bothCompleted: webhookResult.data.bothCompleted,
+      });
+
+      // If both trainings are complete, trigger Modal generation
+      if (webhookResult.data.bothCompleted) {
+        logger.info('Both LoRA trainings complete, triggering Modal generation');
+
+        // Get the generation to get theme_id
+        const { data: generation } = await supabase
+          .from('generations')
+          .select('project_id, theme_id')
+          .eq('id', webhookResult.data.generationId)
+          .single();
+
+        if (generation) {
+          // Trigger Modal generation asynchronously (don't await)
+          triggerModalGeneration(
+            supabase,
+            webhookResult.data.generationId,
+            generation.project_id,
+            webhookResult.data.groomLoraUrl!,
+            webhookResult.data.brideLoraUrl!,
+            generation.theme_id,
+            { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT || '' }
+          ).catch((error) => {
+            logger.error('Modal generation failed', error);
+          });
+        }
+      }
+
+      return respond(c, success({ received: true }));
+    }
+
+    // Handle FAILED status
+    if (parsedPayload.status === 'FAILED') {
+      // Find and update the generation
+      const { data: generation } = await supabase
+        .from('generations')
+        .select('id')
+        .or(`groom_fal_job_id.eq.${parsedPayload.requestId},bride_fal_job_id.eq.${parsedPayload.requestId}`)
+        .single();
+
+      if (generation) {
+        await supabase
+          .from('generations')
+          .update({
+            status: 'failed',
+            error_message: parsedPayload.errorMessage || 'Training failed',
+          })
+          .eq('id', generation.id);
+
+        logger.error('LoRA training failed', {
+          generationId: generation.id,
+          error: parsedPayload.errorMessage,
+        });
+      }
+
+      return respond(c, success({ received: true }));
+    }
+
+    // For IN_PROGRESS and IN_QUEUE, just acknowledge
+    return respond(c, success({ received: true }));
+  })
+
   // GET /generate/project/:projectId - Get generation by project ID
   .get('/project/:projectId', async (c) => {
     const supabase = getSupabase(c);
@@ -333,7 +441,8 @@ export const generationRoutes = new Hono<AppEnv>()
 
     return respond(c, result);
   })
-  // GET /generate/:generationId - Get generation status with mock time-based logic
+
+  // GET /generate/:generationId - Get generation status
   .get('/:generationId', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
