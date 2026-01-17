@@ -75,7 +75,7 @@ describe('startLoraTraining', () => {
     }
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('fal.run'),
+      expect.stringContaining('fal.run/fal-ai/flux-lora-portrait-trainer'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

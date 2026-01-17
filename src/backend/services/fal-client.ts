@@ -45,7 +45,7 @@ interface ParsedWebhookPayload {
 // =============================================================================
 
 const FAL_API_BASE = 'https://queue.fal.run';
-const FAL_FLUX_LORA_TRAINER = 'fal-ai/flux-lora-fast-training';
+const FAL_FLUX_LORA_TRAINER = 'fal-ai/flux-lora-portrait-trainer';
 
 // =============================================================================
 // Start LoRA Training
