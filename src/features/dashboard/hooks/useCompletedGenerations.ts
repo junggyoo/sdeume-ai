@@ -49,11 +49,20 @@ function transformToPictorial(
   };
 }
 
+/**
+ * Hook to fetch completed generations for all given projects
+ *
+ * Note: This hook fetches generations for ALL projects passed to it,
+ * not just projects with 'completed' status. The filtering of completed
+ * generations happens based on generation.status === 'completed'.
+ *
+ * This allows displaying pictorials even if the project status has changed.
+ */
 export function useCompletedGenerations(
-  completedProjects: Project[]
+  projects: Project[]
 ): UseCompletedGenerationsResult {
   const queries = useQueries({
-    queries: completedProjects.map((project) => ({
+    queries: projects.map((project) => ({
       queryKey: ['generations', 'project', project.id],
       queryFn: () => fetchGenerationForProject(project.id),
       staleTime: 30 * 1000,
@@ -63,7 +72,7 @@ export function useCompletedGenerations(
   const isLoading = queries.some((query) => query.isLoading);
 
   const pictorials = useMemo(() => {
-    if (completedProjects.length === 0) {
+    if (projects.length === 0) {
       return [];
     }
 
@@ -71,9 +80,10 @@ export function useCompletedGenerations(
 
     queries.forEach((query, index) => {
       const generation = query.data;
-      const project = completedProjects[index];
+      const project = projects[index];
 
-      if (generation && generation.status === 'completed') {
+      // Include if generation exists, is completed, and has images
+      if (generation && generation.status === 'completed' && generation.images && generation.images.length > 0) {
         results.push(transformToPictorial(generation, project));
       }
     });
@@ -84,7 +94,7 @@ export function useCompletedGenerations(
       const dateB = new Date(b.completedAt).getTime();
       return dateB - dateA;
     });
-  }, [queries, completedProjects]);
+  }, [queries, projects]);
 
   return {
     pictorials,

@@ -30,6 +30,8 @@ export interface DashboardStateResult {
   state: DashboardState;
   processingProject: Project | null;
   completedProjects: Project[];
+  /** All projects for the user (used to fetch all generations) */
+  allProjects: Project[];
   isLoading: boolean;
 }
 

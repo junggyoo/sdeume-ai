@@ -10,6 +10,7 @@ interface DeterminedState {
   state: DashboardState;
   processingProject: Project | null;
   completedProjects: Project[];
+  allProjects: Project[];
 }
 
 /**
@@ -29,6 +30,7 @@ export function determineDashboardState(
       state: 'new_user',
       processingProject: null,
       completedProjects: [],
+      allProjects: [],
     };
   }
 
@@ -48,6 +50,7 @@ export function determineDashboardState(
       state: 'processing',
       processingProject,
       completedProjects,
+      allProjects: projects,
     };
   }
 
@@ -57,6 +60,7 @@ export function determineDashboardState(
       state: 'ready',
       processingProject: null,
       completedProjects,
+      allProjects: projects,
     };
   }
 
@@ -67,6 +71,7 @@ export function determineDashboardState(
     state: 'new_user',
     processingProject: null,
     completedProjects: [],
+    allProjects: projects,
   };
 }
 
@@ -86,6 +91,7 @@ export function useDashboardState(): DashboardStateResult {
     state: result.state,
     processingProject: result.processingProject,
     completedProjects: result.completedProjects,
+    allProjects: result.allProjects,
     isLoading,
   };
 }

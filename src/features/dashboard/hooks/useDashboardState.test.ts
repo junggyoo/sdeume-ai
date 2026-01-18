@@ -79,6 +79,19 @@ describe('determineDashboardState', () => {
       const result = determineDashboardState([]);
       expect(result.completedProjects).toEqual([]);
     });
+
+    it('should have empty allProjects when projects array is empty', () => {
+      const result = determineDashboardState([]);
+      expect(result.allProjects).toEqual([]);
+    });
+
+    it('should return all projects in allProjects even for new_user state', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'draft', groomUploadCount: 0, brideUploadCount: 0 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.allProjects).toEqual(projects);
+    });
   });
 
   describe('processing state', () => {
@@ -135,6 +148,16 @@ describe('determineDashboardState', () => {
       const projects: Project[] = [firstProcessing, secondProcessing];
       const result = determineDashboardState(projects);
       expect(result.processingProject?.id).toBe('first-processing');
+    });
+
+    it('should return all projects in allProjects for processing state', () => {
+      const projects: Project[] = [
+        createMockProject({ id: 'completed', status: 'completed', groomUploadCount: 5, brideUploadCount: 5 }),
+        createMockProject({ id: 'training', status: 'training', groomUploadCount: 5, brideUploadCount: 5 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.allProjects).toEqual(projects);
+      expect(result.allProjects).toHaveLength(2);
     });
   });
 
