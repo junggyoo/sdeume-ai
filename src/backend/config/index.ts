@@ -35,6 +35,13 @@ export const getAppConfig = (): AppConfig => {
         url: 'https://placeholder.supabase.co',
         serviceRoleKey: 'placeholder-key',
       },
+      fal: {
+        apiKey: '',
+        webhookSecret: '',
+      },
+      modal: {
+        endpointUrl: '',
+      },
     } satisfies AppConfig;
   }
 
@@ -56,6 +63,13 @@ export const getAppConfig = (): AppConfig => {
     supabase: {
       url: parsed.data.SUPABASE_URL,
       serviceRoleKey: parsed.data.SUPABASE_SECRET_KEY,
+    },
+    fal: {
+      apiKey: process.env.FAL_KEY || '',
+      webhookSecret: process.env.FAL_WEBHOOK_SECRET || '',
+    },
+    modal: {
+      endpointUrl: process.env.MODAL_ENDPOINT_URL || '',
     },
   } satisfies AppConfig;
 

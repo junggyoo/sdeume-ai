@@ -89,6 +89,28 @@
     }
   }
 
+  /* Waiting Screen Animations */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes aurora-float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+    }
+    50% {
+      transform: translateY(-20px) translateX(10px);
+    }
+  }
+
+  --animate-shimmer: shimmer 2s ease-in-out infinite;
+  --animate-aurora-float: aurora-float 8s ease-in-out infinite;
+
   /* Shadcn/Tailwind Compat (Light Theme Base) */
   --color-border: #E5E7EB;
   --color-input: #E5E7EB;
@@ -209,4 +231,14 @@
 
 .animate-progress-indeterminate {
   animation: progress-indeterminate 2s ease-in-out infinite;
+}
+
+/* Shimmer animation for CTA button */
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Aurora float animation */
+.animate-aurora-float {
+  animation: aurora-float 8s ease-in-out infinite;
 }
