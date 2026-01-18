@@ -11,7 +11,7 @@ export interface PictorialCardProps {
 }
 
 export function PictorialCard({ pictorial, className }: PictorialCardProps) {
-  const { projectId, projectName, themeDisplayNameKo, images } = pictorial;
+  const { id, projectName, themeDisplayNameKo, images } = pictorial;
 
   const displayName = projectName ?? themeDisplayNameKo ?? '화보';
   const photoCount = images.length;
@@ -20,7 +20,7 @@ export function PictorialCard({ pictorial, className }: PictorialCardProps) {
 
   return (
     <Link
-      href={`/reveal/${projectId}`}
+      href={`/gallery/${id}`}
       data-testid="pictorial-card"
       className={cn(
         'group block rounded-lg overflow-hidden bg-card border shadow-sm',

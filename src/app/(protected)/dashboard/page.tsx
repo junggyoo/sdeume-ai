@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const createProject = useCreateProject();
 
-  const { state, processingProject, allProjects, isLoading: isStateLoading } =
+  const { state, processingProject, allProjects, hasFaceModel, isLoading: isStateLoading } =
     useDashboardState();
 
   // Fetch generations for ALL projects to find completed pictorials
@@ -27,9 +27,6 @@ export default function DashboardPage() {
 
   // Calculate gallery count from pictorials
   const galleryCount = pictorials.reduce((sum, p) => sum + p.images.length, 0);
-
-  // Check if user has face model (has completed pictorials or is processing)
-  const hasFaceModel = pictorials.length > 0 || state === 'processing' || state === 'ready';
 
   const handleCreateProject = () => {
     createProject.mutate(

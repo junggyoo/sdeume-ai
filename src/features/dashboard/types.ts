@@ -3,11 +3,11 @@ import type { GenerationImage } from '@/features/generation/types';
 
 /**
  * Dashboard state based on user's project status
- * - new_user: No projects or no face uploads yet
+ * - onboarding: No projects or no face uploads yet (true new user)
  * - processing: Has project with status 'training' or 'generating'
- * - ready: Has at least one completed project with generated images
+ * - ready: Has face uploads OR completed projects (user has started)
  */
-export type DashboardState = 'new_user' | 'processing' | 'ready';
+export type DashboardState = 'onboarding' | 'processing' | 'ready';
 
 /**
  * Pictorial represents a completed generation with its images
@@ -32,6 +32,8 @@ export interface DashboardStateResult {
   completedProjects: Project[];
   /** All projects for the user (used to fetch all generations) */
   allProjects: Project[];
+  /** Whether user has uploaded face photos (groomUploadCount > 0 || brideUploadCount > 0) */
+  hasFaceModel: boolean;
   isLoading: boolean;
 }
 

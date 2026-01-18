@@ -10,6 +10,13 @@ vi.mock('@/features/project/hooks/useProject', () => ({
   useProjects: vi.fn(),
 }));
 
+// Mock apiClient to avoid env variable issues
+vi.mock('@/lib/remote/api-client', () => ({
+  apiClient: {
+    get: vi.fn().mockResolvedValue({ data: { ok: false } }),
+  },
+}));
+
 import { useProjects } from '@/features/project/hooks/useProject';
 
 const mockUseProjects = vi.mocked(useProjects);
@@ -42,40 +49,44 @@ const createWrapper = () => {
 };
 
 describe('determineDashboardState', () => {
-  describe('new_user state', () => {
-    it('should return new_user when projects array is empty', () => {
+  describe('onboarding state', () => {
+    it('should return onboarding when projects array is empty', () => {
       const result = determineDashboardState([]);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
     });
 
-    it('should return new_user when projects is undefined', () => {
+    it('should return onboarding when projects is undefined', () => {
       const result = determineDashboardState(undefined);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
     });
 
-    it('should return new_user when no project has face uploads', () => {
+    it('should return onboarding when no project has face uploads', () => {
       const projects: Project[] = [
         createMockProject({ groomUploadCount: 0, brideUploadCount: 0 }),
       ];
       const result = determineDashboardState(projects);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
     });
 
-    it('should return new_user when only draft projects exist without uploads', () => {
+    it('should return onboarding when only draft projects exist without uploads', () => {
       const projects: Project[] = [
         createMockProject({ status: 'draft', groomUploadCount: 0, brideUploadCount: 0 }),
         createMockProject({ id: 'project-2', status: 'draft', groomUploadCount: 0, brideUploadCount: 0 }),
       ];
       const result = determineDashboardState(projects);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
     });
 
-    it('should have null processingProject for new_user state', () => {
+    it('should have null processingProject for onboarding state', () => {
       const result = determineDashboardState([]);
       expect(result.processingProject).toBeNull();
     });
 
-    it('should have empty completedProjects for new_user state', () => {
+    it('should have empty completedProjects for onboarding state', () => {
       const result = determineDashboardState([]);
       expect(result.completedProjects).toEqual([]);
     });
@@ -85,7 +96,7 @@ describe('determineDashboardState', () => {
       expect(result.allProjects).toEqual([]);
     });
 
-    it('should return all projects in allProjects even for new_user state', () => {
+    it('should return all projects in allProjects even for onboarding state', () => {
       const projects: Project[] = [
         createMockProject({ status: 'draft', groomUploadCount: 0, brideUploadCount: 0 }),
       ];
@@ -101,6 +112,7 @@ describe('determineDashboardState', () => {
       ];
       const result = determineDashboardState(projects);
       expect(result.state).toBe('processing');
+      expect(result.hasFaceModel).toBe(true);
     });
 
     it('should return processing when a project has generating status', () => {
@@ -109,6 +121,7 @@ describe('determineDashboardState', () => {
       ];
       const result = determineDashboardState(projects);
       expect(result.state).toBe('processing');
+      expect(result.hasFaceModel).toBe(true);
     });
 
     it('should return the processing project in processingProject', () => {
@@ -168,6 +181,35 @@ describe('determineDashboardState', () => {
       ];
       const result = determineDashboardState(projects);
       expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
+    });
+
+    it('should return ready when user has face uploads but no completed projects', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'theme_selecting', groomUploadCount: 5, brideUploadCount: 5 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
+      expect(result.completedProjects).toHaveLength(0);
+    });
+
+    it('should return ready when only groom has uploads (no completed projects)', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'theme_selecting', groomUploadCount: 5, brideUploadCount: 0 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
+    });
+
+    it('should return ready when only bride has uploads (no completed projects)', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'theme_selecting', groomUploadCount: 0, brideUploadCount: 5 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
     });
 
     it('should return all completed projects in completedProjects', () => {
@@ -209,23 +251,111 @@ describe('determineDashboardState', () => {
     });
   });
 
+  describe('generation status override', () => {
+    it('should return ready when project.status is training but generation is completed', () => {
+      const projects: Project[] = [
+        createMockProject({
+          id: 'project-with-completed-generation',
+          status: 'training',
+          groomUploadCount: 5,
+          brideUploadCount: 5,
+        }),
+      ];
+      // Project has training status, but we pass its ID as having completed generation
+      const completedGenerationProjectIds = new Set(['project-with-completed-generation']);
+      const result = determineDashboardState(projects, completedGenerationProjectIds);
+      expect(result.state).toBe('ready');
+      expect(result.processingProject).toBeNull();
+      expect(result.hasFaceModel).toBe(true);
+    });
+
+    it('should return processing when project.status is training and no completed generation', () => {
+      const projects: Project[] = [
+        createMockProject({
+          id: 'project-still-processing',
+          status: 'training',
+          groomUploadCount: 5,
+          brideUploadCount: 5,
+        }),
+      ];
+      // No completed generations
+      const completedGenerationProjectIds = new Set<string>();
+      const result = determineDashboardState(projects, completedGenerationProjectIds);
+      expect(result.state).toBe('processing');
+      expect(result.processingProject?.id).toBe('project-still-processing');
+    });
+
+    it('should return processing for project without completed generation while other has', () => {
+      const projectWithCompleted = createMockProject({
+        id: 'completed-gen-project',
+        status: 'training',
+        groomUploadCount: 5,
+        brideUploadCount: 5,
+      });
+      const projectStillProcessing = createMockProject({
+        id: 'still-processing-project',
+        status: 'generating',
+        groomUploadCount: 5,
+        brideUploadCount: 5,
+      });
+      const projects: Project[] = [projectWithCompleted, projectStillProcessing];
+      // Only first project has completed generation
+      const completedGenerationProjectIds = new Set(['completed-gen-project']);
+      const result = determineDashboardState(projects, completedGenerationProjectIds);
+      expect(result.state).toBe('processing');
+      expect(result.processingProject?.id).toBe('still-processing-project');
+    });
+
+    it('should handle undefined completedGenerationProjectIds (backwards compatible)', () => {
+      const projects: Project[] = [
+        createMockProject({
+          status: 'training',
+          groomUploadCount: 5,
+          brideUploadCount: 5,
+        }),
+      ];
+      // Call without the second parameter for backwards compatibility
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('processing');
+    });
+  });
+
   describe('edge cases', () => {
-    it('should treat failed projects as not completed', () => {
+    it('should treat failed projects with face uploads as ready', () => {
       const projects: Project[] = [
         createMockProject({ status: 'failed', groomUploadCount: 5, brideUploadCount: 5 }),
       ];
       const result = determineDashboardState(projects);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
       expect(result.completedProjects).toEqual([]);
     });
 
-    it('should return new_user when only uploading or theme_selecting status exists', () => {
+    it('should treat failed projects without face uploads as onboarding', () => {
       const projects: Project[] = [
-        createMockProject({ status: 'uploading', groomUploadCount: 0, brideUploadCount: 0 }),
-        createMockProject({ id: 'p2', status: 'theme_selecting', groomUploadCount: 5, brideUploadCount: 5 }),
+        createMockProject({ status: 'failed', groomUploadCount: 0, brideUploadCount: 0 }),
       ];
       const result = determineDashboardState(projects);
-      expect(result.state).toBe('new_user');
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
+    });
+
+    it('should return onboarding when uploading without face uploads', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'uploading', groomUploadCount: 0, brideUploadCount: 0 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('onboarding');
+      expect(result.hasFaceModel).toBe(false);
+    });
+
+    it('should return ready when theme_selecting with face uploads (no completed)', () => {
+      const projects: Project[] = [
+        createMockProject({ status: 'theme_selecting', groomUploadCount: 5, brideUploadCount: 5 }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
     });
 
     it('should handle project with only groom uploads', () => {
@@ -234,6 +364,7 @@ describe('determineDashboardState', () => {
       ];
       const result = determineDashboardState(projects);
       expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
     });
 
     it('should handle project with only bride uploads', () => {
@@ -242,6 +373,7 @@ describe('determineDashboardState', () => {
       ];
       const result = determineDashboardState(projects);
       expect(result.state).toBe('ready');
+      expect(result.hasFaceModel).toBe(true);
     });
   });
 });
@@ -277,14 +409,15 @@ describe('useDashboardState hook', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.state).toBe('new_user');
+      expect(result.current.state).toBe('onboarding');
       expect(result.current.processingProject).toBeNull();
       expect(result.current.completedProjects).toEqual([]);
+      expect(result.current.hasFaceModel).toBe(false);
     });
   });
 
   describe('with projects data', () => {
-    it('should return new_user state when no projects', async () => {
+    it('should return onboarding state when no projects', async () => {
       mockUseProjects.mockReturnValue({
         data: [],
         isLoading: false,
@@ -299,7 +432,8 @@ describe('useDashboardState hook', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.state).toBe('new_user');
+      expect(result.current.state).toBe('onboarding');
+      expect(result.current.hasFaceModel).toBe(false);
     });
 
     it('should return processing state when project is training', async () => {
@@ -325,6 +459,7 @@ describe('useDashboardState hook', () => {
 
       expect(result.current.state).toBe('processing');
       expect(result.current.processingProject).toEqual(trainingProject);
+      expect(result.current.hasFaceModel).toBe(true);
     });
 
     it('should return ready state when project is completed', async () => {
@@ -350,6 +485,33 @@ describe('useDashboardState hook', () => {
 
       expect(result.current.state).toBe('ready');
       expect(result.current.completedProjects).toEqual([completedProject]);
+      expect(result.current.hasFaceModel).toBe(true);
+    });
+
+    it('should return ready state when user has face uploads but no completed projects', async () => {
+      const themeSelectingProject = createMockProject({
+        status: 'theme_selecting',
+        groomUploadCount: 5,
+        brideUploadCount: 5,
+      });
+
+      mockUseProjects.mockReturnValue({
+        data: [themeSelectingProject],
+        isLoading: false,
+        error: null,
+      } as unknown as ReturnType<typeof useProjects>);
+
+      const { result } = renderHook(() => useDashboardState(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.state).toBe('ready');
+      expect(result.current.hasFaceModel).toBe(true);
+      expect(result.current.completedProjects).toEqual([]);
     });
   });
 });

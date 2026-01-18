@@ -76,11 +76,11 @@ interface HeroContent {
 
 function getContentByState(state: DashboardState): HeroContent {
   switch (state) {
-    case 'new_user':
+    case 'onboarding':
       return {
-        title: DASHBOARD_COPY.newUser.title,
-        subtitle: DASHBOARD_COPY.newUser.subtitle,
-        ctaLabel: DASHBOARD_COPY.newUser.ctaButton,
+        title: DASHBOARD_COPY.onboarding.title,
+        subtitle: DASHBOARD_COPY.onboarding.subtitle,
+        ctaLabel: DASHBOARD_COPY.onboarding.ctaButton,
       };
     case 'processing':
       return {

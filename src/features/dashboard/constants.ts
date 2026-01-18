@@ -5,8 +5,8 @@ export const DASHBOARD_COPY = {
   // Page
   pageTitle: '마이 스튜디오',
 
-  // Hero - New User State
-  newUser: {
+  // Hero - Onboarding State (true new user without face uploads)
+  onboarding: {
     title: '나만의 AI 웨딩 화보를 만들어보세요',
     subtitle: '얼굴 사진을 등록하고 다양한 테마의 웨딩 화보를 생성해보세요',
     ctaButton: '얼굴 모델 등록하기',

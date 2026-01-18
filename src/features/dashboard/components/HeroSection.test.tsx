@@ -20,21 +20,21 @@ const createMockProject = (overrides: Partial<Project> = {}): Project => ({
 });
 
 describe('HeroSection', () => {
-  describe('new_user state', () => {
+  describe('onboarding state', () => {
     it('should render welcome title for new users', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       expect(screen.getByText(/나만의 AI 웨딩 화보를 만들어보세요/i)).toBeInTheDocument();
     });
 
     it('should render welcome subtitle for new users', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       expect(screen.getByText(/얼굴 사진을 등록하고/i)).toBeInTheDocument();
     });
 
     it('should render "얼굴 모델 등록하기" CTA button for new users', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       expect(screen.getByRole('button', { name: /얼굴 모델 등록하기/i })).toBeInTheDocument();
     });
@@ -43,7 +43,7 @@ describe('HeroSection', () => {
       const onCreateProject = vi.fn();
       render(
         <HeroSection
-          state="new_user"
+          state="onboarding"
           processingProject={null}
           onCreateProject={onCreateProject}
         />
@@ -57,7 +57,7 @@ describe('HeroSection', () => {
     it('should disable CTA button when isCreatingProject is true', () => {
       render(
         <HeroSection
-          state="new_user"
+          state="onboarding"
           processingProject={null}
           isCreatingProject={true}
         />
@@ -160,19 +160,19 @@ describe('HeroSection', () => {
 
   describe('Rendering Structure', () => {
     it('should render hero section container', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       expect(screen.getByTestId('hero-section')).toBeInTheDocument();
     });
 
     it('should have section landmark role', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       expect(screen.getByRole('region')).toBeInTheDocument();
     });
 
     it('should have accessible label for section', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       const section = screen.getByRole('region');
       expect(section).toHaveAttribute('aria-label');
@@ -181,21 +181,21 @@ describe('HeroSection', () => {
 
   describe('Styling', () => {
     it('should have gradient background', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       const hero = screen.getByTestId('hero-section');
       expect(hero.className).toMatch(/bg-gradient|from-|to-/);
     });
 
     it('should have rounded corners', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       const hero = screen.getByTestId('hero-section');
       expect(hero.className).toMatch(/rounded/);
     });
 
     it('should have proper padding', () => {
-      render(<HeroSection state="new_user" processingProject={null} />);
+      render(<HeroSection state="onboarding" processingProject={null} />);
 
       const hero = screen.getByTestId('hero-section');
       expect(hero.className).toMatch(/p-/);
@@ -206,7 +206,7 @@ describe('HeroSection', () => {
     it('should apply custom className', () => {
       render(
         <HeroSection
-          state="new_user"
+          state="onboarding"
           processingProject={null}
           className="custom-class"
         />

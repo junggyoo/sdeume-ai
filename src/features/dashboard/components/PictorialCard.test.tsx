@@ -49,12 +49,12 @@ describe('PictorialCard', () => {
       expect(link).toBeInTheDocument();
     });
 
-    it('should link to reveal page with project id', () => {
-      const pictorial = createMockPictorial({ projectId: 'project-123' });
+    it('should link to gallery page with pictorial id', () => {
+      const pictorial = createMockPictorial({ id: 'pictorial-123' });
       render(<PictorialCard pictorial={pictorial} />);
 
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/reveal/project-123');
+      expect(link).toHaveAttribute('href', '/gallery/pictorial-123');
     });
   });
 
