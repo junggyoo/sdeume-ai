@@ -193,7 +193,7 @@ export const getTrainingStatus = async (
 ): Promise<HandlerResult<{ status: FalWebhookStatus; loraUrl?: string }, string>> => {
   try {
     const response = await fetch(
-      `${FAL_API_BASE}/${FAL_FLUX_LORA_TRAINER}/requests/${requestId}/status`,
+      `${FAL_API_BASE}/${FAL_FLUX_LORA_TRAINER}/requests/${requestId}`,
       {
         method: 'GET',
         headers: {
@@ -212,10 +212,30 @@ export const getTrainingStatus = async (
 
     const data = await response.json();
 
-    return success({
-      status: data.status,
-      loraUrl: data.output?.diffusers_lora_file?.url,
-    });
+    // fal.ai queue API response structure:
+    // - Pending/In progress: {"status": "IN_QUEUE"} or {"status": "IN_PROGRESS"}
+    // - Completed: returns result directly without status field: {"diffusers_lora_file": {"url": "..."}}
+    // - Failed: {"status": "FAILED", "error": {...}}
+
+    // If status field exists, normalize to uppercase
+    if (data.status) {
+      const normalizedStatus = (data.status as string).toUpperCase() as FalWebhookStatus;
+      return success({
+        status: normalizedStatus,
+        loraUrl: undefined,
+      });
+    }
+
+    // If no status field but diffusers_lora_file exists, job is completed
+    if (data.diffusers_lora_file?.url) {
+      return success({
+        status: 'COMPLETED',
+        loraUrl: data.diffusers_lora_file.url,
+      });
+    }
+
+    // Fallback: unknown response structure
+    return failure(500, 'FAL_STATUS_ERROR', 'Unknown fal.ai response structure');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return failure(500, 'FAL_STATUS_ERROR', message);

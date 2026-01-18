@@ -105,7 +105,7 @@ export function ResultGallery({
             const actualIndex = idx + 1; // Hero가 0번이므로
             return (
               <div
-                key={image.url}
+                key={`${image.url}-${actualIndex}`}
                 className="mb-4 break-inside-avoid"
               >
                 <div className="relative">

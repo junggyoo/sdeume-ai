@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, Loader2, WifiOff } from 'lucide-react';
@@ -54,6 +54,8 @@ export default function ShootingPage() {
     isLoading: isLoadingGeneration,
     createGeneration,
     isCreating,
+    regenerate,
+    isRegenerating,
   } = useProjectGeneration(params.projectId, project?.selectedThemeId ?? undefined);
 
   const generationId = projectGeneration?.id ?? '';
@@ -61,16 +63,46 @@ export default function ShootingPage() {
   const [droppedImages, setDroppedImages] = useState<GenerationImage[]>([]);
   const [isProcessingDrop, setIsProcessingDrop] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
+  const [isRegenerateMode, setIsRegenerateMode] = useState(false);
+  const hasSeenGeneratingRef = useRef(false);
 
-  // Create generation if it doesn't exist
+  // Create generation if it doesn't exist, or regenerate if completed
   useEffect(() => {
-    if (!isLoadingGeneration && !projectGeneration && !isCreating && project) {
+    if (isLoadingGeneration || isCreating || isRegenerating || !project) return;
+
+    // No generation exists - create new one
+    if (!projectGeneration) {
       createGeneration().catch((err) => {
         console.error('[Shooting] Failed to create generation:', err);
         setInitError(err);
       });
+      return;
     }
-  }, [isLoadingGeneration, projectGeneration, isCreating, project, createGeneration]);
+
+    // Generation exists and is completed with LoRA - regenerate
+    if (
+      projectGeneration.status === 'completed' &&
+      projectGeneration.groomLoraUrl &&
+      projectGeneration.brideLoraUrl &&
+      !isRegenerateMode
+    ) {
+      console.log('[Shooting] Regenerating with existing LoRA...');
+      setIsRegenerateMode(true);
+      regenerate().catch((err) => {
+        console.error('[Shooting] Failed to regenerate:', err);
+        setInitError(err);
+      });
+    }
+  }, [
+    isLoadingGeneration,
+    projectGeneration,
+    isCreating,
+    isRegenerating,
+    project,
+    createGeneration,
+    regenerate,
+    isRegenerateMode,
+  ]);
 
   const {
     generation,
@@ -83,7 +115,7 @@ export default function ShootingPage() {
     enabled: Boolean(generationId),
   });
 
-  const isLoading = isLoadingGeneration || isCreating || (isPollingLoading && !generation);
+  const isLoading = isLoadingGeneration || isCreating || isRegenerating || (isPollingLoading && !generation);
   const error = initError || pollingError;
 
   const phase = useMemo(
@@ -115,11 +147,24 @@ export default function ShootingPage() {
     }
   }, [newImagesQueue, isProcessingDrop, processNextImage]);
 
-  // Redirect to reveal when completed
+  // Track when we enter the generating phase
   useEffect(() => {
-    if (phase === 'completed') {
-      router.push(`/studio/${params.projectId}/reveal`);
+    if (phase === 'generating' || phase === 'training') {
+      hasSeenGeneratingRef.current = true;
     }
+  }, [phase]);
+
+  // Redirect to reveal when completed (only after going through generating phase)
+  useEffect(() => {
+    if (phase !== 'completed') return;
+
+    // Only redirect if we've been through the generating/training phase
+    // This prevents redirect when we first load a completed generation that needs regeneration
+    if (!hasSeenGeneratingRef.current) {
+      return;
+    }
+
+    router.push(`/studio/${params.projectId}/reveal`);
   }, [phase, params.projectId, router]);
 
   // Handle retry
@@ -179,6 +224,7 @@ export default function ShootingPage() {
             <LiveDarkroom
               key="darkroom"
               images={droppedImages}
+              isGenerating={isPolling}
               onImageComplete={handleImageComplete}
             />
           )}

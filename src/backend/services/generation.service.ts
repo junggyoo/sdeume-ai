@@ -230,13 +230,22 @@ export const triggerModalGeneration = async (
   themeId: string | null,
   modalConfig: { endpoint: string }
 ): Promise<HandlerResult<{ status: GenerationStatus; images: GenerationImage[] }, GenerationServiceErrorCode>> => {
-  // 1. Update status to 'generating'
+  // 1. Fetch existing generation to preserve existing images
+  const { data: existingGeneration } = await supabase
+    .from('generations')
+    .select('images')
+    .eq('id', generationId)
+    .single();
+
+  const existingImages: GenerationImage[] = existingGeneration?.images || [];
+
+  // 2. Update status to 'generating'
   await supabase
     .from('generations')
     .update({ status: 'generating' })
     .eq('id', generationId);
 
-  // 2. Get theme prompt if available
+  // 3. Get theme prompt if available
   let prompt = 'Generate a beautiful wedding photo with the couple';
   if (themeId) {
     const { data: theme } = await supabase
@@ -250,7 +259,7 @@ export const triggerModalGeneration = async (
     }
   }
 
-  // 3. Call Modal API
+  // 4. Call Modal API
   const modalClientConfig: ModalClientConfig = {
     endpointUrl: modalConfig.endpoint,
     timeoutMs: 300000, // 5 minutes timeout for image generation
@@ -276,8 +285,9 @@ export const triggerModalGeneration = async (
     return failure(500, generationServiceErrorCodes.modalError, modalError.error.message);
   }
 
-  // 4. Process and upload images
-  const generatedImages: GenerationImage[] = [];
+  // 5. Process and upload images (preserve existing images)
+  const generatedImages: GenerationImage[] = [...existingImages];
+  const startIndex = existingImages.length; // Start from existing image count to avoid overwriting
 
   for (let i = 0; i < modalResult.data.images.length; i++) {
     const image = modalResult.data.images[i];
@@ -286,7 +296,7 @@ export const triggerModalGeneration = async (
       supabase,
       projectId,
       generationId,
-      i,
+      startIndex + i, // Use offset to prevent overwriting existing images
       `data:image/png;base64,${image.base64}`
     );
 
@@ -306,7 +316,7 @@ export const triggerModalGeneration = async (
     }
   }
 
-  // 5. Update final status
+  // 6. Update final status
   const { data: finalGeneration, error: finalError } = await supabase
     .from('generations')
     .update({

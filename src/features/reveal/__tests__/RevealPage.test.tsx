@@ -138,7 +138,7 @@ function RevealPage() {
     <div data-testid="reveal-gallery">
       {generation.images.map((image, index) => (
         <button
-          key={image.url}
+          key={`${image.url}-${index}`}
           data-testid={`gallery-image-${index}`}
           onClick={() => setSelectedImage(image)}
         >

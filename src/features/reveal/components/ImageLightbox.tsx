@@ -86,12 +86,12 @@ export function ImageLightbox({
         {/* 이미지 컨테이너 */}
         <div
           data-testid="lightbox-content"
-          className="relative flex max-h-[90vh] max-w-[90vw] flex-col items-center"
+          className="relative flex flex-col items-center"
           onClick={handleContentClick}
         >
           {/* 이미지 */}
           <motion.div
-            className="relative aspect-[4/5] w-full max-w-3xl overflow-hidden rounded-image"
+            className="relative aspect-[4/5] h-[80vh] overflow-hidden rounded-image"
             layoutId={`image-${image.url}`}
           >
             <Image
@@ -100,7 +100,7 @@ export function ImageLightbox({
               alt="화보 이미지"
               fill
               className="object-contain"
-              sizes="(max-width: 768px) 90vw, 70vw"
+              sizes="90vw"
               priority
             />
           </motion.div>

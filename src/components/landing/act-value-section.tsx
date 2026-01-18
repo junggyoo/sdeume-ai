@@ -1,152 +1,67 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 
-/**
- * Act 2: Value Proposition Section
- *
- * 텍스트 좌측, 이미지 우측 레이아웃.
- * 스크롤 시 Parallax 효과로 이미지가 부드럽게 움직임.
- */
+const COPY_SEGMENTS = [
+  {
+    id: 1,
+    text: "단순 합성이 아닙니다",
+    sub: "Not just a synthesis",
+    gradient: "from-[#2E5E5E] to-[#1A3C3C]",
+  },
+  {
+    id: 2,
+    text: "당신을 학습하는 시간",
+    sub: "Time to learn you",
+    gradient: "from-[#3D4A5E] to-[#1A2C38]",
+  },
+  {
+    id: 3,
+    text: "가장 나다운 표정으로",
+    sub: "Your most authentic expression",
+    gradient: "from-[#4A3B45] to-[#2A1F25]",
+  },
+];
+
 export function ActValueSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
-  // Parallax 효과
-  const imageY = useTransform(scrollYProgress, [0, 1], [100, -100]);
-  const textY = useTransform(scrollYProgress, [0, 1], [50, -50]);
-  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative py-[var(--space-section)]"
-      aria-label="가치 제안"
-    >
+    <section className="relative py-24 md:py-32 bg-deep-navy">
       <div className="container mx-auto px-4">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          {/* 텍스트 영역 - 좌측 */}
-          <motion.div
-            className="order-2 lg:order-1"
-            style={{ y: textY, opacity }}
-          >
-            <h2
-              className="font-serif font-bold leading-tight"
-              style={{
-                fontSize: "var(--text-display-md)",
-                color: "var(--text-hero)",
-              }}
+        <div className="flex flex-col gap-16 md:gap-24">
+          {COPY_SEGMENTS.map((segment, index) => (
+            <motion.div
+              key={segment.id}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: index * 0.1 }}
+              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${segment.gradient} p-8 md:p-12 backdrop-blur-md border border-white/10`}
             >
-              <span className="block">어색한 미소 대신,</span>
-              <span className="block text-gradient">가장 나다운 표정으로</span>
-            </h2>
+              {/* Background overlay */}
+              <div className="absolute inset-0 bg-black/20" />
 
-            <p
-              className="mt-8 max-w-lg font-sans text-lg leading-relaxed md:text-xl"
-              style={{ color: "var(--text-body)" }}
-            >
-              낯선 작가 앞에서 굳어버린 표정, 마음에 들지 않는 보정본...
-              <br />
-              <br />
-              Sdeume AI에서는 걱정 마세요.
-              <br />
-              가장 편안한 공간에서 찍은 셀카가 하이엔드 화보가 됩니다.
-            </p>
-          </motion.div>
-
-          {/* 이미지 영역 - 우측 (Parallax) */}
-          <motion.div
-            className="order-1 lg:order-2"
-            style={{ y: imageY }}
-          >
-            {/* 이미지 플레이스홀더 - 실제 이미지로 교체 필요 */}
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl">
-              {/* 그라데이션 배경 */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `
-                    linear-gradient(
-                      135deg,
-                      var(--prism-violet) 0%,
-                      var(--prism-pink) 50%,
-                      var(--prism-blue) 100%
-                    )
-                  `,
-                }}
-              />
-
-              {/* 유리 효과 오버레이 */}
-              <div
-                className="absolute inset-8 flex flex-col items-center justify-center rounded-2xl"
-                style={{
-                  background: "rgba(255, 255, 255, 0.3)",
-                  backdropFilter: "blur(20px)",
-                  border: "1px solid rgba(255, 255, 255, 0.4)",
-                }}
-              >
-                {/* 아바타 플레이스홀더 */}
-                <motion.div
-                  className="h-32 w-32 rounded-full md:h-40 md:w-40"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--prism-pink), var(--prism-violet))",
-                    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.1)",
-                  }}
-                  animate={{
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-
-                <p
-                  className="mt-6 text-center font-sans text-sm"
-                  style={{ color: "var(--text-muted)" }}
+              <div className="relative z-10 text-center">
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-sm md:text-base font-sans tracking-[0.2em] text-champagne-gold/60 mb-4 uppercase"
                 >
-                  AI가 학습한 당신
-                </p>
+                  {segment.sub}
+                </motion.p>
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="text-4xl md:text-6xl font-serif text-champagne-gold font-light leading-tight break-keep"
+                >
+                  {segment.text}
+                </motion.h2>
               </div>
-
-              {/* 데코레이션 요소 */}
-              <motion.div
-                className="absolute right-4 top-4 h-20 w-20 rounded-full opacity-60"
-                style={{ backgroundColor: "var(--prism-blue)" }}
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.4, 0.6, 0.4],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-
-              <motion.div
-                className="absolute bottom-4 left-4 h-16 w-16 rounded-full opacity-60"
-                style={{ backgroundColor: "var(--prism-pink)" }}
-                animate={{
-                  scale: [1, 1.15, 1],
-                  opacity: [0.5, 0.7, 0.5],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-              />
-            </div>
-          </motion.div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>

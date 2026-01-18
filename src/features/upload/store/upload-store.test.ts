@@ -155,4 +155,162 @@ describe('upload-store', () => {
       expect(useUploadStore.getState().groomQueue).toHaveLength(3);
     });
   });
+
+  describe('getBucketSummary', () => {
+    it('should count items with completed status', () => {
+      const files = createMockFiles(3);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      // Update items to completed with analysis
+      queue.forEach((item) => {
+        useUploadStore.getState().updateQueueItem(item.id, 'groom', {
+          status: 'completed',
+          analysis: {
+            faceDetected: true,
+            yawAngle: 5,
+            smileScore: 0.3,
+            eyesOpen: true,
+            bucket: 'A',
+            confidence: 0.9,
+            qualityIssues: [],
+            isUsable: true,
+          },
+        });
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      expect(summary.total).toBe(3);
+      expect(summary.bucketA).toBe(3);
+    });
+
+    it('should count items with uploading status during server sync', () => {
+      const files = createMockFiles(3);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      // Update items to uploading status (simulating server upload)
+      queue.forEach((item) => {
+        useUploadStore.getState().updateQueueItem(item.id, 'groom', {
+          status: 'uploading',
+          analysis: {
+            faceDetected: true,
+            yawAngle: 5,
+            smileScore: 0.3,
+            eyesOpen: true,
+            bucket: 'A',
+            confidence: 0.9,
+            qualityIssues: [],
+            isUsable: true,
+          },
+        });
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      // Should still count items even when uploading
+      expect(summary.total).toBe(3);
+      expect(summary.bucketA).toBe(3);
+    });
+
+    it('should count items with synced status after server upload completes', () => {
+      const files = createMockFiles(3);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      // Update items to synced status (after successful server upload)
+      queue.forEach((item) => {
+        useUploadStore.getState().updateQueueItem(item.id, 'groom', {
+          status: 'synced',
+          analysis: {
+            faceDetected: true,
+            yawAngle: 5,
+            smileScore: 0.3,
+            eyesOpen: true,
+            bucket: 'A',
+            confidence: 0.9,
+            qualityIssues: [],
+            isUsable: true,
+          },
+        });
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      // Should still count items after sync completes
+      expect(summary.total).toBe(3);
+      expect(summary.bucketA).toBe(3);
+    });
+
+    it('should not count items without analysis', () => {
+      const files = createMockFiles(3);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      // Update items to completed but without analysis
+      queue.forEach((item) => {
+        useUploadStore.getState().updateQueueItem(item.id, 'groom', {
+          status: 'completed',
+          // no analysis
+        });
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      expect(summary.total).toBe(0);
+    });
+
+    it('should not count items with pending or analyzing status', () => {
+      const files = createMockFiles(3);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      // Update one item to analyzing
+      useUploadStore.getState().updateQueueItem(queue[0].id, 'groom', {
+        status: 'analyzing',
+        analysis: {
+          faceDetected: true,
+          yawAngle: 5,
+          smileScore: 0.3,
+          eyesOpen: true,
+          bucket: 'A',
+          confidence: 0.9,
+          qualityIssues: [],
+          isUsable: true,
+        },
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      // pending and analyzing items should not be counted
+      expect(summary.total).toBe(0);
+    });
+
+    it('should correctly categorize buckets A, B, C, D', () => {
+      const files = createMockFiles(4);
+      useUploadStore.getState().addToQueue(files, 'groom');
+      const queue = useUploadStore.getState().groomQueue;
+
+      const buckets: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D'];
+      queue.forEach((item, index) => {
+        useUploadStore.getState().updateQueueItem(item.id, 'groom', {
+          status: 'completed',
+          analysis: {
+            faceDetected: true,
+            yawAngle: 5,
+            smileScore: 0.3,
+            eyesOpen: true,
+            bucket: buckets[index],
+            confidence: 0.9,
+            qualityIssues: [],
+            isUsable: true,
+          },
+        });
+      });
+
+      const summary = useUploadStore.getState().getBucketSummary('groom');
+      expect(summary.bucketA).toBe(1);
+      expect(summary.bucketB).toBe(1);
+      expect(summary.bucketC).toBe(1);
+      expect(summary.bucketD).toBe(1);
+      expect(summary.total).toBe(4);
+      expect(summary.usableCount).toBe(3); // A + B + C, excluding D
+    });
+  });
 });

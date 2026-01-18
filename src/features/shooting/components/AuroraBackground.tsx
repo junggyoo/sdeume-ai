@@ -10,7 +10,7 @@ export function AuroraBackground({ className }: AuroraBackgroundProps) {
   return (
     <div
       data-testid="aurora-background"
-      className={cn('fixed inset-0 pointer-events-none', className)}
+      className={cn('fixed inset-0 z-0 pointer-events-none', className)}
     >
       {/* Base Deep Navy background */}
       <div className="absolute inset-0 bg-primary-desktop" />

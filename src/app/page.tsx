@@ -8,7 +8,6 @@ import {
   FooterSection,
   generateFAQSchema,
 } from "@/components/landing";
-import { StickyCta } from "@/components/ui/sticky-cta";
 import { MeshGradientBackground } from "@/components/ui/mesh-background";
 
 export default function LandingPage() {
@@ -45,8 +44,6 @@ export default function LandingPage() {
         </main>
       </MeshGradientBackground>
 
-      {/* 모바일 Sticky CTA */}
-      <StickyCta href="/login" label="무료로 시작하기" />
     </>
   );
 }

@@ -159,8 +159,13 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
 
   getBucketSummary: (role) => {
     const queue = role === 'groom' ? get().groomQueue : get().brideQueue;
+    // Count items that have been analyzed (completed, uploading, or synced)
     const completedItems = queue.filter(
-      (item) => item.status === 'completed' && item.analysis
+      (item) =>
+        (item.status === 'completed' ||
+          item.status === 'uploading' ||
+          item.status === 'synced') &&
+        item.analysis
     );
 
     const summary: BucketSummary = {

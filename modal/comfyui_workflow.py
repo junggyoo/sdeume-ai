@@ -51,6 +51,7 @@ image = (
         "dill",
         "segment-anything",
         "nvidia-ml-py3",  # GPU 프로파일링용 추가
+        "safetensors",  # LoRA 형식 변환용
     )
     .run_commands(
         # ComfyUI 설치
@@ -146,7 +147,7 @@ WORKFLOW_JSON = r'''
   },
   "21": {
     "inputs": {
-      "text": "closeup of Korean TNDDMAN man, (East Asian facial features:1.2), brown eyes, black hair, (trendy Guile cut hairstyle:1.3), (wet hair styling:1.2), gentle smile, (cinematic lighting, warm spotlight:1.2)\n",
+      "text": "closeup of Korean GROOM_SDME man, (East Asian facial features:1.2), brown eyes, black hair, (trendy Guile cut hairstyle:1.3), (wet hair styling:1.2), gentle smile, (cinematic lighting, warm spotlight:1.2)\n",
       "clip": ["34", 1]
     },
     "class_type": "CLIPTextEncode",
@@ -154,7 +155,7 @@ WORKFLOW_JSON = r'''
   },
   "23": {
     "inputs": {
-      "text": "closeup of Korean KIMJJ woman, (East Asian facial features:1.2), brown eyes, black hair, (modern low bun hairstyle:1.2), (wispy side bangs:1.2), soft makeup, (cinematic lighting, warm spotlight:1.2)\n",
+      "text": "closeup of Korean BRIDE_SDME woman, (East Asian facial features:1.2), brown eyes, black hair, (modern low bun hairstyle:1.2), (wispy side bangs:1.2), soft makeup, (cinematic lighting, warm spotlight:1.2)\n",
       "clip": ["34", 1]
     },
     "class_type": "CLIPTextEncode",
@@ -448,6 +449,276 @@ def download_file(url: str, dest: str) -> bool:
         return False
 
 
+def convert_diffusers_to_comfyui_flux_lora(input_path: str, output_path: str) -> bool:
+    """
+    Diffusers/PEFT 및 SimpleTuner 형식의 FLUX LoRA를 ComfyUI 형식으로 변환 (Universal Fix)
+    """
+    try:
+        from safetensors.torch import load_file, save_file
+        import torch
+        import re
+
+        print(f"🔄 Converting LoRA: {input_path}")
+
+        state_dict = load_file(input_path)
+        converted_dict = {}
+
+        # Buffers for merging (Diffusers format)
+        single_linear1 = {}
+        double_img_qkv = {}
+        double_txt_qkv = {}
+
+        def get_tensor_entry(buffer, block_idx, comp_type):
+            if block_idx not in buffer:
+                buffer[block_idx] = {}
+            if comp_type not in buffer[block_idx]:
+                buffer[block_idx][comp_type] = {}
+            return buffer[block_idx][comp_type]
+
+        def save_alpha(key_base, rank):
+            converted_dict[f'{key_base}.alpha'] = torch.tensor(rank, dtype=torch.float32)
+
+        converted_count = 0
+        
+        for key, value in state_dict.items():
+            matched = False
+
+            # =================================================================
+            # A. SimpleTuner / Kohya-Legacy Format (Flux-Realism 등)
+            # 패턴: double_blocks.{i}.processor.qkv_lora1.down.weight
+            # =================================================================
+            
+            # Double Blocks: QKV (1=Image, 2=Text)
+            match = re.match(r"double_blocks\.(\d+)\.processor\.qkv_lora(\d+)\.(down|up)\.weight", key)
+            if match:
+                idx, type_id, part = match.groups() # type_id: 1=img, 2=txt
+                name_part = "img_attn_qkv" if type_id == "1" else "txt_attn_qkv"
+                new_key_base = f"lora_unet_double_blocks_{idx}_{name_part}"
+                
+                converted_dict[f"{new_key_base}.lora_{part}.weight"] = value
+                if part == "down": 
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Double Blocks: Proj (1=Image, 2=Text)
+            match = re.match(r"double_blocks\.(\d+)\.processor\.proj_lora(\d+)\.(down|up)\.weight", key)
+            if match:
+                idx, type_id, part = match.groups()
+                name_part = "img_attn_proj" if type_id == "1" else "txt_attn_proj"
+                new_key_base = f"lora_unet_double_blocks_{idx}_{name_part}"
+                
+                converted_dict[f"{new_key_base}.lora_{part}.weight"] = value
+                if part == "down":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Single Blocks: Linear1 (QKV+MLP) -> proj_lora1
+            match = re.match(r"single_blocks\.(\d+)\.processor\.proj_lora1\.(down|up)\.weight", key)
+            if match:
+                idx, part = match.groups()
+                new_key_base = f"lora_unet_single_blocks_{idx}_linear1"
+                
+                converted_dict[f"{new_key_base}.lora_{part}.weight"] = value
+                if part == "down":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Single Blocks: Linear2 (Output) -> proj_lora2
+            match = re.match(r"single_blocks\.(\d+)\.processor\.proj_lora2\.(down|up)\.weight", key)
+            if match:
+                idx, part = match.groups()
+                new_key_base = f"lora_unet_single_blocks_{idx}_linear2"
+                
+                converted_dict[f"{new_key_base}.lora_{part}.weight"] = value
+                if part == "down":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # =================================================================
+            # B. Diffusers / Fal.ai Format (Standard)
+            # =================================================================
+
+            # 1. Single Blocks (Merge: Q+K+V+MLP -> linear1)
+            match = re.match(r"transformer\.single_transformer_blocks\.(\d+)\.(attn\.to_([qkv])|proj_mlp)\.lora_(A|B)\.weight", key)
+            if match:
+                idx = match.group(1)
+                part_type = match.group(3) if match.group(3) else "mlp"
+                ab = match.group(4) # A=down, B=up
+                entry = get_tensor_entry(single_linear1, idx, part_type)
+                entry["down" if ab == "A" else "up"] = value
+                matched = True
+                continue
+
+            # Single: proj_out -> linear2
+            match = re.match(r"transformer\.single_transformer_blocks\.(\d+)\.proj_out\.lora_(A|B)\.weight", key)
+            if match:
+                idx, part = match.groups()
+                new_key_base = f'lora_unet_single_blocks_{idx}_linear2'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A": 
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # 2. Double Blocks (Merge: Q+K+V -> qkv)
+            # Image Q/K/V
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.attn\.to_([qkv])\.lora_(A|B)\.weight", key)
+            if match:
+                idx, qkv, part = match.groups()
+                entry = get_tensor_entry(double_img_qkv, idx, qkv)
+                entry["down" if part == "A" else "up"] = value
+                matched = True
+                continue
+
+            # Text Q/K/V
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.attn\.add_([qkv])_proj\.lora_(A|B)\.weight", key)
+            if match:
+                idx, qkv, part = match.groups()
+                entry = get_tensor_entry(double_txt_qkv, idx, qkv)
+                entry["down" if part == "A" else "up"] = value
+                matched = True
+                continue
+
+            # 3. Double Blocks MLP & Projections
+            # Image MLP
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.ff\.net\.(\d+)(\.proj)?\.lora_(A|B)\.weight", key)
+            if match:
+                idx, layer_idx, _, part = match.groups()
+                new_key_base = f'lora_unet_double_blocks_{idx}_img_mlp_{layer_idx}'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Text MLP
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.ff_context\.net\.(\d+)(\.proj)?\.lora_(A|B)\.weight", key)
+            if match:
+                idx, layer_idx, _, part = match.groups()
+                new_key_base = f'lora_unet_double_blocks_{idx}_txt_mlp_{layer_idx}'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Output Projections (to_out.0)
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.attn\.to_out\.0\.lora_(A|B)\.weight", key)
+            if match:
+                idx, part = match.groups()
+                new_key_base = f'lora_unet_double_blocks_{idx}_img_attn_proj'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # Output Projections (to_add_out)
+            match = re.match(r"transformer\.transformer_blocks\.(\d+)\.attn\.to_add_out\.lora_(A|B)\.weight", key)
+            if match:
+                idx, part = match.groups()
+                new_key_base = f'lora_unet_double_blocks_{idx}_txt_attn_proj'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+            # 4. Final Layers
+            match = re.match(r"transformer\.proj_out\.lora_(A|B)\.weight", key)
+            if match:
+                part = match.group(1)
+                new_key_base = f'lora_unet_final_layer_linear'
+                converted_dict[f'{new_key_base}.lora_{"down" if part == "A" else "up"}.weight'] = value
+                if part == "A":
+                    save_alpha(new_key_base, value.shape[0])
+                    converted_count += 1
+                matched = True
+                continue
+
+        # =====================================================================
+        # Merge Logic (Only for Diffusers/Fal format)
+        # =====================================================================
+        def merge_qkv_buffer(buffer, output_name_pattern, dims):
+            nonlocal converted_count
+            total_out = sum(dims)
+            comp_keys = ["q", "k", "v"]
+            if len(dims) == 4: comp_keys.append("mlp")
+
+            for idx, comp_map in buffer.items():
+                if not all(c in comp_map for c in ["q", "k", "v"]): continue
+                
+                down_list = []
+                for c in comp_keys:
+                    if c in comp_map and "down" in comp_map[c]:
+                        down_list.append(comp_map[c]["down"])
+                
+                if not down_list: continue
+                merged_down = torch.cat(down_list, dim=0)
+
+                ranks = []
+                for c in comp_keys:
+                    if c in comp_map and "up" in comp_map[c]:
+                        ranks.append(comp_map[c]["up"].shape[1])
+                    else:
+                        ranks.append(0)
+                
+                total_rank = sum(ranks)
+                merged_up = torch.zeros(total_out, total_rank, dtype=down_list[0].dtype)
+
+                out_offset = 0
+                rank_offset = 0
+                
+                for i, c in enumerate(comp_keys):
+                    if c in comp_map and "up" in comp_map[c]:
+                        up_tensor = comp_map[c]["up"]
+                        target_dim = dims[i]
+                        actual_out = up_tensor.shape[0]
+                        use_dim = min(target_dim, actual_out)
+                        current_rank = ranks[i]
+                        merged_up[out_offset:out_offset+use_dim, rank_offset:rank_offset+current_rank] = up_tensor[:use_dim, :]
+                    
+                    out_offset += dims[i]
+                    rank_offset += ranks[i]
+
+                base_key = output_name_pattern.format(idx)
+                converted_dict[f"{base_key}.lora_down.weight"] = merged_down
+                converted_dict[f"{base_key}.lora_up.weight"] = merged_up
+                converted_dict[f"{base_key}.alpha"] = torch.tensor(total_rank, dtype=torch.float32)
+                converted_count += 1
+
+        merge_qkv_buffer(single_linear1, "lora_unet_single_blocks_{}_linear1", [3072, 3072, 3072, 12288])
+        merge_qkv_buffer(double_img_qkv, "lora_unet_double_blocks_{}_img_attn_qkv", [3072, 3072, 3072])
+        merge_qkv_buffer(double_txt_qkv, "lora_unet_double_blocks_{}_txt_attn_qkv", [3072, 3072, 3072])
+
+        if converted_count > 0:
+            save_file(converted_dict, output_path)
+            print(f"✅ Conversion complete: {len(converted_dict)} keys created (Clean & Universal).")
+            return True
+        else:
+            print(f"❌ No keys converted.")
+            return False
+
+    except Exception as e:
+        print(f"❌ LoRA conversion crashed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 @app.cls(
     image=image,
     gpu="A100-80GB",
@@ -555,18 +826,67 @@ class ComfyUIServer:
 
         self.profiler.record("Before LoRA Download")
 
-        # 동적 LoRA 다운로드
+        # 동적 LoRA 다운로드 및 형식 변환 (매번 새로 다운로드 - 사용자별 LoRA가 다름)
         if groom_lora_url:
+            groom_lora_temp = f"{models_dir}/loras/groom_lora_temp.safetensors"
             groom_lora_path = f"{models_dir}/loras/groom_lora.safetensors"
-            if not os.path.exists(groom_lora_path):
-                print(f"Downloading groom LoRA from {groom_lora_url}")
-                download_file(groom_lora_url, groom_lora_path)
+            # 기존 파일 삭제
+            for path in [groom_lora_temp, groom_lora_path]:
+                if os.path.exists(path):
+                    os.remove(path)
+            print(f"Downloading groom LoRA from {groom_lora_url}")
+            if download_file(groom_lora_url, groom_lora_temp):
+                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
+                if convert_diffusers_to_comfyui_flux_lora(groom_lora_temp, groom_lora_path):
+                    os.remove(groom_lora_temp)
+                else:
+                    # 변환 실패시 원본 사용
+                    print("  ℹ️ Conversion failed, using original file")
+                    os.rename(groom_lora_temp, groom_lora_path)
 
         if bride_lora_url:
+            bride_lora_temp = f"{models_dir}/loras/bride_lora_temp.safetensors"
             bride_lora_path = f"{models_dir}/loras/bride_lora.safetensors"
-            if not os.path.exists(bride_lora_path):
-                print(f"Downloading bride LoRA from {bride_lora_url}")
-                download_file(bride_lora_url, bride_lora_path)
+            # 기존 파일 삭제
+            for path in [bride_lora_temp, bride_lora_path]:
+                if os.path.exists(path):
+                    os.remove(path)
+            print(f"Downloading bride LoRA from {bride_lora_url}")
+            if download_file(bride_lora_url, bride_lora_temp):
+                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
+                if convert_diffusers_to_comfyui_flux_lora(bride_lora_temp, bride_lora_path):
+                    os.remove(bride_lora_temp)
+                else:
+                    # 변환 실패시 원본 사용
+                    print("  ℹ️ Conversion failed, using original file")
+                    os.rename(bride_lora_temp, bride_lora_path)
+
+        # =================================================================
+        # [추가할 코드] Flux-Realism.safetensors 자동 변환 로직
+        # =================================================================
+        realism_path = f"{models_dir}/loras/Flux-Realism.safetensors"
+        
+        # 파일이 존재하면 변환 시도
+        if os.path.exists(realism_path):
+            # 변환이 필요한지 확인하기 위해 임시 파일로 변환 시도
+            print(f"🔍 Checking Flux-Realism format: {realism_path}")
+            realism_temp_out = f"{models_dir}/loras/Flux-Realism_fixed.safetensors"
+            
+            # 1. 이미 변환된 파일(_fixed)이 있다면 그걸 덮어쓰기 (중복 변환 방지)
+            # (이 부분은 Volume에 영구 저장되므로 매번 실행되지 않게 체크하는 것이 좋으나, 
+            #  현재 변환 함수는 Diffusers 키가 없으면 False를 반환하므로 안전합니다.)
+            
+            is_converted = convert_diffusers_to_comfyui_flux_lora(realism_path, realism_temp_out)
+            
+            if is_converted:
+                print("✨ Flux-Realism converted to ComfyUI format. Overwriting original.")
+                os.remove(realism_path)             # 원본(Diffusers형식) 삭제
+                os.rename(realism_temp_out, realism_path) # 변환본을 원본 이름으로 변경
+            else:
+                print("✅ Flux-Realism is already in correct format or incompatible.")
+                if os.path.exists(realism_temp_out):
+                    os.remove(realism_temp_out)
+        # =================================================================
 
         self.profiler.record("After LoRA Download")
 

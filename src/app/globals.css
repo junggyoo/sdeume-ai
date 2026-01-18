@@ -9,362 +9,153 @@
   margin-inline: auto;
   width: 100%;
   padding-inline: 2rem;
-  @media (width >= 1400px) {
+
+  @media (width >=1400px) {
     max-width: 1400px;
   }
 }
 
 @theme {
-  /* ===== Sdeume AI Design Tokens - Antigravity Prismatic White ===== */
+  /* ===== Sdeume AI Design Tokens - Fluid Elegance ===== */
 
-  /* Aceternity Aurora Variables */
-  --white: #ffffff;
-  --black: #0E1B2A;
-  --transparent: transparent;
+  /* Core Palette - Deep Navy, Champagne Gold, Muted Aurora */
+  --color-deep-navy: #050A10;
+  --color-champagne-gold: #EAE0D5;
+  --color-muted-teal: #2D4A58;
+  /* Muted Aurora base */
 
-  /* ===== Prismatic Color Palette (Antigravity) ===== */
-  --prism-white: #FFFFFF;
-  --prism-pink: #FFD1FF;    /* 더 선명한 파스텔 핑크 */
-  --prism-blue: #D1F4FF;    /* 더 선명한 파스텔 블루 */
-  --prism-violet: #E5D9F2;  /* 더 선명한 파스텔 바이올렛 */
-  --prism-peach: #FFE8E0;
+  /* Text Colors */
+  --text-hero: #EAE0D5;
+  /* Champagne Gold for primary contrast */
+  --text-body: #B0B7C3;
+  /* Muted cool gray for body */
+  --text-muted: #536471;
+  /* Deep muted blue-gray */
 
-  /* Light Mode Text - 모든 텍스트 #111827로 통일하여 최대 가독성 확보 */
-  --text-hero: #111827;
-  --text-body: #111827;
-  --text-muted: #111827;
+  /* Typography Scale - Editorial */
+  --text-display-hero: clamp(4rem, 15vw, 10rem);
+  /* Massive headlines */
+  --text-display-lg: clamp(3rem, 10vw, 8rem);
+  --text-body-base: 1rem;
+  --text-body-lg: 1.125rem;
 
-  /* ===== Giant Typography Scale (1.5x 증가 - 매거진 스타일) ===== */
-  --text-display-hero: clamp(6rem, 18vw, 15rem);   /* ~240px */
-  --text-display-lg: clamp(4.5rem, 12vw, 10.5rem); /* ~168px */
-  --text-display-md: clamp(3.75rem, 9vw, 7.5rem);  /* ~120px */
-  --text-display-sm: clamp(3rem, 6vw, 5.25rem);    /* ~84px */
+  /* Spacing - Fluid */
+  --space-section: clamp(8rem, 20vw, 24rem);
+  --space-content: clamp(2rem, 5vw, 6rem);
 
-  /* ===== Antigravity Spacing (2x 증가 - 시원한 여백) ===== */
-  --space-section: clamp(16rem, 32vw, 32rem);
-  --space-element: clamp(8rem, 16vw, 16rem);
-  --space-content: clamp(4rem, 8vw, 8rem);
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(234, 224, 213, 0.1);
+  /* Champagne hint */
+  --glass-blur: 20px;
 
-  /* ===== Liquid Glass Variables ===== */
-  --liquid-glass-bg: rgba(255, 255, 255, 0.3);
-  --liquid-glass-border: rgba(255, 255, 255, 0.5);
-  --liquid-glass-blur: 24px;
-
-  --indigo-500: #6366F1;
-  --indigo-400: #818CF8;
-  --purple-400: #A855F7;
-  --pink-300: #F9A8D4;
-  --violet-300: #C4B5FD;
-
-  /* Primary Colors - Dark Mode Default */
-  --color-primary-desktop: #0E1B2A;
-  --color-primary-mobile: #1A2B3C;
-  --color-primary-hover: #14263A;
-  --color-primary-pressed: #0B1622;
-
-  /* Secondary & Surface - Dark Theme */
-  --color-secondary: #1E293B;
-  --color-surface: #0E1B2A;
-
-  /* Accent Colors - Aurora Based */
-  --color-accent-rose: #EC4899;
-  --color-accent-teal: #86E3FF;
-
-  /* Romantic Tech Aurora Colors */
-  --color-aurora-indigo: #6366F1;
-  --color-aurora-purple: #A855F7;
-  --color-aurora-pink: #EC4899;
-  --color-aurora-violet: #8B5CF6;
-
-  /* Classic Aurora Colors */
-  --color-aurora-teal: #86E3FF;
-  --color-aurora-lilac: #C7B9FF;
-  --color-aurora-warm: #FFD6A5;
-
-  /* Semantic Colors */
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-error: #F87171;
-  --color-info: #60A5FA;
-
-  /* Grayscale - Dark Theme */
-  --color-ink: #F8FAFC;
-  --color-body: #CBD5E1;
-  --color-sub: #94A3B8;
-  --color-line: rgba(255, 255, 255, 0.1);
-
-  /* States - Dark Theme */
-  --color-disabled-bg: #334155;
-  --color-disabled-text: #64748B;
-  --color-ghost-hover: rgba(255, 255, 255, 0.05);
-
-  /* Shadcn UI Compatibility */
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-
-  --color-secondary-ui: hsl(var(--secondary-ui));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-
-  /* Border Radius */
-  --radius-card: 12px;
-  --radius-input: 10px;
-  --radius-image: 8px;
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  /* Shadows - Dark Theme */
-  --shadow-sm: 0 6px 16px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.4);
-  --shadow-up: 0 -4px 12px rgba(0, 0, 0, 0.3);
-
-  /* Spacing */
-  --spacing-safe-bottom: 100px;
-
-  /* Typography */
-  --font-serif: 'Noto Serif KR', Georgia, serif;
-  --font-sans: 'Pretendard', Inter, sans-serif;
+  /* Aurora Colors */
+  --color-aurora-1: #1A2C38;
+  --color-aurora-2: #2D4A58;
+  --color-aurora-3: #4A3B45;
 
   /* Animations */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-light-sweep: light-sweep 0.6s ease-in-out;
-  --animate-aurora-float: aurora-float 3s ease-in-out infinite alternate;
-  --animate-aurora-wave-slow: aurora-wave-slow 90s ease-in-out infinite;
-  --animate-spin-slow: spin-slow 3s linear infinite;
-  --animate-aurora: aurora 60s linear infinite;
+  --animate-blur-in: blur-in 1.5s ease-out forwards;
+  --animate-fade-up: fade-up 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  --animate-aurora-flow: aurora-flow 20s ease-in-out infinite alternate;
 
-  /* Glassmorphism - Dark Theme */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-blur: 12px;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-
-  @keyframes spin-slow {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
-  @keyframes light-sweep {
+  @keyframes blur-in {
     0% {
-      background-position: -100% 0;
+      opacity: 0;
+      filter: blur(20px);
+      transform: scale(0.98);
     }
+
     100% {
-      background-position: 200% 0;
+      opacity: 1;
+      filter: blur(0px);
+      transform: scale(1);
     }
   }
-  @keyframes aurora-float {
+
+  @keyframes fade-up {
     0% {
-      opacity: 0.06;
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    100% {
+      opacity: 1;
       transform: translateY(0);
     }
-    100% {
-      opacity: 0.1;
-      transform: translateY(-10px);
-    }
   }
-  @keyframes aurora-wave-slow {
+
+  @keyframes aurora-flow {
     0% {
-      transform: translateX(0) translateY(0) rotate(0deg);
-      opacity: var(--aurora-opacity-start, 0.06);
+      background-position: 0% 50%;
     }
-    25% {
-      transform: translateX(5%) translateY(-3%) rotate(1deg);
-      opacity: var(--aurora-opacity-mid, 0.08);
-    }
-    50% {
-      transform: translateX(-3%) translateY(2%) rotate(-1deg);
-      opacity: var(--aurora-opacity-end, 0.1);
-    }
-    75% {
-      transform: translateX(2%) translateY(-5%) rotate(0.5deg);
-      opacity: var(--aurora-opacity-mid, 0.08);
-    }
+
     100% {
-      transform: translateX(0) translateY(0) rotate(0deg);
-      opacity: var(--aurora-opacity-start, 0.06);
-    }
-  }
-  @keyframes aurora {
-    from {
-      background-position: 50% 50%, 50% 50%;
-    }
-    to {
-      background-position: 350% 50%, 350% 50%;
+      background-position: 100% 50%;
     }
   }
 
-  /* ===== Blob Float Animations ===== */
-  @keyframes blob-float {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    25% {
-      transform: translate(10%, 15%) scale(1.05);
-    }
-    50% {
-      transform: translate(-5%, 10%) scale(0.95);
-    }
-    75% {
-      transform: translate(8%, -5%) scale(1.02);
-    }
-  }
+  /* Base Colors Mapping */
+  --color-background: var(--color-deep-navy);
+  --color-foreground: var(--color-champagne-gold);
 
-  @keyframes blob-float-delay {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    25% {
-      transform: translate(-8%, 10%) scale(0.98);
-    }
-    50% {
-      transform: translate(12%, -8%) scale(1.04);
-    }
-    75% {
-      transform: translate(-6%, 12%) scale(1.01);
-    }
-  }
+  /* Shadcn/Tailwind Compat (Dark Theme Base) */
+  --color-border: rgba(234, 224, 213, 0.1);
+  --color-input: rgba(234, 224, 213, 0.1);
+  --color-ring: var(--color-champagne-gold);
+  --color-primary: var(--color-champagne-gold);
+  --color-primary-foreground: var(--color-deep-navy);
+  --color-secondary: var(--color-muted-teal);
+  --color-secondary-foreground: var(--color-diff-navy);
+  --color-muted: rgba(255, 255, 255, 0.05);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--color-muted-teal);
+  --color-accent-foreground: #fff;
+  --color-card: rgba(5, 10, 16, 0.8);
+  --color-card-foreground: var(--color-champagne-gold);
+  --color-popover: var(--color-deep-navy);
+  --color-popover-foreground: var(--color-champagne-gold);
 
-  @keyframes blob-float-delay-2 {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    25% {
-      transform: translate(6%, -12%) scale(1.03);
-    }
-    50% {
-      transform: translate(-10%, 6%) scale(0.97);
-    }
-    75% {
-      transform: translate(4%, 8%) scale(1.02);
-    }
-  }
-
-  --animate-blob-float: blob-float 20s ease-in-out infinite;
-  --animate-blob-float-delay: blob-float-delay 25s ease-in-out infinite;
-  --animate-blob-float-delay-2: blob-float-delay-2 30s ease-in-out infinite;
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+/* Compatibility for legacy tailwind borders */
 @layer base {
+
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-gray-200, currentColor);
   }
 }
 
 @layer base {
   :root {
-    /* Sdeume AI Theme Variables */
-    --background: 36 33% 98%; /* #FAF8F5 - Surface */
-    --foreground: 222 47% 11%; /* #111827 - Ink */
-    --card: 36 33% 98%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 212 50% 11%; /* #0E1B2A - Primary Desktop */
-    --primary-foreground: 0 0% 100%;
-    --secondary-ui: 30 30% 94%; /* #F6F1EA - Secondary */
-    --secondary-foreground: 222 47% 11%;
-    --muted: 30 30% 94%;
-    --muted-foreground: 220 9% 46%; /* #6B7280 - Sub */
-    --accent: 23 32% 57%; /* #B9896E - Rose Gold */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 351 52% 47%; /* #B83A4B - Error */
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%; /* #E5E7EB - Line */
-    --input: 220 13% 91%;
-    --ring: 212 50% 11%;
-    --radius: 0.625rem; /* 10px - radius.input */
-
-    /* Aurora Gradients */
-    --gradient-hero: linear-gradient(180deg, #F6F1EA 0%, #FAF8F5 100%);
-    --gradient-aurora-overlay: linear-gradient(180deg, rgba(14,27,42,0) 0%, rgba(14,27,42,0.06) 100%);
-    --gradient-accent-shine: linear-gradient(135deg, #B9896E 0%, rgba(185,137,110,0.9) 100%);
-
-    /* Chart Colors */
-    --chart-1: 23 32% 57%; /* Rose Gold */
-    --chart-2: 173 34% 28%; /* Teal */
-    --chart-3: 159 37% 33%; /* Success */
-    --chart-4: 30 54% 49%; /* Warning */
-    --chart-5: 351 52% 47%; /* Error */
-  }
-
-  .dark {
-    --background: 212 50% 11%; /* #0E1B2A - Primary Desktop */
-    --foreground: 30 30% 94%; /* #F6F1EA */
-    --card: 212 43% 15%;
-    --card-foreground: 30 30% 94%;
-    --popover: 212 50% 11%;
-    --popover-foreground: 30 30% 94%;
-    --primary: 30 30% 94%;
-    --primary-foreground: 212 50% 11%;
-    --secondary-ui: 212 43% 15%;
-    --secondary-foreground: 30 30% 94%;
-    --muted: 212 43% 15%;
-    --muted-foreground: 220 9% 60%;
-    --accent: 23 32% 57%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 351 52% 47%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 212 43% 20%;
-    --input: 212 43% 20%;
-    --ring: 30 30% 94%;
-    --chart-1: 23 40% 65%;
-    --chart-2: 173 40% 40%;
-    --chart-3: 159 45% 45%;
-    --chart-4: 30 60% 55%;
-    --chart-5: 351 60% 55%;
+    /* Shadcn UI / Semantic Mapping to New Variables */
+    --background: var(--color-deep-navy);
+    --foreground: var(--color-champagne-gold);
+    --card: #0A121E;
+    --card-foreground: var(--color-champagne-gold);
+    --popover: var(--color-deep-navy);
+    --popover-foreground: var(--color-champagne-gold);
+    --primary: var(--color-champagne-gold);
+    --primary-foreground: var(--color-deep-navy);
+    --secondary: var(--color-muted-teal);
+    --secondary-foreground: #ffffff;
+    --muted: rgba(255, 255, 255, 0.05);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--color-muted-teal);
+    --accent-foreground: #ffffff;
+    --destructive: #B83A4B;
+    --destructive-foreground: #ffffff;
+    --border: rgba(234, 224, 213, 0.1);
+    --input: rgba(234, 224, 213, 0.1);
+    --ring: var(--color-champagne-gold);
+    --radius: 0.5rem;
   }
 }
 
@@ -372,115 +163,52 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    word-break: keep-all;
-    font-weight: 400;
   }
 }
 
-/* ===== Prismatic White Utility Classes ===== */
 @layer utilities {
-  /* Giant Typography - 모바일 최적화 */
-  .text-giant {
-    font-size: clamp(3rem, 12vw, 15rem);
-    font-family: var(--font-serif);
-    font-weight: 700;
-    line-height: 0.9;
-    letter-spacing: -0.03em;
-    color: #111827;
+
+  /* Hide scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  /* 모바일에서 더 작은 크기 적용 */
-  @media (max-width: 768px) {
-    .text-giant {
-      font-size: clamp(2.5rem, 10vw, 4rem);
-      line-height: 1;
-      letter-spacing: -0.02em;
-    }
-  }
 
-  /* CTA 버튼 Glow 효과 */
-  .cta-glow {
-    position: relative;
-    box-shadow:
-      0 0 20px rgba(255, 209, 255, 0.5),
-      0 0 40px rgba(229, 217, 242, 0.3),
-      0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-  }
-
-  .cta-glow::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: linear-gradient(
-      135deg,
-      var(--prism-pink),
-      var(--prism-violet),
-      var(--prism-blue)
-    );
-    z-index: -1;
-    opacity: 0.6;
-    filter: blur(8px);
-    transition: opacity 0.3s ease;
-  }
-
-  .cta-glow:hover::before {
-    opacity: 0.9;
-  }
-
-  .cta-glow:hover {
-    box-shadow:
-      0 0 30px rgba(255, 209, 255, 0.7),
-      0 0 60px rgba(229, 217, 242, 0.5),
-      0 12px 40px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-  }
-
-  /* Prismatic Gradient Text */
+  /* Common Utilities */
   .text-gradient {
-    background: linear-gradient(
-      135deg,
-      var(--prism-pink) 0%,
-      var(--prism-violet) 50%,
-      var(--prism-blue) 100%
-    );
+    background: linear-gradient(135deg, #EAE0D5 0%, #B0B7C3 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  /* Liquid Glass Button */
   .glass-button {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 9999px;
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    transition: all 0.3s ease;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
   }
+}
 
-  .glass-button:hover {
-    background: rgba(255, 255, 255, 0.6);
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
+/* Progress bar indeterminate animation */
+@keyframes progress-indeterminate {
+  0% {
+    width: 0%;
   }
+  50% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
 
-  /* Floating Text Effect */
-  .floating-text {
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  }
-
-  /* Section spacing */
-  .section-spacing {
-    padding-top: var(--space-section);
-    padding-bottom: var(--space-section);
-  }
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 2s ease-in-out infinite;
 }

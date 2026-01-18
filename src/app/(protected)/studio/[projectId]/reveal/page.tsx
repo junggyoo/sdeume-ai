@@ -42,9 +42,20 @@ export default function RevealPage() {
   const generationId = projectGeneration?.id ?? '';
 
   // Generation Job 상태 (completed 상태에서는 폴링 없음)
-  const { generation, isLoading: isJobLoading } = useGenerationJob(generationId, {
+  const { generation: rawGeneration, isLoading: isJobLoading } = useGenerationJob(generationId, {
     enabled: Boolean(generationId),
   });
+
+  // 중복 URL 제거 (이전 버그로 인해 같은 URL이 여러 번 저장된 경우 대응)
+  const generation = rawGeneration
+    ? {
+        ...rawGeneration,
+        images: rawGeneration.images.filter(
+          (image, index, self) =>
+            index === self.findIndex((img) => img.url === image.url)
+        ),
+      }
+    : undefined;
 
   // 로컬 상태
   const [isOpened, setIsOpened] = useState(false);

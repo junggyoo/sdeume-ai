@@ -14,7 +14,7 @@ import {
   handleFalWebhookForGeneration,
   triggerModalGeneration,
 } from '@/backend/services/generation.service';
-import { verifyFalWebhookSignature, parseFalWebhookPayload } from '@/backend/services/fal-client';
+import { verifyFalWebhookSignature, parseFalWebhookPayload, getTrainingStatus } from '@/backend/services/fal-client';
 import type {
   Generation,
   GenerationRow,
@@ -351,7 +351,7 @@ export const generationRoutes = new Hono<AppEnv>()
             webhookResult.data.groomLoraUrl!,
             webhookResult.data.brideLoraUrl!,
             generation.theme_id,
-            { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT || '' }
+            { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT_URL || '' }
           ).catch((error) => {
             logger.error('Modal generation failed', error);
           });
@@ -390,6 +390,98 @@ export const generationRoutes = new Hono<AppEnv>()
 
     // For IN_PROGRESS and IN_QUEUE, just acknowledge
     return respond(c, success({ received: true }));
+  })
+
+  // POST /generate/:generationId/regenerate - Regenerate images using existing LoRA
+  .post('/:generationId/regenerate', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+    const config = getConfig(c);
+
+    const parsedParams = GenerationIdParamSchema.safeParse({
+      generationId: c.req.param('generationId'),
+    });
+
+    if (!parsedParams.success) {
+      return respond(c, failure(400, 'INVALID_PARAMS', 'Invalid generation ID'));
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) {
+      return respond(
+        c,
+        failure(401, 'UNAUTHORIZED', 'Authorization header required')
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return respond(c, failure(401, 'UNAUTHORIZED', 'Invalid token'));
+    }
+
+    // Get existing generation
+    const result = await getGenerationById(
+      supabase,
+      parsedParams.data.generationId,
+      user.id
+    );
+
+    if (!result.ok) {
+      return respond(c, result);
+    }
+
+    const generation = result.data;
+
+    // Check if both LoRA URLs exist
+    if (!generation.groomLoraUrl || !generation.brideLoraUrl) {
+      return respond(
+        c,
+        failure(400, 'LORA_NOT_READY', 'LoRA training must be completed before regenerating')
+      );
+    }
+
+    // Reset generation status (preserve existing images)
+    const { error: updateError } = await supabase
+      .from('generations')
+      .update({
+        status: 'generating',
+        completed_at: null,
+        error_message: null,
+      })
+      .eq('id', generation.id);
+
+    if (updateError) {
+      return respond(c, failure(500, generationErrorCodes.fetchError, updateError.message));
+    }
+
+    logger.info('Regenerating images', {
+      generationId: generation.id,
+      groomLoraUrl: generation.groomLoraUrl,
+      brideLoraUrl: generation.brideLoraUrl,
+    });
+
+    // Trigger Modal generation (async)
+    triggerModalGeneration(
+      supabase,
+      generation.id,
+      generation.projectId,
+      generation.groomLoraUrl,
+      generation.brideLoraUrl,
+      generation.themeId || null,
+      { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT_URL || '' }
+    ).catch((error) => {
+      logger.error('Modal regeneration failed', error);
+    });
+
+    return respond(c, success({
+      ...generation,
+      status: 'generating' as GenerationStatus,
+    }));
   })
 
   // GET /generate/project/:projectId - Get generation by project ID
@@ -489,7 +581,87 @@ export const generationRoutes = new Hono<AppEnv>()
       return respond(c, result);
     }
 
-    return respond(c, result);
+    let generation = result.data;
+    const config = getConfig(c);
+
+    // Poll Fal.ai if status is training (handling local dev / webhook failure)
+    if (generation.status === 'training' && !generation.trainingCompletedAt) {
+      const falConfig = {
+        apiKey: config.fal?.apiKey || process.env.FAL_KEY || '',
+        webhookSecret: config.fal?.webhookSecret || process.env.FAL_WEBHOOK_SECRET || '',
+        webhookUrl: '',
+      };
+
+      let updated = false;
+
+      // Check Groom
+      if (generation.groomFalJobId && !generation.groomLoraUrl) {
+        const statusResult = await getTrainingStatus(falConfig, generation.groomFalJobId);
+        if (statusResult.ok && statusResult.data.status === 'COMPLETED' && statusResult.data.loraUrl) {
+          const webhookResult = await handleFalWebhookForGeneration(
+            supabase,
+            generation.groomFalJobId,
+            statusResult.data.loraUrl
+          );
+
+          if (webhookResult.ok && webhookResult.data.bothCompleted) {
+            triggerModalGeneration(
+              supabase,
+              webhookResult.data.generationId,
+              generation.projectId,
+              webhookResult.data.groomLoraUrl!,
+              webhookResult.data.brideLoraUrl!,
+              generation.themeId || null,
+              { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT_URL || '' }
+            ).catch((error) => {
+              logger.error('Modal generation failed', error);
+            });
+          }
+          updated = true;
+        }
+      }
+
+      // Check Bride
+      if (generation.brideFalJobId && !generation.brideLoraUrl) {
+        const statusResult = await getTrainingStatus(falConfig, generation.brideFalJobId);
+        if (statusResult.ok && statusResult.data.status === 'COMPLETED' && statusResult.data.loraUrl) {
+          const webhookResult = await handleFalWebhookForGeneration(
+            supabase,
+            generation.brideFalJobId,
+            statusResult.data.loraUrl
+          );
+
+          if (webhookResult.ok && webhookResult.data.bothCompleted) {
+            triggerModalGeneration(
+              supabase,
+              webhookResult.data.generationId,
+              generation.projectId,
+              webhookResult.data.groomLoraUrl!,
+              webhookResult.data.brideLoraUrl!,
+              generation.themeId || null,
+              { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT_URL || '' }
+            ).catch((error) => {
+              logger.error('Modal generation failed', error);
+            });
+          }
+          updated = true;
+        }
+      }
+
+      // If updated, fetch fresh data
+      if (updated) {
+        const freshResult = await getGenerationById(
+          supabase,
+          parsedParams.data.generationId,
+          user.id
+        );
+        if (freshResult.ok) {
+          generation = freshResult.data;
+        }
+      }
+    }
+
+    return respond(c, success(generation));
   });
 
 // =============================================================================

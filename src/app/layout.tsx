@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
+import { Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import { loadCurrentUser } from "@/features/auth/server/load-current-user";
 import { CurrentUserProvider } from "@/features/auth/context/current-user-context";
-import { notoSerifKR, inter } from "@/lib/fonts";
 import { Toaster } from "@/components/ui/toaster";
+
+const notoSerif = Noto_Serif_KR({
+  subsets: ["latin"],
+  weight: ["200", "400", "600", "900"],
+  variable: "--font-noto-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Sdeume AI | AI 웨딩 화보 스튜디오",
@@ -40,9 +47,9 @@ export default async function RootLayout({
     <html
       lang="ko"
       suppressHydrationWarning
-      className={`${notoSerifKR.variable} ${inter.variable}`}
+      className={`${notoSerif.variable}`}
     >
-      <body className="antialiased font-sans">
+      <body className="antialiased font-serif bg-deep-navy text-foreground selection:bg-champagne-gold selection:text-deep-navy">
         <Providers>
           <CurrentUserProvider initialState={currentUser}>
             {children}

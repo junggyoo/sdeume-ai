@@ -21,12 +21,6 @@ const processSteps = [
   },
 ];
 
-/**
- * Act 3: Process Section
- *
- * Vertical Scroll Reveal 레이아웃.
- * 스크롤 시 프로세스 단계가 순차적으로 나타남.
- */
 export function ActProcessSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +35,7 @@ export function ActProcessSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative py-[var(--space-section)]"
+      className="relative py-[var(--space-section)] bg-deep-navy"
       aria-label="프로세스"
     >
       <div className="container mx-auto px-4">
@@ -50,23 +44,14 @@ export function ActProcessSection() {
           className="mb-32 text-center md:mb-48"
           style={{ opacity: titleOpacity, y: titleY }}
         >
-          <h2
-            className="font-serif font-bold leading-tight"
-            style={{
-              fontSize: "var(--text-display-md)",
-              color: "var(--text-hero)",
-            }}
-          >
-            <span className="block">단순 합성이 아닙니다.</span>
-            <span className="block text-gradient">
+          <h2 className="font-serif font-bold leading-tight text-white md:text-6xl text-4xl break-keep">
+            <span className="block mb-4 text-champagne-gold/60 text-lg uppercase tracking-widest font-sans">Workflow</span>
+            <span className="block text-champagne-gold break-keep">
               당신을 학습하는 시간, 20분
             </span>
           </h2>
 
-          <p
-            className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed md:text-xl"
-            style={{ color: "var(--text-body)" }}
-          >
+          <p className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed md:text-xl text-champagne-gold/60 break-keep">
             Sdeume AI는 당신의 얼굴을 3D로 정밀하게 구현합니다.
             <br />
             진짜보다 더 진짜 같은 결과물, 잠시만 기다려주세요.
@@ -106,28 +91,19 @@ function ProcessStep({
   });
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
-  const x = useTransform(scrollYProgress, [0, 0.5], [index % 2 === 0 ? -60 : 60, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [0.9, 1]);
+  const x = useTransform(scrollYProgress, [0, 0.5], [index % 2 === 0 ? -60 : 60, 0]); // Keep side animation
 
   return (
     <motion.div
       ref={stepRef}
       className="relative mb-24 last:mb-0"
-      style={{ opacity, x, scale }}
+      style={{ opacity, x }}
     >
       <div className="flex items-start gap-8">
         {/* 스텝 번호 */}
         <div className="flex-shrink-0">
-          <div
-            className="flex h-16 w-16 items-center justify-center rounded-full md:h-20 md:w-20"
-            style={{
-              background: `linear-gradient(135deg, var(--prism-pink), var(--prism-violet))`,
-            }}
-          >
-            <span
-              className="font-serif text-xl font-bold md:text-2xl"
-              style={{ color: "var(--text-hero)" }}
-            >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-champagne-gold/20 bg-champagne-gold/5 backdrop-blur-md md:h-20 md:w-20">
+            <span className="font-serif text-xl font-bold md:text-2xl text-champagne-gold">
               {step.number}
             </span>
           </div>
@@ -135,16 +111,10 @@ function ProcessStep({
 
         {/* 스텝 콘텐츠 */}
         <div className="flex-1 pt-2">
-          <h3
-            className="font-serif text-2xl font-bold md:text-3xl"
-            style={{ color: "var(--text-hero)" }}
-          >
+          <h3 className="font-serif text-2xl font-bold md:text-3xl text-champagne-gold break-keep">
             {step.title}
           </h3>
-          <p
-            className="mt-3 font-sans text-base leading-relaxed md:text-lg"
-            style={{ color: "var(--text-body)" }}
-          >
+          <p className="mt-3 font-sans text-base leading-relaxed md:text-lg text-champagne-gold/60 break-keep">
             {step.description}
           </p>
         </div>
@@ -152,12 +122,7 @@ function ProcessStep({
 
       {/* 연결선 */}
       {!isLast && (
-        <div
-          className="absolute left-8 top-20 h-16 w-px md:left-10 md:top-24"
-          style={{
-            background: `linear-gradient(180deg, var(--prism-violet), transparent)`,
-          }}
-        />
+        <div className="absolute left-8 top-20 h-16 w-px bg-gradient-to-b from-champagne-gold/30 to-transparent md:left-10 md:top-24" />
       )}
     </motion.div>
   );

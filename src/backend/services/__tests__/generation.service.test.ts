@@ -281,17 +281,29 @@ describe('Generation Service', () => {
           },
         });
 
-      mockSingle.mockResolvedValue({
-        data: {
-          id: 'gen123',
-          status: 'completed',
-          images: [
-            { url: 'https://storage.example.com/0_original.webp', is_blur: false },
-            { url: 'https://storage.example.com/1_original.webp', is_blur: false },
-          ],
-        },
-        error: null,
-      });
+      // First call: fetch existing images (empty for first generation)
+      // Second call: theme fetch (null)
+      // Third call: final update result
+      mockSingle
+        .mockResolvedValueOnce({
+          data: { id: 'gen123', images: [] },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: null,
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: {
+            id: 'gen123',
+            status: 'completed',
+            images: [
+              { url: 'https://storage.example.com/0_original.webp', is_blur: false },
+              { url: 'https://storage.example.com/1_original.webp', is_blur: false },
+            ],
+          },
+          error: null,
+        });
 
       const result = await triggerModalGeneration(
         mockSupabase,
@@ -372,6 +384,106 @@ describe('Generation Service', () => {
 
       // Verify update was called with 'generating' status
       expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('should preserve existing images when regenerating', async () => {
+      const { generateImages } = await import('../modal-client');
+      const { uploadGeneratedImage } = await import('../storage.service');
+
+      // Existing images from previous generation
+      const existingImages = [
+        {
+          url: 'https://storage.example.com/old_0_original.webp',
+          is_blur: false,
+          thumbnail_url: 'https://storage.example.com/old_0_thumbnail.webp',
+          blur_hash: 'oldblur1',
+        },
+        {
+          url: 'https://storage.example.com/old_1_original.webp',
+          is_blur: false,
+          thumbnail_url: 'https://storage.example.com/old_1_thumbnail.webp',
+          blur_hash: 'oldblur2',
+        },
+      ];
+
+      // Mock initial fetch to get existing generation with images
+      mockSingle
+        .mockResolvedValueOnce({
+          data: {
+            id: 'gen123',
+            project_id: 'project123',
+            images: existingImages,
+          },
+          error: null,
+        })
+        // Mock theme fetch (returns no theme)
+        .mockResolvedValueOnce({
+          data: null,
+          error: null,
+        })
+        // Mock final update
+        .mockResolvedValueOnce({
+          data: {
+            id: 'gen123',
+            status: 'completed',
+            images: [
+              ...existingImages,
+              {
+                url: 'https://storage.example.com/2_original.webp',
+                is_blur: false,
+                thumbnail_url: 'https://storage.example.com/2_thumbnail.webp',
+                blur_hash: 'newblur1',
+              },
+            ],
+          },
+          error: null,
+        });
+
+      (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: {
+          images: [{ base64: 'data:image/png;base64,newimage' }],
+        },
+      });
+
+      (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: {
+          originalUrl: 'https://storage.example.com/2_original.webp',
+          thumbnailUrl: 'https://storage.example.com/2_thumbnail.webp',
+          blurHash: 'newblur1',
+        },
+      });
+
+      const result = await triggerModalGeneration(
+        mockSupabase,
+        'gen123',
+        'project123',
+        'https://fal.ai/lora/groom.safetensors',
+        'https://fal.ai/lora/bride.safetensors',
+        'theme123',
+        { endpoint: 'http://modal.test' }
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // Should have 3 images: 2 existing + 1 new
+        expect(result.data.images.length).toBe(3);
+        // First two should be existing images
+        expect(result.data.images[0].url).toBe('https://storage.example.com/old_0_original.webp');
+        expect(result.data.images[1].url).toBe('https://storage.example.com/old_1_original.webp');
+        // Third should be new image
+        expect(result.data.images[2].url).toBe('https://storage.example.com/2_original.webp');
+      }
+
+      // Verify uploadGeneratedImage was called with correct index (startIndex = 2)
+      expect(uploadGeneratedImage).toHaveBeenCalledWith(
+        expect.anything(),
+        'project123',
+        'gen123',
+        2, // Should start from index 2 (after existing 2 images)
+        expect.any(String)
+      );
     });
   });
 });

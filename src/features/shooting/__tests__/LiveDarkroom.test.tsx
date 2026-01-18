@@ -61,10 +61,49 @@ describe('LiveDarkroom', () => {
       expect(dropImages).toHaveLength(3);
     });
 
-    it('should render empty state when no images', () => {
+    it('should render loading state when no images', () => {
       render(<LiveDarkroom images={[]} />);
 
-      expect(screen.getByText(/0장의 사진이 나왔어요/)).toBeInTheDocument();
+      expect(screen.getByText('첫 사진을 기다리는 중...')).toBeInTheDocument();
+      expect(screen.getByTestId('generating-progress')).toBeInTheDocument();
+    });
+
+    it('should hide loading state when images exist', () => {
+      render(<LiveDarkroom images={mockImages} />);
+
+      expect(
+        screen.queryByText('첫 사진을 기다리는 중...')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('generating-progress')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Generating State', () => {
+    it('should show waiting indicator when images exist and isGenerating is true', () => {
+      const singleImage: GenerationImage[] = [mockImages[0]];
+      render(<LiveDarkroom images={singleImage} isGenerating={true} />);
+
+      expect(screen.getByText('다음 사진 준비 중...')).toBeInTheDocument();
+      expect(screen.getByTestId('generating-more-progress')).toBeInTheDocument();
+    });
+
+    it('should hide waiting indicator when isGenerating is false', () => {
+      render(<LiveDarkroom images={mockImages} isGenerating={false} />);
+
+      expect(
+        screen.queryByText('다음 사진 준비 중...')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('generating-more-progress')
+      ).not.toBeInTheDocument();
+    });
+
+    it('should hide waiting indicator when isGenerating is not provided', () => {
+      render(<LiveDarkroom images={mockImages} />);
+
+      expect(
+        screen.queryByText('다음 사진 준비 중...')
+      ).not.toBeInTheDocument();
     });
   });
 

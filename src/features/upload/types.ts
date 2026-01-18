@@ -50,7 +50,7 @@ export interface QueuedFile {
   id: string;
   file: File;
   role: UploadRole;
-  status: 'pending' | 'analyzing' | 'uploading' | 'completed' | 'error';
+  status: 'pending' | 'analyzing' | 'uploading' | 'completed' | 'synced' | 'error';
   progress: number;
   analysis?: FaceAnalysisResult;
   error?: string;

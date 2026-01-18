@@ -1,98 +1,78 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { PrimaryCta } from "@/components/ui/primary-cta";
+import { motion, useScroll, useTransform } from "framer-motion";
+import Link from "next/link";
+import { useRef } from "react";
 
-/**
- * Act 1: Hero Section (인트로)
- *
- * Prismatic White 배경 위에 Giant Typography가 부유하는 느낌.
- * 심플한 센터 정렬 레이아웃과 Liquid Glass CTA.
- */
 export function ActIntroSection() {
+  const containerRef = useRef<HTMLElement>(null);
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 500], [0, 200]);
+  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center px-4"
-      aria-label="히어로"
+      ref={containerRef}
+      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-deep-navy"
     >
-      {/* 메인 콘텐츠 */}
-      <div className="flex flex-col items-center text-center">
-        {/* 메인 타이틀 - Giant Typography */}
-        <motion.h1
-          className="text-giant floating-text"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          <span className="block">스튜디오 없는</span>
-          <span className="block text-gradient">스튜디오 촬영</span>
-        </motion.h1>
+      {/* Background: Ghost Aurora */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-muted-teal/20 via-champagne-gold/5 to-transparent blur-[120px] animate-aurora-flow opacity-60"
+        />
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+      </div>
 
-        {/* 서브 텍스트 */}
-        <motion.p
-          className="mt-8 max-w-2xl font-sans text-xl leading-relaxed md:text-2xl"
-          style={{ color: "var(--text-body)" }}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-        >
-          예약도, 작가도, 1,500만원의 비용도 필요 없습니다.
-          <br />
-          오직 당신의 얼굴만 준비하세요.
-        </motion.p>
-
-        {/* Liquid Glass CTA with Glow Effect */}
-        <motion.div
-          className="mt-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-        >
-          <PrimaryCta
-            href="/login"
-            size="xl"
-            variant="liquidGlass"
-            className="text-lg cta-glow"
+      {/* Content */}
+      <motion.div
+        style={{ y, opacity }}
+        className="relative z-10 flex flex-col items-center text-center space-y-12"
+      >
+        <h1 className="flex flex-col items-center font-serif text-hero leading-tight tracking-tight">
+          <motion.span
+            initial={{ filter: "blur(20px)", opacity: 0, y: 20 }}
+            animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="text-3xl md:text-5xl font-light text-champagne-gold/80 mb-6 break-keep"
           >
-            무료로 시작하기
-          </PrimaryCta>
-        </motion.div>
+            스튜디오 없는
+          </motion.span>
+          <motion.span
+            initial={{ filter: "blur(30px)", opacity: 0, scale: 0.95 }}
+            animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
+            transition={{ duration: 1.8, delay: 0.2, ease: "easeOut" }}
+            className="text-5xl md:text-8xl font-semibold text-champagne-gold break-keep leading-[1.1]"
+          >
+            당신만의 화보
+          </motion.span>
+        </h1>
 
-        {/* 스크롤 힌트 */}
         <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
+          transition={{ delay: 1.2, duration: 1 }}
         >
-          <motion.div
-            className="flex flex-col items-center gap-2"
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          <Link
+            href="/login"
+            className="group relative px-8 py-4 rounded-full overflow-hidden glass-button transition-all duration-500 hover:scale-105"
           >
-            <span
-              className="text-xs font-sans tracking-wider"
-              style={{ color: "var(--text-muted)" }}
-            >
-              스크롤
+            <div className="absolute inset-0 bg-champagne-gold/10 group-hover:bg-champagne-gold/20 transition-colors duration-500" />
+            <span className="relative z-10 text-lg md:text-xl font-medium text-champagne-gold tracking-widest uppercase">
+              Start Session
             </span>
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              style={{ color: "var(--text-muted)" }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
-            </svg>
-          </motion.div>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_40px_rgba(234,224,213,0.3)]" />
+          </Link>
         </motion.div>
-      </div>
+      </motion.div>
+
+      {/* Scroll Indicator */}
+      <motion.div
+        style={{ opacity }}
+        className="absolute bottom-12 flex flex-col items-center gap-2 text-champagne-gold/40"
+      >
+        <span className="text-xs uppercase tracking-[0.2em]">Scroll</span>
+        <div className="h-12 w-[1px] bg-gradient-to-b from-champagne-gold/0 via-champagne-gold/50 to-champagne-gold/0" />
+      </motion.div>
     </section>
   );
 }

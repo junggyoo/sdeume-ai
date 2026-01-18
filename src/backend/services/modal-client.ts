@@ -31,11 +31,21 @@ export const generateImages = async (
   config: ModalClientConfig,
   request: ModalGenerateRequest
 ): Promise<HandlerResult<ModalGenerateResponse, string>> => {
+  // Validate endpoint URL
+  if (!config.endpointUrl || config.endpointUrl.trim() === '') {
+    return failure(
+      500,
+      'MODAL_CONFIGURATION_ERROR',
+      'MODAL_ENDPOINT_URL is not configured. Please set the environment variable.'
+    );
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
 
   try {
-    const response = await fetch(`${config.endpointUrl}/generate`, {
+    // Modal's fastapi_endpoint URL already includes the method name
+    const response = await fetch(config.endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

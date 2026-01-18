@@ -53,33 +53,33 @@ const policyLinks: FooterLink[] = [
 
 export function FooterSection() {
   return (
-    <footer className="bg-[var(--color-primary-desktop)] text-[var(--color-secondary)]">
+    <footer className="bg-deep-navy text-champagne-gold/60 border-t border-champagne-gold/10">
       {/* FAQ 섹션 */}
       <section
         id="faq"
-        className="border-b border-white/10 py-16 md:py-24"
+        className="border-b border-champagne-gold/10 py-16 md:py-24"
         aria-labelledby="faq-heading"
       >
         <div className="container mx-auto px-4">
           <h2
             id="faq-heading"
-            className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl"
+            className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl text-champagne-gold break-keep"
           >
             자주 묻는 질문
           </h2>
 
           <div className="mx-auto max-w-2xl">
-            <Accordion type="single" collapsible className="space-y-2">
+            <Accordion type="single" collapsible className="space-y-4">
               {faqItems.map((item, index) => (
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="rounded-[12px] border border-white/10 bg-white/5 px-4"
+                  className="rounded-lg border border-champagne-gold/10 bg-white/5 px-6"
                 >
-                  <AccordionTrigger className="text-left text-base font-medium hover:no-underline">
+                  <AccordionTrigger className="text-left text-base font-medium text-champagne-gold hover:no-underline break-keep">
                     {item.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm text-[var(--color-secondary)]/80">
+                  <AccordionContent className="text-sm text-champagne-gold/70 leading-relaxed break-keep">
                     {item.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -95,10 +95,10 @@ export function FooterSection() {
           <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
             {/* 로고 */}
             <div className="text-center md:text-left">
-              <Link href="/" className="font-serif text-2xl font-bold">
+              <Link href="/" className="font-serif text-2xl font-bold text-champagne-gold">
                 Sdeume AI
               </Link>
-              <p className="mt-2 text-sm text-[var(--color-secondary)]/60">
+              <p className="mt-2 text-sm opacity-60">
                 AI 기반 버추얼 웨딩 스튜디오
               </p>
             </div>
@@ -107,7 +107,7 @@ export function FooterSection() {
             <div className="flex flex-wrap justify-center gap-8 md:gap-12">
               {/* 서비스 */}
               <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-secondary)]/60">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider opacity-40">
                   서비스
                 </h3>
                 <ul className="space-y-2">
@@ -115,7 +115,7 @@ export function FooterSection() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-[var(--color-secondary)]/80 transition-colors hover:text-[var(--color-secondary)]"
+                        className="text-sm opacity-80 transition-opacity hover:opacity-100"
                       >
                         {link.label}
                       </Link>
@@ -126,7 +126,7 @@ export function FooterSection() {
 
               {/* 정책 */}
               <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-secondary)]/60">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider opacity-40">
                   정책
                 </h3>
                 <ul className="space-y-2">
@@ -134,7 +134,7 @@ export function FooterSection() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-[var(--color-secondary)]/80 transition-colors hover:text-[var(--color-secondary)]"
+                        className="text-sm opacity-80 transition-opacity hover:opacity-100"
                       >
                         {link.label}
                       </Link>
@@ -146,7 +146,7 @@ export function FooterSection() {
           </div>
 
           {/* 저작권 */}
-          <div className="mt-12 border-t border-white/10 pt-8 text-center text-sm text-[var(--color-secondary)]/40">
+          <div className="mt-12 border-t border-champagne-gold/10 pt-8 text-center text-xs opacity-30">
             <p>&copy; {new Date().getFullYear()} Sdeume AI. All rights reserved.</p>
           </div>
         </div>

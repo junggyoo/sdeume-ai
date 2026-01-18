@@ -95,13 +95,16 @@ export function useUploadToStorage({
 
   const uploadImage = useCallback(
     async (item: QueuedFile): Promise<Upload | null> => {
-      if (item.status !== 'completed' || !item.analysis) {
+      // Allow both 'completed' and 'synced' status (in case of retry)
+      if ((item.status !== 'completed' && item.status !== 'synced') || !item.analysis) {
         return null;
       }
 
       try {
         updateQueueItem(item.id, item.role, { status: 'uploading' });
         const upload = await uploadMutation.mutateAsync(item);
+        // Mark as synced after successful upload
+        updateQueueItem(item.id, item.role, { status: 'synced' });
         return upload;
       } catch (error) {
         updateQueueItem(item.id, item.role, {
