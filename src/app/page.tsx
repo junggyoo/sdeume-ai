@@ -15,7 +15,7 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* FAQ JSON-LD 스키마 */}
+      {/* FAQ JSON-LD Schema */}
       <Script
         id="faq-schema"
         type="application/ld+json"
@@ -23,27 +23,26 @@ export default function LandingPage() {
       />
 
       <MeshGradientBackground>
-        <main className="min-h-dvh pb-[var(--spacing-safe-bottom)] md:pb-0">
-          {/* Act 1: Hero - 스튜디오 없는 스튜디오 촬영 */}
+        <main className="min-h-dvh">
+          {/* Act 1: Hero - The Atelier of Dreams */}
           <ActIntroSection />
 
-          {/* Act 2: Value - 어색한 미소 대신, 가장 나다운 표정으로 */}
+          {/* Act 2: Value - 우리는 촬영이 아닌 자유를 발명했다 */}
           <ActValueSection />
 
-          {/* Act 3: Process - 당신을 학습하는 시간, 20분 */}
+          {/* Act 3: Process - 3초의 마법 */}
           <ActProcessSection />
 
-          {/* Act 4: Atelier - 빛의 아뜰리에 */}
+          {/* Act 4: Atelier - 당신의 감성을 담을 그릇들 */}
           <ActAtelierSection />
 
-          {/* Act 5: CTA - 당신의 인생 화보가 이곳에서 시작됩니다 */}
+          {/* Act 5: Finale - 믿기지 않나요? */}
           <ActRealitySection />
 
-          {/* Footer (FAQ 포함) */}
+          {/* Footer (FAQ included) */}
           <FooterSection />
         </main>
       </MeshGradientBackground>
-
     </>
   );
 }

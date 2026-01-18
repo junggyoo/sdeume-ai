@@ -67,55 +67,72 @@
 
 ## 4. Frontend & Design System Integration
 
-디자인 가이드의 시각적 언어를 코드로 정확히 이관하기 위한 기술 명세입니다.
+**"The Atelier of Dreams"** 디자인 컨셉을 코드로 구현하기 위한 기술 명세입니다.
 
-### 4.1 Design Token Configuration (Tailwind)
-```typescript
-// tailwind.config.ts
-import type { Config } from "tailwindcss";
+### 4.1 Design Concept
+- **Theme:** 밝고 깨끗한 배경(#FAFAFA) 위에 영롱한 오로라 빛 효과
+- **Typography:** Serif(Playfair Display) + Sans(Inter) 조합으로 시적인 감성 표현
+- **Animation:** 부드럽게 흐르는 오로라 블러, 파티클 효과로 몽환적 분위기
 
-const config: Config = {
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          desktop: '#0E1B2A',
-          mobile: '#1A2B3C', // Sticky CTA용
-          hover: '#14263A',
-        },
-        secondary: '#F6F1EA',
-        accent: {
-          rose: '#B9896E',
-          teal: '#2E5E5E',
-        },
-        surface: '#FAF8F5',
-        state: { success: '#2E7D66', warning: '#C47F39', error: '#B83A4B' }
-      },
-      fontFamily: {
-        serif: ['var(--font-noto-serif)', 'Georgia', 'serif'],
-        sans: ['var(--font-pretendard)', 'Inter', 'sans-serif'],
-      },
-      backgroundImage: {
-        'aurora-subtle': 'linear-gradient(180deg, #F6F1EA 0%, #FAF8F5 100%)',
-        'aurora-overlay': 'linear-gradient(180deg, rgba(14,27,42,0) 0%, rgba(14,27,42,0.06) 100%)',
-        'accent-shine': 'linear-gradient(135deg, #B9896E 0%, rgba(185,137,110,0.9) 100%)',
-      },
-      animation: {
-        'light-sweep': 'lightSweep 0.6s ease-in-out',
-        'aurora-float': 'auroraFloat 3s ease-in-out infinite alternate',
-      },
-      spacing: {
-        'safe-bottom': '100px', // Mobile Sticky CTA Safe Area
-      }
-    },
-  },
-};
+### 4.2 Design Token Configuration (CSS Variables)
+```css
+/* globals.css @theme */
+:root {
+  /* Background */
+  --color-background: #FAFAFA;
+
+  /* Text Colors */
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+
+  /* Aurora Colors */
+  --aurora-purple: rgba(192, 132, 252, 0.2);
+  --aurora-blue: rgba(147, 197, 253, 0.2);
+  --aurora-pink: rgba(251, 207, 232, 0.3);
+
+  /* Fonts */
+  --font-serif: 'Playfair Display', 'Noto Serif KR', Georgia, serif;
+  --font-sans: 'Inter', 'Pretendard', sans-serif;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
 ```
 
-### 4.2 Layout & Accessibility
-- **Mobile Safe Area:** 글로벌 레이아웃 최하단에 `pb-safe-bottom` (100px)을 적용하여 Sticky CTA가 콘텐츠를 가리지 않도록 강제.
+### 4.3 Aurora Background System
+```tsx
+// 오로라 배경 효과 (Framer Motion)
+<motion.div
+  animate={{
+    x: ['-20%', '20%', '-20%'],
+    y: ['-20%', '20%', '-20%'],
+    scale: [1, 1.2, 1],
+  }}
+  transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+  className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%]
+             rounded-full bg-purple-200/20 blur-[120px]"
+/>
+```
+
+### 4.4 Typography System
+- **Hero Display:** `text-5xl md:text-8xl lg:text-9xl font-serif`
+- **Section Title:** `text-4xl md:text-6xl font-serif`
+- **Subtitle:** `text-sm md:text-base tracking-[0.5em] uppercase font-light`
+- **Body:** `text-xl font-light text-gray-600 leading-relaxed`
+
+### 4.5 Layout & Accessibility
 - **Touch Target:** 모바일 뷰포트에서 모든 인터랙티브 요소는 최소 `44x44px` 영역 확보.
-- **Motion:** `framer-motion`의 `useReducedMotion` 훅을 사용하여 시스템 설정에 따라 애니메이션(오로라, 라이트 스윕) On/Off 처리.
+- **Motion:** `framer-motion`을 활용한 scroll-triggered 애니메이션.
+- **Color Contrast:** 순백 배경 위 gray-900 텍스트로 AA 대비 확보.
 
 ## 5. Database Schema & Data Models
 

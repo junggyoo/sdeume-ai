@@ -1,129 +1,102 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 
-const processSteps = [
+const PROCESS_STEPS = [
   {
     number: "01",
-    title: "셀카 업로드",
-    description: "잘 나온 셀카 15~20장을 골라주세요",
+    title: "영감(Inspiration)",
+    description:
+      "당신이 꿈꾸는 분위기, 색감, 감정을 한 줄의 문장으로 속삭여주세요.",
   },
   {
     number: "02",
-    title: "AI 학습",
-    description: "당신의 이목구비와 분위기를 완벽하게 학습합니다",
+    title: "공명(Resonance)",
+    description:
+      "AI의 심장이 당신의 언어를 이해하고, 수만 가지의 빛을 조합합니다.",
   },
   {
     number: "03",
-    title: "화보 완성",
-    description: "진짜보다 더 진짜 같은 하이엔드 화보가 탄생합니다",
+    title: "개화(Bloom)",
+    description: "단 3초. 화면 너머로 당신만의 걸작이 피어납니다.",
   },
 ];
 
 export function ActProcessSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 1]);
-  const titleY = useTransform(scrollYProgress, [0, 0.2], [60, 0]);
-
   return (
-    <section
-      ref={sectionRef}
-      className="relative py-[var(--space-section)] bg-deep-navy"
-      aria-label="프로세스"
-    >
-      <div className="container mx-auto px-4">
-        {/* 섹션 헤더 */}
-        <motion.div
-          className="mb-32 text-center md:mb-48"
-          style={{ opacity: titleOpacity, y: titleY }}
+    <section className="relative bg-gradient-to-b from-white via-gray-50 to-white py-40">
+      <div className="mx-auto max-w-4xl px-6 text-center">
+        {/* Section Title */}
+        <motion.h2
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-24 font-serif text-4xl text-gray-900 md:text-6xl"
         >
-          <h2 className="font-serif font-bold leading-tight text-white md:text-6xl text-4xl break-keep">
-            <span className="block mb-4 text-champagne-gold/60 text-lg uppercase tracking-widest font-sans">Workflow</span>
-            <span className="block text-champagne-gold break-keep">
-              당신을 학습하는 시간, 20분
+          <span className="block">당신의 일상이 예술이 되는</span>
+          <span className="italic text-purple-600">3초의 마법</span>
+        </motion.h2>
+
+        {/* Timeline */}
+        <div className="relative ml-6 flex h-auto flex-col border-l border-gray-200 md:mx-auto md:h-[600px] md:w-0 md:items-center">
+          {/* Step 1 */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ delay: 0.2 }}
+            className="relative left-8 top-0 mb-24 w-64 text-left md:absolute md:left-12 md:mb-0"
+          >
+            <span className="absolute -left-16 -top-8 -z-10 font-serif text-6xl text-gray-100">
+              01
             </span>
-          </h2>
+            <h3 className="mb-2 font-serif text-2xl text-gray-900">
+              {PROCESS_STEPS[0].title}
+            </h3>
+            <p className="font-light text-gray-500">
+              {PROCESS_STEPS[0].description}
+            </p>
+          </motion.div>
 
-          <p className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed md:text-xl text-champagne-gold/60 break-keep">
-            Sdeume AI는 당신의 얼굴을 3D로 정밀하게 구현합니다.
-            <br />
-            진짜보다 더 진짜 같은 결과물, 잠시만 기다려주세요.
-          </p>
-        </motion.div>
+          {/* Step 2 */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ delay: 0.4 }}
+            className="relative left-8 mb-24 w-64 text-left md:absolute md:-translate-y-1/2 md:text-right md:top-1/2 md:right-12 md:left-auto md:mb-0"
+          >
+            <span className="absolute -left-16 -top-8 -z-10 font-serif text-6xl text-gray-100 md:-right-16 md:left-auto">
+              02
+            </span>
+            <h3 className="mb-2 font-serif text-2xl text-gray-900">
+              {PROCESS_STEPS[1].title}
+            </h3>
+            <p className="font-light text-gray-500">
+              {PROCESS_STEPS[1].description}
+            </p>
+          </motion.div>
 
-        {/* 프로세스 스텝 */}
-        <div className="mx-auto max-w-4xl">
-          {processSteps.map((step, index) => (
-            <ProcessStep
-              key={step.number}
-              step={step}
-              index={index}
-              isLast={index === processSteps.length - 1}
-            />
-          ))}
+          {/* Step 3 */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ delay: 0.6 }}
+            className="relative bottom-0 left-8 w-64 text-left md:absolute md:left-12"
+          >
+            <span className="absolute -left-16 -top-8 -z-10 font-serif text-6xl text-gray-100">
+              03
+            </span>
+            <h3 className="mb-2 font-serif text-2xl text-gray-900">
+              {PROCESS_STEPS[2].title}
+            </h3>
+            <p className="font-light text-gray-500">
+              {PROCESS_STEPS[2].description}
+            </p>
+          </motion.div>
         </div>
       </div>
     </section>
-  );
-}
-
-function ProcessStep({
-  step,
-  index,
-  isLast,
-}: {
-  step: (typeof processSteps)[0];
-  index: number;
-  isLast: boolean;
-}) {
-  const stepRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: stepRef,
-    offset: ["start end", "center center"],
-  });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
-  const x = useTransform(scrollYProgress, [0, 0.5], [index % 2 === 0 ? -60 : 60, 0]); // Keep side animation
-
-  return (
-    <motion.div
-      ref={stepRef}
-      className="relative mb-24 last:mb-0"
-      style={{ opacity, x }}
-    >
-      <div className="flex items-start gap-8">
-        {/* 스텝 번호 */}
-        <div className="flex-shrink-0">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-champagne-gold/20 bg-champagne-gold/5 backdrop-blur-md md:h-20 md:w-20">
-            <span className="font-serif text-xl font-bold md:text-2xl text-champagne-gold">
-              {step.number}
-            </span>
-          </div>
-        </div>
-
-        {/* 스텝 콘텐츠 */}
-        <div className="flex-1 pt-2">
-          <h3 className="font-serif text-2xl font-bold md:text-3xl text-champagne-gold break-keep">
-            {step.title}
-          </h3>
-          <p className="mt-3 font-sans text-base leading-relaxed md:text-lg text-champagne-gold/60 break-keep">
-            {step.description}
-          </p>
-        </div>
-      </div>
-
-      {/* 연결선 */}
-      {!isLast && (
-        <div className="absolute left-8 top-20 h-16 w-px bg-gradient-to-b from-champagne-gold/30 to-transparent md:left-10 md:top-24" />
-      )}
-    </motion.div>
   );
 }

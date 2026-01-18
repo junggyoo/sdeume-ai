@@ -37,7 +37,7 @@ image = (
     .pip_install(
         "torch==2.4.0",
         "torchvision==0.19.0",
-        "torchaudio==2.4.0",
+        # torchaudio 제거 - comfy-cli가 설치하는 PyTorch 버전과 ABI 불일치 발생
         extra_index_url="https://download.pytorch.org/whl/cu121",
     )
     .pip_install(
@@ -56,6 +56,13 @@ image = (
     .run_commands(
         # ComfyUI 설치
         "comfy --skip-prompt install --nvidia",
+    )
+    # torchaudio 완전 제거 및 오디오 노드 비활성화 (PyTorch ABI 불일치 에러 방지)
+    .run_commands(
+        "pip uninstall -y torchaudio || true",
+        "rm -f /root/comfy/ComfyUI/comfy_extras/nodes_audio.py || true",
+        "rm -f /root/comfy/ComfyUI/comfy_extras/nodes_lt_audio.py || true",
+        "rm -f /root/comfy/ComfyUI/comfy_extras/nodes_audio_encoder.py || true",
     )
     .run_commands(
         # Impact Pack 설치
@@ -775,12 +782,12 @@ class ComfyUIServer:
 
         self.profiler.record("Before Server Start")
 
-        # ComfyUI 서버 시작
+        # ComfyUI 서버 시작 - 로그를 /dev/null로 리다이렉트하여 불필요한 출력 최소화
         self.process = subprocess.Popen(
             ["python", "main.py", "--listen", "127.0.0.1", "--port", "8188", "--highvram"],
             cwd=comfyui_dir,
-            stdout=None,
-            stderr=None,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
         # 서버 준비 대기

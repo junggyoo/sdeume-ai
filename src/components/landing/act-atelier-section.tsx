@@ -1,95 +1,76 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
 
 const THEMES = [
   {
-    id: "white",
-    name: "White Poem",
-    desc: "순백의 시, 빛으로 쓴 사랑의 언어",
-    gradient: "from-[#EAE0D5]/20 to-[#D4C5B5]/10",
+    title: "White Poem",
+    subtitle: "순백의 서사시",
+    img: "https://picsum.photos/seed/white/600/900",
   },
   {
-    id: "garden",
-    name: "Garden Whisper",
-    desc: "영원히 지지 않는 봄의 정원",
-    gradient: "from-[#2E5E5E]/30 to-[#1A3C3C]/20",
+    title: "Garden Whisper",
+    subtitle: "비밀의 정원",
+    img: "https://picsum.photos/seed/garden/600/900",
   },
   {
-    id: "classic",
-    name: "Classic Legacy",
-    desc: "시간을 견뎌낸 영화 같은 우아함",
-    gradient: "from-[#4A3B45]/30 to-[#2A1F25]/20",
+    title: "Midnight Waltz",
+    subtitle: "도시의 왈츠",
+    img: "https://picsum.photos/seed/night/600/900",
+  },
+  {
+    title: "Retro Cinema",
+    subtitle: "기억의 필름",
+    img: "https://picsum.photos/seed/retro/600/900",
   },
 ];
 
 export function ActAtelierSection() {
   return (
-    <section className="relative py-24 md:py-32 bg-deep-navy overflow-hidden">
+    <section className="overflow-hidden py-32">
       {/* Section Header */}
-      <div className="container mx-auto px-4 mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center md:text-left"
-        >
-          <span className="text-champagne-gold/60 tracking-widest uppercase text-sm mb-4 block">
-            The Atelier
-          </span>
-          <h2 className="text-4xl md:text-6xl font-serif text-champagne-gold font-light leading-tight break-keep">
-            Choose Your Light
-          </h2>
-        </motion.div>
+      <div className="mb-16 px-6 md:px-20">
+        <h2 className="font-serif text-5xl text-gray-900 md:text-7xl">
+          Atelier
+        </h2>
+        <p className="mt-4 text-lg text-gray-500">당신의 감성을 담을 그릇들</p>
       </div>
 
-      {/* Horizontal Scroll Container */}
-      <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-4 md:px-8 pb-4">
-        {/* Left spacer for first card centering on mobile */}
-        <div className="flex-none w-[7.5vw] md:w-[calc((100vw-400px*3-48px)/2)] min-w-0" aria-hidden="true" />
-
-        {/* Theme Cards */}
-        {THEMES.map((theme, index) => (
+      {/* Horizontal Scroll Gallery */}
+      <div className="no-scrollbar flex snap-x space-x-8 overflow-x-auto px-6 pb-12 md:px-20">
+        {THEMES.map((theme, idx) => (
           <motion.div
-            key={theme.id}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
-            className={`group relative flex-none w-[85vw] md:w-[400px] h-[60vh] md:h-[500px] snap-center flex flex-col justify-end p-8 md:p-10 overflow-hidden rounded-2xl backdrop-blur-md bg-white/5 border border-white/10 transition-all duration-500`}
+            key={theme.title}
+            className="group w-[300px] flex-none cursor-pointer snap-center md:w-[400px]"
+            initial={{ opacity: 0, x: 100 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.1, duration: 0.8 }}
+            viewport={{ once: true }}
           >
-            {/* Gradient Background */}
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 group-hover:opacity-80 transition-opacity duration-500`}
-            />
-
-            {/* Content */}
-            <div className="relative z-10 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-              <h3 className="text-3xl md:text-4xl font-serif text-champagne-gold mb-3 italic group-hover:not-italic transition-all duration-500 break-keep">
-                {theme.name}
+            <Link href="/login">
+              <div className="relative mb-6 h-[500px] overflow-hidden rounded-sm shadow-lg md:h-[600px]">
+                {/* Hover overlay */}
+                <div className="absolute inset-0 z-10 bg-white/0 transition-colors group-hover:bg-white/10" />
+                <Image
+                  src={theme.img}
+                  alt={theme.title}
+                  fill
+                  className="transform object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                  sizes="(max-width: 768px) 300px, 400px"
+                />
+              </div>
+              <h3 className="font-serif text-3xl text-gray-900 transition-colors group-hover:text-purple-600">
+                {theme.title}
               </h3>
-              <p className="text-base md:text-lg text-champagne-gold/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 break-keep">
-                {theme.desc}
+              <p className="mt-2 text-sm uppercase tracking-widest text-gray-400">
+                {theme.subtitle}
               </p>
-            </div>
+            </Link>
           </motion.div>
         ))}
-
-        {/* Right spacer for last card centering on mobile */}
-        <div className="flex-none w-[7.5vw] md:w-[calc((100vw-400px*3-48px)/2)] min-w-0" aria-hidden="true" />
       </div>
-
-      {/* Scroll hint for mobile */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.5 }}
-        className="text-center text-champagne-gold/40 text-sm mt-6 md:hidden"
-      >
-        ← 스와이프하여 더 보기 →
-      </motion.p>
     </section>
   );
 }

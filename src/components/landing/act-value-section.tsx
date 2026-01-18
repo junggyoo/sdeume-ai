@@ -1,67 +1,89 @@
 "use client";
 
 import { motion } from "framer-motion";
-
-const COPY_SEGMENTS = [
-  {
-    id: 1,
-    text: "단순 합성이 아닙니다",
-    sub: "Not just a synthesis",
-    gradient: "from-[#2E5E5E] to-[#1A3C3C]",
-  },
-  {
-    id: 2,
-    text: "당신을 학습하는 시간",
-    sub: "Time to learn you",
-    gradient: "from-[#3D4A5E] to-[#1A2C38]",
-  },
-  {
-    id: 3,
-    text: "가장 나다운 표정으로",
-    sub: "Your most authentic expression",
-    gradient: "from-[#4A3B45] to-[#2A1F25]",
-  },
-];
+import Image from "next/image";
 
 export function ActValueSection() {
   return (
-    <section className="relative py-24 md:py-32 bg-deep-navy">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col gap-16 md:gap-24">
-          {COPY_SEGMENTS.map((segment, index) => (
-            <motion.div
-              key={segment.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: index * 0.1 }}
-              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${segment.gradient} p-8 md:p-12 backdrop-blur-md border border-white/10`}
-            >
-              {/* Background overlay */}
-              <div className="absolute inset-0 bg-black/20" />
+    <section className="relative bg-[#FAFAFA] px-6 py-32 md:px-20">
+      <div className="mx-auto max-w-7xl">
+        {/* Concept 1 */}
+        <div className="mb-40 grid grid-cols-1 items-center gap-16 md:grid-cols-2">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-20%" }}
+            transition={{ duration: 1 }}
+          >
+            <h2 className="mb-8 font-serif text-4xl leading-snug text-gray-900 md:text-6xl">
+              <span className="block">우리는 촬영이 아닌</span>
+              <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                자유를 발명했다.
+              </span>
+            </h2>
+            <p className="font-light text-xl leading-relaxed text-gray-600">
+              무거운 장비, 어색한 미소, 타인의 시선은 잊으세요.
+              <br />
+              오직 당신과 빛, 그리고 상상력만 존재합니다.
+              <br />
+              셔터를 누르는 순간, 현실은 시(詩)가 됩니다.
+            </p>
+          </motion.div>
 
-              <div className="relative z-10 text-center">
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="text-sm md:text-base font-sans tracking-[0.2em] text-champagne-gold/60 mb-4 uppercase"
-                >
-                  {segment.sub}
-                </motion.p>
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                  className="text-4xl md:text-6xl font-serif text-champagne-gold font-light leading-tight break-keep"
-                >
-                  {segment.text}
-                </motion.h2>
-              </div>
-            </motion.div>
-          ))}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.2 }}
+            className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-2xl shadow-gray-200"
+          >
+            <Image
+              src="https://picsum.photos/seed/fashion1/800/1200"
+              alt="Freedom"
+              fill
+              className="object-cover opacity-90 transition-transform duration-700 hover:scale-105"
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+          </motion.div>
+        </div>
+
+        {/* Concept 2 (Reverse) */}
+        <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.2 }}
+            className="relative order-2 aspect-square overflow-hidden rounded-sm shadow-2xl shadow-gray-200 md:order-1"
+          >
+            <Image
+              src="https://picsum.photos/seed/ethereal2/800/800"
+              alt="Light"
+              fill
+              className="object-cover grayscale transition-all duration-1000 hover:grayscale-0"
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-20%" }}
+            transition={{ duration: 1 }}
+            className="order-1 text-right md:order-2 md:text-left"
+          >
+            <h2 className="mb-8 font-serif text-4xl leading-snug text-gray-900 md:text-6xl">
+              <span className="block">완벽한 빛을</span>
+              <span className="block font-light italic">소유하는 방법</span>
+            </h2>
+            <p className="font-light text-xl leading-relaxed text-gray-600">
+              스튜디오 조명 없이도, 새벽녘의 푸른 빛이나
+              <br />
+              노을이 내려앉은 금빛 순간을 연출하세요.
+              <br />
+              Sdeume AI는 당신의 손끝에서 빛을 조각합니다.
+            </p>
+          </motion.div>
         </div>
       </div>
     </section>

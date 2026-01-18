@@ -16,48 +16,59 @@
 }
 
 @theme {
-  /* ===== Sdeume AI Design Tokens - Fluid Elegance ===== */
+  /* ===== Sdeume AI Design Tokens - The Atelier of Dreams ===== */
 
-  /* Core Palette - Deep Navy, Champagne Gold, Muted Aurora */
-  --color-deep-navy: #050A10;
-  --color-champagne-gold: #EAE0D5;
-  --color-muted-teal: #2D4A58;
-  /* Muted Aurora base */
+  /* Core Palette - Pure White & Aurora */
+  --color-background: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-foreground: #1A1A1A;
 
   /* Text Colors */
-  --text-hero: #EAE0D5;
-  /* Champagne Gold for primary contrast */
-  --text-body: #B0B7C3;
-  /* Muted cool gray for body */
-  --text-muted: #536471;
-  /* Deep muted blue-gray */
+  --text-primary: #1A1A1A;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+  --text-light: #9CA3AF;
+
+  /* Aurora Palette */
+  --aurora-purple: rgba(192, 132, 252, 0.2);
+  --aurora-blue: rgba(147, 197, 253, 0.2);
+  --aurora-pink: rgba(251, 207, 232, 0.3);
+  --color-purple-600: #9333EA;
+  --color-blue-600: #2563EB;
 
   /* Typography Scale - Editorial */
-  --text-display-hero: clamp(4rem, 15vw, 10rem);
-  /* Massive headlines */
-  --text-display-lg: clamp(3rem, 10vw, 8rem);
+  --text-display-hero: clamp(3rem, 12vw, 9rem);
+  --text-display-lg: clamp(2.5rem, 8vw, 6rem);
   --text-body-base: 1rem;
-  --text-body-lg: 1.125rem;
+  --text-body-lg: 1.25rem;
 
   /* Spacing - Fluid */
-  --space-section: clamp(8rem, 20vw, 24rem);
+  --space-section: clamp(8rem, 15vw, 16rem);
   --space-content: clamp(2rem, 5vw, 6rem);
-
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(234, 224, 213, 0.1);
-  /* Champagne hint */
-  --glass-blur: 20px;
-
-  /* Aurora Colors */
-  --color-aurora-1: #1A2C38;
-  --color-aurora-2: #2D4A58;
-  --color-aurora-3: #4A3B45;
+  --spacing-safe-bottom: 80px;
 
   /* Animations */
-  --animate-blur-in: blur-in 1.5s ease-out forwards;
-  --animate-fade-up: fade-up 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  --animate-aurora-flow: aurora-flow 20s ease-in-out infinite alternate;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shine: shine 1s ease-in-out;
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes shine {
+    0% {
+      transform: translateX(-100%) skewX(-12deg);
+    }
+    100% {
+      transform: translateX(200%) skewX(-12deg);
+    }
+  }
 
   @keyframes blur-in {
     0% {
@@ -65,7 +76,6 @@
       filter: blur(20px);
       transform: scale(0.98);
     }
-
     100% {
       opacity: 1;
       filter: blur(0px);
@@ -73,48 +83,24 @@
     }
   }
 
-  @keyframes fade-up {
-    0% {
-      opacity: 0;
-      transform: translateY(40px);
-    }
-
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes aurora-flow {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    100% {
-      background-position: 100% 50%;
-    }
-  }
-
-  /* Base Colors Mapping */
-  --color-background: var(--color-deep-navy);
-  --color-foreground: var(--color-champagne-gold);
-
-  /* Shadcn/Tailwind Compat (Dark Theme Base) */
-  --color-border: rgba(234, 224, 213, 0.1);
-  --color-input: rgba(234, 224, 213, 0.1);
-  --color-ring: var(--color-champagne-gold);
-  --color-primary: var(--color-champagne-gold);
-  --color-primary-foreground: var(--color-deep-navy);
-  --color-secondary: var(--color-muted-teal);
-  --color-secondary-foreground: var(--color-diff-navy);
-  --color-muted: rgba(255, 255, 255, 0.05);
-  --color-muted-foreground: var(--text-muted);
-  --color-accent: var(--color-muted-teal);
-  --color-accent-foreground: #fff;
-  --color-card: rgba(5, 10, 16, 0.8);
-  --color-card-foreground: var(--color-champagne-gold);
-  --color-popover: var(--color-deep-navy);
-  --color-popover-foreground: var(--color-champagne-gold);
+  /* Shadcn/Tailwind Compat (Light Theme Base) */
+  --color-border: #E5E7EB;
+  --color-input: #E5E7EB;
+  --color-ring: #9333EA;
+  --color-primary: #1A1A1A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F3F4F6;
+  --color-secondary-foreground: #1A1A1A;
+  --color-muted: #F9FAFB;
+  --color-muted-foreground: #6B7280;
+  --color-accent: #F3F4F6;
+  --color-accent-foreground: #1A1A1A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1A1A1A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1A1A;
+  --color-destructive: #B83A4B;
+  --color-destructive-foreground: #FFFFFF;
 
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
@@ -123,38 +109,37 @@
 
 /* Compatibility for legacy tailwind borders */
 @layer base {
-
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-border, currentColor);
   }
 }
 
 @layer base {
   :root {
-    /* Shadcn UI / Semantic Mapping to New Variables */
-    --background: var(--color-deep-navy);
-    --foreground: var(--color-champagne-gold);
-    --card: #0A121E;
-    --card-foreground: var(--color-champagne-gold);
-    --popover: var(--color-deep-navy);
-    --popover-foreground: var(--color-champagne-gold);
-    --primary: var(--color-champagne-gold);
-    --primary-foreground: var(--color-deep-navy);
-    --secondary: var(--color-muted-teal);
-    --secondary-foreground: #ffffff;
-    --muted: rgba(255, 255, 255, 0.05);
-    --muted-foreground: var(--text-muted);
-    --accent: var(--color-muted-teal);
-    --accent-foreground: #ffffff;
+    /* Shadcn UI / Semantic Mapping - Light Theme (The Atelier of Dreams) */
+    --background: #FAFAFA;
+    --foreground: #1A1A1A;
+    --card: #FFFFFF;
+    --card-foreground: #1A1A1A;
+    --popover: #FFFFFF;
+    --popover-foreground: #1A1A1A;
+    --primary: #1A1A1A;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F3F4F6;
+    --secondary-foreground: #1A1A1A;
+    --muted: #F9FAFB;
+    --muted-foreground: #6B7280;
+    --accent: #F3F4F6;
+    --accent-foreground: #1A1A1A;
     --destructive: #B83A4B;
-    --destructive-foreground: #ffffff;
-    --border: rgba(234, 224, 213, 0.1);
-    --input: rgba(234, 224, 213, 0.1);
-    --ring: var(--color-champagne-gold);
+    --destructive-foreground: #FFFFFF;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #9333EA;
     --radius: 0.5rem;
   }
 }
@@ -166,11 +151,11 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', 'Pretendard', sans-serif;
   }
 }
 
 @layer utilities {
-
   /* Hide scrollbar utility */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -180,19 +165,26 @@
     scrollbar-width: none;
   }
 
-
-  /* Common Utilities */
-  .text-gradient {
-    background: linear-gradient(135deg, #EAE0D5 0%, #B0B7C3 100%);
+  /* Text Gradient - Purple to Blue */
+  .text-gradient-purple {
+    background: linear-gradient(to right, #9333EA, #2563EB);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  .glass-button {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
+  /* Aurora Background Blur Elements */
+  .aurora-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+
+  /* Selection styling */
+  ::selection {
+    background-color: rgba(192, 132, 252, 0.3);
+    color: #1A1A1A;
   }
 }
 

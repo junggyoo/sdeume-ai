@@ -53,17 +53,17 @@ const policyLinks: FooterLink[] = [
 
 export function FooterSection() {
   return (
-    <footer className="bg-deep-navy text-champagne-gold/60 border-t border-champagne-gold/10">
-      {/* FAQ 섹션 */}
+    <footer className="relative z-10 border-t border-gray-200 bg-[#FAFAFA] text-gray-600">
+      {/* FAQ Section */}
       <section
         id="faq"
-        className="border-b border-champagne-gold/10 py-16 md:py-24"
+        className="border-b border-gray-200 py-16 md:py-24"
         aria-labelledby="faq-heading"
       >
         <div className="container mx-auto px-4">
           <h2
             id="faq-heading"
-            className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl text-champagne-gold break-keep"
+            className="mb-8 text-center font-serif text-3xl font-bold text-gray-900 md:text-4xl"
           >
             자주 묻는 질문
           </h2>
@@ -74,12 +74,12 @@ export function FooterSection() {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="rounded-lg border border-champagne-gold/10 bg-white/5 px-6"
+                  className="rounded-lg border border-gray-200 bg-white px-6"
                 >
-                  <AccordionTrigger className="text-left text-base font-medium text-champagne-gold hover:no-underline break-keep">
+                  <AccordionTrigger className="text-left text-base font-medium text-gray-900 hover:no-underline">
                     {item.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm text-champagne-gold/70 leading-relaxed break-keep">
+                  <AccordionContent className="text-sm leading-relaxed text-gray-600">
                     {item.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -89,25 +89,28 @@ export function FooterSection() {
         </div>
       </section>
 
-      {/* 푸터 링크 */}
+      {/* Footer Links */}
       <div className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
-            {/* 로고 */}
+            {/* Logo */}
             <div className="text-center md:text-left">
-              <Link href="/" className="font-serif text-2xl font-bold text-champagne-gold">
+              <Link
+                href="/"
+                className="font-serif text-2xl font-bold text-gray-900"
+              >
                 Sdeume AI
               </Link>
-              <p className="mt-2 text-sm opacity-60">
-                AI 기반 버추얼 웨딩 스튜디오
+              <p className="mt-2 text-sm text-gray-500">
+                The Atelier of Dreams
               </p>
             </div>
 
-            {/* 링크 그룹 */}
+            {/* Link Groups */}
             <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-              {/* 서비스 */}
+              {/* Services */}
               <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider opacity-40">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                   서비스
                 </h3>
                 <ul className="space-y-2">
@@ -115,7 +118,7 @@ export function FooterSection() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm opacity-80 transition-opacity hover:opacity-100"
+                        className="text-sm text-gray-500 transition-colors hover:text-gray-900"
                       >
                         {link.label}
                       </Link>
@@ -124,9 +127,9 @@ export function FooterSection() {
                 </ul>
               </div>
 
-              {/* 정책 */}
+              {/* Policies */}
               <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider opacity-40">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                   정책
                 </h3>
                 <ul className="space-y-2">
@@ -134,7 +137,7 @@ export function FooterSection() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm opacity-80 transition-opacity hover:opacity-100"
+                        className="text-sm text-gray-500 transition-colors hover:text-gray-900"
                       >
                         {link.label}
                       </Link>
@@ -145,9 +148,12 @@ export function FooterSection() {
             </div>
           </div>
 
-          {/* 저작권 */}
-          <div className="mt-12 border-t border-champagne-gold/10 pt-8 text-center text-xs opacity-30">
-            <p>&copy; {new Date().getFullYear()} Sdeume AI. All rights reserved.</p>
+          {/* Copyright */}
+          <div className="mt-12 border-t border-gray-200 pt-8 text-center text-xs uppercase tracking-widest text-gray-400">
+            <p>
+              &copy; {new Date().getFullYear()} Sdeume AI. All rights reserved.
+              Invented Freedom.
+            </p>
           </div>
         </div>
       </div>
@@ -155,7 +161,7 @@ export function FooterSection() {
   );
 }
 
-// FAQ JSON-LD 스키마 생성 함수
+// FAQ JSON-LD Schema Generator
 export function generateFAQSchema() {
   return {
     "@context": "https://schema.org",
