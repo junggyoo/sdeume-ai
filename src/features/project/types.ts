@@ -7,7 +7,7 @@ export type ProjectStatus =
   | 'completed'
   | 'failed';
 
-export type ProjectStep = 1 | 2 | 3 | 4;
+export type ProjectStep = 1 | 2 | 3 | 4 | 5;
 
 export interface Project {
   id: string;

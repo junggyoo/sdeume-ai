@@ -23,13 +23,20 @@ export const STUDIO_STEPS: readonly StudioStep[] = [
   },
   {
     id: 3,
+    label: 'Payment',
+    labelKo: '패키지 선택',
+    path: 'payment',
+    description: '패키지와 결제 수단을 선택해주세요',
+  },
+  {
+    id: 4,
     label: 'Shooting',
     labelKo: '촬영',
     path: 'shooting',
     description: 'AI가 화보를 생성합니다',
   },
   {
-    id: 4,
+    id: 5,
     label: 'Reveal',
     labelKo: '결과 확인',
     path: 'reveal',

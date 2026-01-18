@@ -39,7 +39,7 @@ describe('UploadZone', () => {
     it('should display upload instructions', () => {
       render(<UploadZone {...defaultProps} />);
 
-      expect(screen.getByText(/사진을 선택하거나 드래그/i)).toBeInTheDocument();
+      expect(screen.getByText(/드래그하거나 클릭해서 업로드/i)).toBeInTheDocument();
     });
   });
 
@@ -165,17 +165,17 @@ describe('UploadZone', () => {
     });
   });
 
-  describe('남은 수량 표시', () => {
-    it('should display remaining slots', () => {
+  describe('업로드 현황 표시', () => {
+    it('should display current photo count', () => {
       render(<UploadZone {...defaultProps} photoCount={12} maxPhotos={20} />);
 
-      expect(screen.getByText(/8장 더 추가 가능/i)).toBeInTheDocument();
+      expect(screen.getByText(/12 \/ 20장 업로드됨/i)).toBeInTheDocument();
     });
 
-    it('should show full message when max reached', () => {
+    it('should show count when max reached', () => {
       render(<UploadZone {...defaultProps} photoCount={20} maxPhotos={20} />);
 
-      expect(screen.getByText(/충분히 올렸어요/i)).toBeInTheDocument();
+      expect(screen.getByText(/20 \/ 20장 업로드됨/i)).toBeInTheDocument();
     });
   });
 
@@ -194,18 +194,19 @@ describe('UploadZone', () => {
   });
 
   describe('다크 모드 스타일', () => {
-    it('should have dark border by default', () => {
+    it('should have violet dashed border by default', () => {
       render(<UploadZone {...defaultProps} />);
 
       const zone = screen.getByTestId('upload-zone');
-      expect(zone).toHaveClass('border-slate-600');
+      expect(zone).toHaveClass('border-dashed');
+      expect(zone).toHaveClass('border-violet-500/50');
     });
 
-    it('should have pulsing animation', () => {
+    it('should have dark background', () => {
       render(<UploadZone {...defaultProps} />);
 
       const zone = screen.getByTestId('upload-zone');
-      expect(zone).toHaveClass('animate-pulse-border');
+      expect(zone).toHaveClass('bg-slate-800/30');
     });
   });
 

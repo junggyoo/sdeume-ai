@@ -32,11 +32,18 @@ function createQueuedFile(
 }
 
 describe('PhotoGrid', () => {
-  describe('렌더링', () => {
-    it('should render empty state when no photos', () => {
-      render(<PhotoGrid items={[]} onRemove={vi.fn()} />);
+  const defaultProps = {
+    items: [],
+    onRemove: vi.fn(),
+    role: 'bride' as const,
+    maxPhotos: 20,
+  };
 
-      expect(screen.getByText(/사진이 없습니다/i)).toBeInTheDocument();
+  describe('렌더링', () => {
+    it('should render title with photo count', () => {
+      render(<PhotoGrid {...defaultProps} items={[createQueuedFile('1', 'A')]} />);
+
+      expect(screen.getByText(/신부 업로드된 사진 \(1\/20\)/i)).toBeInTheDocument();
     });
 
     it('should render PhotoCard for each item', () => {
@@ -45,7 +52,7 @@ describe('PhotoGrid', () => {
         createQueuedFile('2', 'B'),
         createQueuedFile('3', 'C'),
       ];
-      render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      render(<PhotoGrid {...defaultProps} items={items} />);
 
       const images = screen.getAllByRole('img');
       expect(images).toHaveLength(3);
@@ -53,7 +60,7 @@ describe('PhotoGrid', () => {
 
     it('should render in grid layout', () => {
       const items = [createQueuedFile('1', 'A')];
-      const { container } = render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      const { container } = render(<PhotoGrid {...defaultProps} items={items} />);
 
       const grid = container.querySelector('[data-testid="photo-grid"]');
       expect(grid).toHaveClass('grid');
@@ -63,7 +70,7 @@ describe('PhotoGrid', () => {
   describe('그리드 레이아웃', () => {
     it('should have 4 columns by default', () => {
       const items = [createQueuedFile('1', 'A')];
-      const { container } = render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      const { container } = render(<PhotoGrid {...defaultProps} items={items} />);
 
       const grid = container.querySelector('[data-testid="photo-grid"]');
       expect(grid).toHaveClass('grid-cols-4');
@@ -71,7 +78,7 @@ describe('PhotoGrid', () => {
 
     it('should accept custom columns prop', () => {
       const items = [createQueuedFile('1', 'A')];
-      const { container } = render(<PhotoGrid items={items} onRemove={vi.fn()} columns={3} />);
+      const { container } = render(<PhotoGrid {...defaultProps} items={items} columns={3} />);
 
       const grid = container.querySelector('[data-testid="photo-grid"]');
       expect(grid).toHaveClass('grid-cols-3');
@@ -82,7 +89,7 @@ describe('PhotoGrid', () => {
     it('should pass onRemove to PhotoCard', () => {
       const onRemove = vi.fn();
       const items = [createQueuedFile('test-id', 'A')];
-      render(<PhotoGrid items={items} onRemove={onRemove} />);
+      render(<PhotoGrid {...defaultProps} items={items} onRemove={onRemove} />);
 
       // PhotoCard의 삭제 버튼 클릭
       const deleteButton = screen.getByRole('button', { name: /삭제/i });
@@ -99,7 +106,7 @@ describe('PhotoGrid', () => {
         createQueuedFile('second', 'B'),
         createQueuedFile('third', 'C'),
       ];
-      render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      render(<PhotoGrid {...defaultProps} items={items} />);
 
       const images = screen.getAllByRole('img');
       expect(images[0]).toHaveAttribute('src', 'blob:first');
@@ -111,31 +118,34 @@ describe('PhotoGrid', () => {
   describe('스타일', () => {
     it('should have gap between items', () => {
       const items = [createQueuedFile('1', 'A')];
-      const { container } = render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      const { container } = render(<PhotoGrid {...defaultProps} items={items} />);
 
       const grid = container.querySelector('[data-testid="photo-grid"]');
       expect(grid).toHaveClass('gap-2');
     });
   });
 
-  describe('빈 상태 커스터마이징', () => {
-    it('should display custom empty message', () => {
-      render(
-        <PhotoGrid
-          items={[]}
-          onRemove={vi.fn()}
-          emptyMessage="아직 업로드된 사진이 없어요"
-        />
-      );
+  describe('추가 버튼', () => {
+    it('should show add button when onAddMore is provided', () => {
+      render(<PhotoGrid {...defaultProps} onAddMore={vi.fn()} />);
 
-      expect(screen.getByText('아직 업로드된 사진이 없어요')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /사진 추가/i })).toBeInTheDocument();
+    });
+
+    it('should hide add button when at max photos', () => {
+      const items = Array(20)
+        .fill(null)
+        .map((_, i) => createQueuedFile(`${i}`, 'A'));
+      render(<PhotoGrid {...defaultProps} items={items} maxPhotos={20} onAddMore={vi.fn()} />);
+
+      expect(screen.queryByRole('button', { name: /사진 추가/i })).not.toBeInTheDocument();
     });
   });
 
   describe('접근성', () => {
     it('should have grid role', () => {
       const items = [createQueuedFile('1', 'A')];
-      render(<PhotoGrid items={items} onRemove={vi.fn()} />);
+      render(<PhotoGrid {...defaultProps} items={items} />);
 
       expect(screen.getByRole('list')).toBeInTheDocument();
     });

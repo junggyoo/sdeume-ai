@@ -124,22 +124,20 @@ export default function UploadPage() {
         <div className="max-w-5xl mx-auto py-6 space-y-6">
           {/* Page Header */}
           <div className="text-center">
+            <p className="text-sm text-slate-500 mb-1">STEP 1 OF 5</p>
             <h1 className="text-2xl md:text-3xl font-bold text-slate-100">
-              얼굴 사진 업로드
+              얼굴 사진 등록
             </h1>
-            <p className="mt-2 text-slate-400">
-              AI가 두 분의 얼굴을 학습할 사진을 업로드해주세요
-            </p>
           </div>
 
-          {/* Tip Banner */}
-          <TipBanner
-            title="팁"
-            tip="각 역할당 20장의 다양한 얼굴 사진을 올리면 최상의 결과를 얻을 수 있어요!"
-          />
-
-          {/* Guideline Card */}
-          <GuidelineCard defaultExpanded={false} />
+          {/* Tip Banner + Guideline Card */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TipBanner
+              title="팁"
+              tip="각 역할당 20장의 다양한 얼굴 사진을 올리면 최상의 결과를 얻을 수 있어요!"
+            />
+            <GuidelineCard />
+          </div>
 
           {/* Desktop Layout */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -169,20 +167,19 @@ export default function UploadPage() {
               <PhotoGrid
                 items={currentUpload.queue}
                 onRemove={currentUpload.removeFile}
+                onAddMore={(files) => currentUpload.addFiles(files)}
+                role={activeRole}
+                maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
                 columns={4}
-                emptyMessage="아직 업로드된 사진이 없어요"
               />
             </div>
 
             {/* Right Column - Progress */}
             <div className="md:col-span-2 space-y-4">
               {/* Current Role Progress */}
-              <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
-                <ProgressIndicator
-                  current={activeRole === 'groom' ? groomCount : brideCount}
-                  label={activeRole === 'groom' ? '🤵 신랑' : '👰 신부'}
-                />
-              </div>
+              <ProgressIndicator
+                current={activeRole === 'groom' ? groomCount : brideCount}
+              />
 
               {/* Overall Progress */}
               <OverallProgress
@@ -229,6 +226,11 @@ export default function UploadPage() {
         isNextDisabled={!canProceed || isSyncing}
         isLoading={updateProject.isPending || isSyncing}
         variant="dark"
+        progress={{
+          brideCount,
+          groomCount,
+          maxPhotos: RECOMMENDED_PHOTOS_PER_ROLE,
+        }}
       />
     </div>
   );

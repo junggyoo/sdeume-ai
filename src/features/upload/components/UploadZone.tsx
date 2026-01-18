@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useRef, useState } from 'react';
+import Upload from 'lucide-react/dist/esm/icons/upload';
 import ImagePlus from 'lucide-react/dist/esm/icons/image-plus';
 import Camera from 'lucide-react/dist/esm/icons/camera';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
@@ -35,16 +36,12 @@ export const UploadZone = memo(function UploadZone({
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const remainingSlots = Math.max(0, maxPhotos - photoCount);
-  const isFull = remainingSlots === 0;
-
   const handleFilesChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (files && files.length > 0) {
         onFilesSelect(files);
       }
-      // Reset input value to allow selecting the same file again
       e.target.value = '';
     },
     [onFilesSelect]
@@ -97,13 +94,12 @@ export const UploadZone = memo(function UploadZone({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       className={cn(
-        'relative flex flex-col items-center justify-center gap-4 p-6',
+        'relative flex flex-col items-center justify-center gap-4 p-8',
         'border-2 border-dashed rounded-2xl transition-all duration-200',
-        'min-h-[180px]',
+        'min-h-[240px]',
         isDragging
           ? 'border-violet-500 bg-violet-500/10'
-          : 'border-slate-600 bg-slate-800/50',
-        !isDragging && 'animate-pulse-border',
+          : 'border-violet-500/50 bg-slate-800/30',
         className
       )}
     >
@@ -141,18 +137,18 @@ export const UploadZone = memo(function UploadZone({
         </div>
       )}
 
-      {/* 콘텐츠 */}
-      <div className="text-center space-y-2">
-        <p className="text-slate-300">
-          <span className="font-medium text-violet-400">{ROLE_LABELS[role]}</span> 사진을 선택하거나
-          드래그해주세요
-        </p>
-        <p className="text-xs text-slate-500">
-          {isFull ? (
-            <span className="text-emerald-400">충분히 올렸어요!</span>
-          ) : (
-            <span>{remainingSlots}장 더 추가 가능</span>
-          )}
+      {/* 업로드 아이콘 */}
+      <div className="w-16 h-16 rounded-2xl bg-slate-700/50 flex items-center justify-center">
+        <Upload className="w-8 h-8 text-slate-400" />
+      </div>
+
+      {/* 텍스트 */}
+      <div className="text-center space-y-1">
+        <h3 className="text-lg font-semibold text-slate-100">
+          {ROLE_LABELS[role]} 사진 더 추가하기
+        </h3>
+        <p className="text-sm text-slate-400">
+          드래그하거나 클릭해서 업로드
         </p>
       </div>
 
@@ -169,8 +165,8 @@ export const UploadZone = memo(function UploadZone({
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
-          <ImagePlus className="w-5 h-5" />
-          <span>갤러리</span>
+          <ImagePlus className="w-4 h-4" />
+          <span>갤러리에서 선택</span>
         </button>
 
         <button
@@ -184,10 +180,15 @@ export const UploadZone = memo(function UploadZone({
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
-          <Camera className="w-5 h-5" />
+          <Camera className="w-4 h-4" />
           <span>카메라</span>
         </button>
       </div>
+
+      {/* 업로드 현황 */}
+      <p className="text-sm text-slate-500">
+        {photoCount} / {maxPhotos}장 업로드됨
+      </p>
     </div>
   );
 });

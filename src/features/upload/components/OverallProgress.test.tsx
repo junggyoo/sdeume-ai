@@ -17,10 +17,10 @@ describe('OverallProgress', () => {
     });
 
     it('should display counts for each role', () => {
-      render(<OverallProgress {...defaultProps} groomCount={10} brideCount={12} />);
+      render(<OverallProgress groomCount={10} brideCount={12} />);
 
-      expect(screen.getByText('10')).toBeInTheDocument();
-      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(screen.getByText('12장')).toBeInTheDocument();
+      expect(screen.getByText('10장')).toBeInTheDocument();
     });
 
     it('should display emojis for each role', () => {
@@ -29,105 +29,31 @@ describe('OverallProgress', () => {
       expect(screen.getByText('👰')).toBeInTheDocument();
       expect(screen.getByText('🤵')).toBeInTheDocument();
     });
-  });
 
-  describe('진행률 표시', () => {
-    it('should show progress bars for each role', () => {
+    it('should render section title', () => {
       render(<OverallProgress {...defaultProps} />);
 
-      const progressBars = screen.getAllByRole('progressbar');
-      expect(progressBars).toHaveLength(2);
+      expect(screen.getByText('사진 업로드 현황')).toBeInTheDocument();
     });
 
-    it('should calculate progress based on recommended value', () => {
-      render(<OverallProgress {...defaultProps} groomCount={10} recommendedPerRole={20} />);
+    it('should display min and recommended guidance', () => {
+      render(<OverallProgress {...defaultProps} minPerRole={15} recommendedPerRole={20} />);
 
-      const groomProgress = screen.getAllByRole('progressbar')[1]; // groom is second
-      expect(groomProgress).toHaveAttribute('aria-valuenow', '10');
-      expect(groomProgress).toHaveAttribute('aria-valuemax', '20');
-    });
-  });
-
-  describe('상태 표시', () => {
-    it('should show incomplete status when below minimum', () => {
-      render(
-        <OverallProgress groomCount={20} brideCount={10} minPerRole={15} recommendedPerRole={20} />
-      );
-
-      // bride는 10, min은 15 → 5장 더 필요
-      expect(screen.getByText(/5장 더 필요/i)).toBeInTheDocument();
-    });
-
-    it('should show complete status when at or above recommended', () => {
-      render(
-        <OverallProgress
-          brideCount={20}
-          groomCount={20}
-          recommendedPerRole={20}
-        />
-      );
-
-      expect(screen.getAllByText(/충분해요/i)).toHaveLength(2);
-    });
-
-    it('should show partial status when between min and recommended', () => {
-      render(
-        <OverallProgress
-          brideCount={17}
-          groomCount={20}
-          minPerRole={15}
-          recommendedPerRole={20}
-        />
-      );
-
-      // bride는 17, recommended 20 → 3장 더 추가하면 완벽
-      expect(screen.getByText(/3장 더 추가하면/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('전체 완료 상태', () => {
-    it('should highlight when both roles are complete', () => {
-      const { container } = render(
-        <OverallProgress
-          {...defaultProps}
-          brideCount={20}
-          groomCount={20}
-          recommendedPerRole={20}
-        />
-      );
-
-      const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass('border-emerald-500/30');
-    });
-
-    it('should not highlight when only one role is complete', () => {
-      const { container } = render(
-        <OverallProgress
-          {...defaultProps}
-          brideCount={20}
-          groomCount={10}
-          recommendedPerRole={20}
-        />
-      );
-
-      const wrapper = container.firstChild;
-      expect(wrapper).not.toHaveClass('border-emerald-500/30');
+      expect(screen.getByText(/최소 15장, 권장 20장/i)).toBeInTheDocument();
     });
   });
 
   describe('기본값', () => {
     it('should use default minPerRole of 15', () => {
-      // brideCount=10, groomCount=20 → bride만 5장 더 필요
       render(<OverallProgress brideCount={10} groomCount={20} />);
 
-      expect(screen.getByText(/5장 더 필요/i)).toBeInTheDocument();
+      expect(screen.getByText(/최소 15장/i)).toBeInTheDocument();
     });
 
     it('should use default recommendedPerRole of 20', () => {
-      // brideCount=17, groomCount=20 → bride만 3장 더 추가하면 완벽
       render(<OverallProgress brideCount={17} groomCount={20} />);
 
-      expect(screen.getByText(/3장 더 추가하면/i)).toBeInTheDocument();
+      expect(screen.getByText(/권장 20장/i)).toBeInTheDocument();
     });
   });
 
@@ -135,18 +61,8 @@ describe('OverallProgress', () => {
     it('should have 2 column grid layout', () => {
       const { container } = render(<OverallProgress {...defaultProps} />);
 
-      const grid = container.querySelector('[data-testid="progress-grid"]');
-      expect(grid).toHaveClass('grid-cols-2');
-    });
-  });
-
-  describe('접근성', () => {
-    it('should have accessible labels for progress bars', () => {
-      render(<OverallProgress {...defaultProps} />);
-
-      const progressBars = screen.getAllByRole('progressbar');
-      expect(progressBars[0]).toHaveAttribute('aria-label', '신부 진행률');
-      expect(progressBars[1]).toHaveAttribute('aria-label', '신랑 진행률');
+      const grid = container.querySelector('.grid-cols-2');
+      expect(grid).toBeInTheDocument();
     });
   });
 
@@ -156,6 +72,27 @@ describe('OverallProgress', () => {
 
       const wrapper = container.firstChild;
       expect(wrapper).toHaveClass('bg-slate-800');
+    });
+
+    it('should have dark border', () => {
+      const { container } = render(<OverallProgress {...defaultProps} />);
+
+      const wrapper = container.firstChild;
+      expect(wrapper).toHaveClass('border-slate-700');
+    });
+  });
+
+  describe('커스텀 props', () => {
+    it('should accept custom minPerRole', () => {
+      render(<OverallProgress {...defaultProps} minPerRole={10} />);
+
+      expect(screen.getByText(/최소 10장/i)).toBeInTheDocument();
+    });
+
+    it('should accept custom recommendedPerRole', () => {
+      render(<OverallProgress {...defaultProps} recommendedPerRole={30} />);
+
+      expect(screen.getByText(/권장 30장/i)).toBeInTheDocument();
     });
   });
 });

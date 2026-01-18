@@ -113,7 +113,7 @@ import Download from 'lucide-react/dist/esm/icons/download';
 ```
 
 **프로젝트 적용:**
-- `lucide-react` 아이콘은 개별 import 사용
+- `lucide-react`는 트리쉐이킹이 잘 되어 있어 `import { Icon } from 'lucide-react'` 형태로 사용 가능 (예외)
 - `@/components/ui`는 개별 파일에서 직접 import
 
 ### 규칙 5: Heavy 컴포넌트 Dynamic Import

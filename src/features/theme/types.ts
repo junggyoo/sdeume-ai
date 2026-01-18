@@ -46,3 +46,16 @@ export function mapThemeRowToTheme(row: ThemeRow): Theme {
     createdAt: row.created_at,
   };
 }
+
+// UI 관련 추가 설정
+export interface ThemeUIConfig {
+  nameEn: string;
+  tagline: string;
+  bgColor: string;
+  recommendText: string;
+}
+
+// Theme에 UI 설정이 포함된 확장 타입
+export interface ThemeWithUI extends Theme {
+  ui: ThemeUIConfig;
+}

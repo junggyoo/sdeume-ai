@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import User from 'lucide-react/dist/esm/icons/user';
 import { cn } from '@/lib/utils';
 import { MIN_PHOTOS_PER_ROLE, RECOMMENDED_PHOTOS_PER_ROLE } from '../types';
 
@@ -10,84 +11,6 @@ export interface OverallProgressProps {
   className?: string;
 }
 
-interface RoleProgressProps {
-  emoji: string;
-  label: string;
-  count: number;
-  min: number;
-  recommended: number;
-}
-
-function getProgressColor(count: number, min: number, recommended: number): string {
-  if (count >= recommended) return 'bg-emerald-500';
-  if (count >= min) return 'bg-amber-500';
-  return 'bg-violet-500';
-}
-
-function getStatusMessage(count: number, min: number, recommended: number): string {
-  if (count >= recommended) return '충분해요!';
-  if (count >= min) return `${recommended - count}장 더 추가하면 완벽!`;
-  return `${min - count}장 더 필요해요`;
-}
-
-const RoleProgress = memo(function RoleProgress({
-  emoji,
-  label,
-  count,
-  min,
-  recommended,
-}: RoleProgressProps) {
-  const percentage = Math.min((count / recommended) * 100, 100);
-  const color = getProgressColor(count, min, recommended);
-  const message = getStatusMessage(count, min, recommended);
-  const isComplete = count >= recommended;
-
-  return (
-    <div className="space-y-2">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{emoji}</span>
-          <span className="text-sm font-medium text-slate-300">{label}</span>
-        </div>
-        <span
-          className={cn(
-            'text-lg font-bold',
-            isComplete ? 'text-emerald-400' : 'text-slate-100'
-          )}
-        >
-          {count}
-        </span>
-      </div>
-
-      {/* 프로그레스 바 */}
-      <div
-        role="progressbar"
-        aria-valuenow={count}
-        aria-valuemin={0}
-        aria-valuemax={recommended}
-        aria-label={`${label} 진행률`}
-        className="h-1.5 bg-slate-700 rounded-full overflow-hidden"
-      >
-        <div
-          className={cn('h-full transition-all duration-300 rounded-full', color)}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-
-      {/* 상태 메시지 */}
-      <p
-        className={cn(
-          'text-xs',
-          isComplete ? 'text-emerald-400' : 'text-slate-400'
-        )}
-      >
-        {message}
-      </p>
-    </div>
-  );
-});
-
 export const OverallProgress = memo(function OverallProgress({
   groomCount,
   brideCount,
@@ -95,34 +18,43 @@ export const OverallProgress = memo(function OverallProgress({
   recommendedPerRole = RECOMMENDED_PHOTOS_PER_ROLE,
   className,
 }: OverallProgressProps) {
-  const isBothComplete =
-    brideCount >= recommendedPerRole && groomCount >= recommendedPerRole;
-
   return (
     <div
       className={cn(
-        'p-4 rounded-xl border bg-slate-800 transition-colors',
-        isBothComplete
-          ? 'border-emerald-500/30 bg-emerald-500/5'
-          : 'border-slate-700',
+        'rounded-xl border border-slate-700 bg-slate-800 p-4',
         className
       )}
     >
-      <div data-testid="progress-grid" className="grid grid-cols-2 gap-6">
-        <RoleProgress
-          emoji="👰"
-          label="신부"
-          count={brideCount}
-          min={minPerRole}
-          recommended={recommendedPerRole}
-        />
-        <RoleProgress
-          emoji="🤵"
-          label="신랑"
-          count={groomCount}
-          min={minPerRole}
-          recommended={recommendedPerRole}
-        />
+      {/* 헤더 */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+          <User className="w-5 h-5 text-slate-400" />
+        </div>
+        <div>
+          <h3 className="text-sm font-medium text-slate-200">사진 업로드 현황</h3>
+          <p className="text-xs text-slate-500">
+            각각 최소 {minPerRole}장, 권장 {recommendedPerRole}장
+          </p>
+        </div>
+      </div>
+
+      {/* 신부/신랑 카운트 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-700/50">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👰</span>
+            <span className="text-sm text-slate-300">신부</span>
+          </div>
+          <span className="text-sm font-semibold text-slate-100">{brideCount}장</span>
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-700/50">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🤵</span>
+            <span className="text-sm text-slate-300">신랑</span>
+          </div>
+          <span className="text-sm font-semibold text-slate-100">{groomCount}장</span>
+        </div>
       </div>
     </div>
   );

@@ -28,65 +28,53 @@ export const ProgressIndicator = memo(function ProgressIndicator({
   const progressColor = getProgressColor(current, min, recommended);
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('rounded-xl border border-slate-700 bg-slate-800 p-4', className)}>
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        {label && (
-          <span className="text-sm font-medium text-slate-300">{label}</span>
-        )}
-        <span className="text-lg font-bold text-slate-100">{current}</span>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-slate-300">
+          {label || '업로드 진행'}
+        </span>
+        <span className="text-sm font-semibold text-slate-100">
+          <span data-testid="current-count">{current}</span>장
+        </span>
       </div>
 
       {/* 프로그레스 바 */}
-      <div className="relative">
-        <div
-          role="progressbar"
-          aria-valuenow={current}
-          aria-valuemin={0}
-          aria-valuemax={recommended}
-          aria-label={label ? `${label} 진행률` : '진행률'}
-          className="h-2 bg-slate-700 rounded-full overflow-hidden"
-        >
+      <div
+        className="relative mb-2"
+        role="progressbar"
+        aria-valuenow={current}
+        aria-valuemin={0}
+        aria-valuemax={recommended}
+        aria-label={label ? `${label} 진행률` : '업로드 진행률'}
+      >
+        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
           <div
             data-testid="progress-fill"
-            className={cn(
-              'h-full transition-all duration-300 ease-out rounded-full',
-              progressColor
-            )}
+            className={cn('h-full transition-all duration-300 rounded-full', progressColor)}
             style={{ width: `${percentage}%` }}
           />
         </div>
 
-        {/* 마커들 */}
-        <div className="relative h-4 mt-1">
-          {/* 최소값 마커 (점선) */}
-          <div
-            data-testid="min-marker"
-            className="absolute flex flex-col items-center"
-            style={{ left: `${minPercentage}%`, transform: 'translateX(-50%)' }}
-          >
-            <div className="w-px h-2 border-l border-dashed border-slate-500" />
-            <span className="text-xs text-slate-500">{min}</span>
-          </div>
-
-          {/* 권장값 마커 (실선) */}
-          <div
-            data-testid="recommended-marker"
-            className="absolute flex flex-col items-center"
-            style={{ left: '100%', transform: 'translateX(-50%)' }}
-          >
-            <div className="w-px h-2 border-l border-solid border-slate-400" />
-            <span className="text-xs text-slate-400">{recommended}</span>
-          </div>
-        </div>
+        {/* 최소값 마커 */}
+        <div
+          data-testid="min-marker"
+          className="absolute top-0 h-2 border-r border-slate-500"
+          style={{ left: `${minPercentage}%` }}
+        />
+        {/* 권장값 마커 (끝) */}
+        <div
+          data-testid="recommended-marker"
+          className="absolute top-0 h-2 border-r-2 border-slate-400"
+          style={{ left: '100%', transform: 'translateX(-2px)' }}
+        />
       </div>
 
-      {/* 상태 텍스트 */}
-      <p className="text-xs text-slate-400">
-        {current < min && `${min - current}장 더 필요해요`}
-        {current >= min && current < recommended && `${recommended - current}장 더 추가하면 완벽!`}
-        {current >= recommended && '충분해요!'}
-      </p>
+      {/* 마커 레이블 */}
+      <div className="flex justify-between text-xs text-slate-500">
+        <span>{min}</span>
+        <span>{recommended}</span>
+      </div>
     </div>
   );
 });
