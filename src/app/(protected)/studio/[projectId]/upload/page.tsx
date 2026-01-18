@@ -8,17 +8,16 @@ import { useUploadStore } from '@/features/upload/store/upload-store';
 import { useBulkUpload } from '@/features/upload/hooks/useBulkUpload';
 import { useUploadToStorage } from '@/features/upload/hooks/useUploadToStorage';
 import { preloadFaceModels } from '@/features/upload/lib/face-mesh';
+import { MIN_PHOTOS_PER_ROLE, RECOMMENDED_PHOTOS_PER_ROLE } from '@/features/upload/types';
 import { StickyCTA } from '@/features/studio/components/StickyCTA';
-import { RoleTabs } from '@/features/upload/components/RoleTabs';
-import { OXGuide } from '@/features/upload/components/OXGuide';
-import { BulkUploader } from '@/features/upload/components/BulkUploader';
-import { BucketBoard } from '@/features/upload/components/BucketBoard';
-import {
-  GapFillingPrompt,
-  MIN_PHOTOS_PER_ROLE,
-  MIN_TOTAL_PHOTOS,
-} from '@/features/upload/components/GapFillingPrompt';
 import { UploadProgress } from '@/features/upload/components/UploadProgress';
+import { PersonTab } from '@/features/upload/components/PersonTab';
+import { UploadZone } from '@/features/upload/components/UploadZone';
+import { PhotoGrid } from '@/features/upload/components/PhotoGrid';
+import { ProgressIndicator } from '@/features/upload/components/ProgressIndicator';
+import { OverallProgress } from '@/features/upload/components/OverallProgress';
+import { TipBanner } from '@/features/upload/components/TipBanner';
+import { GuidelineCard } from '@/features/upload/components/GuidelineCard';
 
 export default function UploadPage() {
   const params = useParams<{ projectId: string }>();
@@ -68,15 +67,17 @@ export default function UploadPage() {
   // Calculate total for both roles
   const groomSummary = getBucketSummary('groom');
   const brideSummary = getBucketSummary('bride');
-  const totalUploads = groomSummary.total + brideSummary.total;
+  const groomCount = groomSummary.total;
+  const brideCount = brideSummary.total;
 
   // Check if both roles have minimum uploads
-  const groomHasMinimum = groomSummary.total >= MIN_PHOTOS_PER_ROLE;
-  const brideHasMinimum = brideSummary.total >= MIN_PHOTOS_PER_ROLE;
-  const hasMinimumTotal = totalUploads >= MIN_TOTAL_PHOTOS;
+  const groomHasMinimum = groomCount >= MIN_PHOTOS_PER_ROLE;
+  const brideHasMinimum = brideCount >= MIN_PHOTOS_PER_ROLE;
+  const groomComplete = groomCount >= RECOMMENDED_PHOTOS_PER_ROLE;
+  const brideComplete = brideCount >= RECOMMENDED_PHOTOS_PER_ROLE;
 
-  // Can proceed only if both roles have minimum AND total meets threshold
-  const canProceed = groomHasMinimum && brideHasMinimum && hasMinimumTotal;
+  // Can proceed only if both roles have minimum
+  const canProceed = groomHasMinimum && brideHasMinimum;
 
   const handleNext = async () => {
     if (!canProceed || isSyncing) return;
@@ -117,57 +118,89 @@ export default function UploadPage() {
   };
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="text-center mb-8">
-          <h2 className="font-serif text-2xl font-bold text-primary-desktop">
-            사진 업로드
-          </h2>
-          <p className="mt-2 text-gray-600">
-            AI가 두 분의 얼굴을 학습할 사진을 업로드해주세요
-          </p>
+    <div className="min-h-screen bg-slate-900">
+      {/* Main Content */}
+      <div className="pb-24 px-4 md:px-6">
+        <div className="max-w-5xl mx-auto py-6 space-y-6">
+          {/* Page Header */}
+          <div className="text-center">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-100">
+              얼굴 사진 업로드
+            </h1>
+            <p className="mt-2 text-slate-400">
+              AI가 두 분의 얼굴을 학습할 사진을 업로드해주세요
+            </p>
+          </div>
+
+          {/* Tip Banner */}
+          <TipBanner
+            title="팁"
+            tip="각 역할당 20장의 다양한 얼굴 사진을 올리면 최상의 결과를 얻을 수 있어요!"
+          />
+
+          {/* Guideline Card */}
+          <GuidelineCard defaultExpanded={false} />
+
+          {/* Desktop Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {/* Left Column - Upload Area */}
+            <div className="md:col-span-3 space-y-4">
+              {/* Person Tab */}
+              <PersonTab
+                activeRole={activeRole}
+                onRoleChange={setActiveRole}
+                groomCount={groomCount}
+                brideCount={brideCount}
+                groomComplete={groomComplete}
+                brideComplete={brideComplete}
+              />
+
+              {/* Upload Zone */}
+              <UploadZone
+                onFilesSelect={(files) => currentUpload.addFiles(files)}
+                photoCount={activeRole === 'groom' ? groomCount : brideCount}
+                maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
+                role={activeRole}
+                isProcessing={currentUpload.isProcessing}
+                processingCount={currentUpload.processingCount}
+              />
+
+              {/* Photo Grid */}
+              <PhotoGrid
+                items={currentUpload.queue}
+                onRemove={currentUpload.removeFile}
+                columns={4}
+                emptyMessage="아직 업로드된 사진이 없어요"
+              />
+            </div>
+
+            {/* Right Column - Progress */}
+            <div className="md:col-span-2 space-y-4">
+              {/* Current Role Progress */}
+              <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+                <ProgressIndicator
+                  current={activeRole === 'groom' ? groomCount : brideCount}
+                  label={activeRole === 'groom' ? '🤵 신랑' : '👰 신부'}
+                />
+              </div>
+
+              {/* Overall Progress */}
+              <OverallProgress
+                groomCount={groomCount}
+                brideCount={brideCount}
+              />
+
+              {/* Completion Tip */}
+              {canProceed && (
+                <TipBanner
+                  variant="success"
+                  title="준비 완료!"
+                  tip="최소 요구사항을 충족했어요. 더 좋은 결과를 위해 사진을 추가하거나, 바로 다음 단계로 넘어가세요."
+                />
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* OX Guide */}
-        <OXGuide />
-
-        {/* Role Tabs */}
-        <RoleTabs
-          activeRole={activeRole}
-          onRoleChange={setActiveRole}
-          groomSummary={groomSummary}
-          brideSummary={brideSummary}
-        />
-
-        {/* Bulk Uploader */}
-        <BulkUploader
-          onFilesSelect={(files) => currentUpload.addFiles(files)}
-          queue={currentUpload.queue}
-          onRemove={currentUpload.removeFile}
-          isProcessing={currentUpload.isProcessing}
-          processingCount={currentUpload.processingCount}
-        />
-
-        {/* Bucket Summary */}
-        <BucketBoard summary={currentUpload.bucketSummary} />
-
-        {/* Gap Filling Prompt */}
-        <GapFillingPrompt
-          totalCount={totalUploads}
-          groomCount={groomSummary.total}
-          brideCount={brideSummary.total}
-          needsMoreFrontal={
-            groomUpload.needsMoreFrontal || brideUpload.needsMoreFrontal
-          }
-          needsMoreSide={groomUpload.needsMoreSide || brideUpload.needsMoreSide}
-          gapFillingMessage={
-            currentUpload.gapFillingMessage ||
-            (activeRole === 'groom'
-              ? brideUpload.gapFillingMessage
-              : groomUpload.gapFillingMessage)
-          }
-        />
       </div>
 
       {/* Upload Progress Overlay */}
@@ -175,13 +208,14 @@ export default function UploadPage() {
         <UploadProgress
           progress={syncProgress}
           total={syncTotal}
+          variant="dark"
         />
       )}
 
       {/* Error Message */}
       {uploadError && (
         <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm">
             {uploadError}
           </div>
         </div>
@@ -194,7 +228,8 @@ export default function UploadPage() {
         backLabel="대시보드"
         isNextDisabled={!canProceed || isSyncing}
         isLoading={updateProject.isPending || isSyncing}
+        variant="dark"
       />
-    </>
+    </div>
   );
 }

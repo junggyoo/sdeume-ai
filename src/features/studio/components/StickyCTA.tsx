@@ -13,6 +13,7 @@ interface StickyCTAProps {
   isBackDisabled?: boolean;
   isLoading?: boolean;
   showBack?: boolean;
+  variant?: 'light' | 'dark';
   className?: string;
 }
 
@@ -25,15 +26,20 @@ export function StickyCTA({
   isBackDisabled = false,
   isLoading = false,
   showBack = true,
+  variant = 'light',
   className,
 }: StickyCTAProps) {
+  const isDark = variant === 'dark';
+
   return (
     <div
       className={cn(
         'fixed bottom-0 left-0 right-0 z-50',
-        'bg-white border-t border-gray-200',
         'px-4 py-3 md:px-6 md:py-4',
         'shadow-up',
+        isDark
+          ? 'bg-slate-900/95 border-t border-slate-700 backdrop-blur-sm'
+          : 'bg-white border-t border-gray-200',
         className
       )}
     >
@@ -45,7 +51,11 @@ export function StickyCTA({
             size="lg"
             onClick={onBack}
             disabled={isBackDisabled || isLoading}
-            className="flex-1 md:flex-none md:min-w-[120px]"
+            className={cn(
+              'flex-1 md:flex-none md:min-w-[120px]',
+              isDark &&
+                'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-slate-100'
+            )}
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             {backLabel}
@@ -62,7 +72,9 @@ export function StickyCTA({
           disabled={isNextDisabled || isLoading}
           className={cn(
             'flex-1 md:flex-none md:min-w-[200px]',
-            'bg-primary-mobile hover:bg-primary-hover'
+            isDark
+              ? 'bg-violet-600 hover:bg-violet-500 text-white'
+              : 'bg-primary-mobile hover:bg-primary-hover'
           )}
         >
           {isLoading ? (
