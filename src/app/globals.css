@@ -36,6 +36,12 @@
   --color-purple-600: #9333EA;
   --color-blue-600: #2563EB;
 
+  /* Sdeume AI Primary Colors (for Tailwind) */
+  --color-primary-desktop: #1A1A1A;
+  --color-primary-hover: #2D2D2D;
+  --color-primary-pressed: #0A0A0A;
+  --color-ghost-hover: rgba(26, 26, 26, 0.05);
+
   /* Typography Scale - Editorial */
   --text-display-hero: clamp(3rem, 12vw, 9rem);
   --text-display-lg: clamp(2.5rem, 8vw, 6rem);

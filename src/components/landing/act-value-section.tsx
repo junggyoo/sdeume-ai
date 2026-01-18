@@ -16,17 +16,17 @@ export function ActValueSection() {
             transition={{ duration: 1 }}
           >
             <h2 className="mb-8 font-serif text-4xl leading-snug text-gray-900 md:text-6xl">
-              <span className="block">우리는 촬영이 아닌</span>
+              <span className="block">복잡한 준비 없이,</span>
               <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                자유를 발명했다.
+                로망을 현실로.
               </span>
             </h2>
             <p className="font-light text-xl leading-relaxed text-gray-600">
-              무거운 장비, 어색한 미소, 타인의 시선은 잊으세요.
+              예약도, 다이어트도, 추가금도 필요 없습니다.
               <br />
-              오직 당신과 빛, 그리고 상상력만 존재합니다.
+              제주도의 바람도, 호텔의 조명도
               <br />
-              셔터를 누르는 순간, 현실은 시(詩)가 됩니다.
+              집에서 클릭 한 번으로 경험하세요.
             </p>
           </motion.div>
 
@@ -72,16 +72,16 @@ export function ActValueSection() {
             transition={{ duration: 1 }}
             className="order-1 text-right md:order-2 md:text-left"
           >
-            <h2 className="mb-8 font-serif text-4xl leading-snug text-gray-900 md:text-6xl">
-              <span className="block">완벽한 빛을</span>
-              <span className="block font-light italic">소유하는 방법</span>
+            <h2 className="mb-8 font-serif text-3xl leading-snug text-gray-900 md:text-6xl">
+              <span className="block">AI 작가가 담아내는</span>
+              <span className="block font-light italic">가장 아름다운 컷</span>
             </h2>
             <p className="font-light text-xl leading-relaxed text-gray-600">
-              스튜디오 조명 없이도, 새벽녘의 푸른 빛이나
+              셔터를 누르는 순간, 전문 작가의 보정 노하우가 적용됩니다.
               <br />
-              노을이 내려앉은 금빛 순간을 연출하세요.
+              과한 보정 없이, 당신 본연의 매력을
               <br />
-              Sdeume AI는 당신의 손끝에서 빛을 조각합니다.
+              가장 극적으로 연출해보세요.
             </p>
           </motion.div>
         </div>

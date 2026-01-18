@@ -6,23 +6,23 @@ import Link from "next/link";
 
 const THEMES = [
   {
-    title: "White Poem",
-    subtitle: "순백의 서사시",
+    title: "제주 가든 스냅",
+    subtitle: "자연 속 로맨틱",
     img: "https://picsum.photos/seed/white/600/900",
   },
   {
-    title: "Garden Whisper",
-    subtitle: "비밀의 정원",
+    title: "클래식 호텔 웨딩",
+    subtitle: "우아한 실내 촬영",
     img: "https://picsum.photos/seed/garden/600/900",
   },
   {
-    title: "Midnight Waltz",
-    subtitle: "도시의 왈츠",
+    title: "미니멀 화이트",
+    subtitle: "깔끔한 스튜디오",
     img: "https://picsum.photos/seed/night/600/900",
   },
   {
-    title: "Retro Cinema",
-    subtitle: "기억의 필름",
+    title: "빈티지 필름",
+    subtitle: "감성 레트로",
     img: "https://picsum.photos/seed/retro/600/900",
   },
 ];
@@ -33,9 +33,9 @@ export function ActAtelierSection() {
       {/* Section Header */}
       <div className="mb-16 px-6 md:px-20">
         <h2 className="font-serif text-5xl text-gray-900 md:text-7xl">
-          Atelier
+          Theme Collection
         </h2>
-        <p className="mt-4 text-lg text-gray-500">당신의 감성을 담을 그릇들</p>
+        <p className="mt-4 text-lg text-gray-500">다양한 스튜디오 테마</p>
       </div>
 
       {/* Horizontal Scroll Gallery */}

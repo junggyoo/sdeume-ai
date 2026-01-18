@@ -1,0 +1,97 @@
+'use client';
+
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
+import type { Project } from '@/features/project/types';
+import type { DashboardState } from '../types';
+import { DASHBOARD_COPY } from '../constants';
+import { ProcessingIndicator } from './ProcessingIndicator';
+
+export interface HeroSectionProps {
+  state: DashboardState;
+  processingProject: Project | null;
+  onCreateProject?: () => void;
+  isCreatingProject?: boolean;
+  className?: string;
+}
+
+export function HeroSection({
+  state,
+  processingProject,
+  onCreateProject,
+  isCreatingProject = false,
+  className,
+}: HeroSectionProps) {
+  const content = getContentByState(state);
+
+  return (
+    <section
+      data-testid="hero-section"
+      role="region"
+      aria-label="대시보드 히어로 섹션"
+      className={cn(
+        'rounded-xl bg-gradient-to-r from-primary-desktop to-primary-hover p-6 md:p-8 text-white',
+        className
+      )}
+    >
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold">{content.title}</h2>
+          <p className="mt-2 text-white/80">{content.subtitle}</p>
+        </div>
+
+        {state === 'processing' && processingProject && (
+          <ProcessingIndicator project={processingProject} />
+        )}
+
+        {state !== 'processing' && content.ctaLabel && (
+          <div className="mt-2">
+            <Button
+              onClick={onCreateProject}
+              disabled={isCreatingProject}
+              className="bg-white text-primary-desktop hover:bg-gray-100"
+            >
+              {isCreatingProject ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              {content.ctaLabel}
+            </Button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+interface HeroContent {
+  title: string;
+  subtitle: string;
+  ctaLabel?: string;
+}
+
+function getContentByState(state: DashboardState): HeroContent {
+  switch (state) {
+    case 'new_user':
+      return {
+        title: DASHBOARD_COPY.newUser.title,
+        subtitle: DASHBOARD_COPY.newUser.subtitle,
+        ctaLabel: DASHBOARD_COPY.newUser.ctaButton,
+      };
+    case 'processing':
+      return {
+        title: DASHBOARD_COPY.processing.title,
+        subtitle: DASHBOARD_COPY.processing.subtitle,
+      };
+    case 'ready':
+      return {
+        title: DASHBOARD_COPY.ready.title,
+        subtitle: DASHBOARD_COPY.ready.subtitle,
+        ctaLabel: DASHBOARD_COPY.ready.ctaButton,
+      };
+  }
+}

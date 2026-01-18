@@ -27,9 +27,11 @@ export function ActRealitySection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-12 font-serif text-4xl text-gray-900 drop-shadow-sm md:text-7xl"
+          className="mb-12 font-serif text-3xl text-gray-900 drop-shadow-sm md:text-7xl"
         >
-          믿기지 않나요?
+          지금 바로 무료로
+          <br className="md:hidden" />
+          확인해보세요.
         </motion.h2>
 
         <motion.div
@@ -40,16 +42,19 @@ export function ActRealitySection() {
         >
           <Link
             href="/login"
-            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-black px-16 py-6 text-white shadow-xl transition-all duration-300 hover:scale-105 hover:bg-gray-800"
+            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-black px-8 py-5 text-white shadow-xl transition-all duration-300 hover:scale-105 hover:bg-gray-800 md:px-16 md:py-6"
           >
-            <span className="relative mr-4 font-serif text-xl tracking-wider md:text-2xl">
-              스튜디오 입장하기
+            <span className="relative mr-3 whitespace-nowrap font-serif text-base tracking-wider md:mr-4 md:text-2xl">
+              무료로 화보 만들기
             </span>
             <ArrowRight className="text-white transition-transform group-hover:translate-x-2" />
 
             {/* Shine effect */}
             <div className="absolute inset-full top-0 z-5 block h-full w-1/2 -skew-x-12 transform bg-gradient-to-r from-transparent to-white opacity-20 transition-transform group-hover:animate-[shine_1s_ease-in-out]" />
           </Link>
+          <p className="mt-6 text-sm text-gray-500">
+            *가입 시 4장 무료 촬영권 즉시 지급
+          </p>
         </motion.div>
       </div>
     </section>

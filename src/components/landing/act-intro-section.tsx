@@ -46,16 +46,21 @@ export function ActIntroSection() {
       >
         {/* Subtitle */}
         <span className="mb-8 block text-sm uppercase tracking-[0.5em] text-gray-500 md:text-base">
-          The Atelier of Dreams
+          AI 웨딩 스튜디오
         </span>
 
         {/* Main Title */}
-        <h1 className="font-serif text-5xl leading-tight text-gray-900 drop-shadow-sm md:text-8xl lg:text-9xl">
-          <span className="block">꿈꾸던 순간을,</span>
+        <h1 className="font-serif text-4xl leading-tight text-gray-900 drop-shadow-sm md:text-8xl lg:text-9xl">
+          <span className="block whitespace-nowrap">꿈꾸던 웨딩 화보,</span>
           <span className="block font-light italic text-gray-600">
-            가장 꿈처럼.
+            스튜디오 없이 완성하다
           </span>
         </h1>
+
+        {/* Sub-headline */}
+        <p className="mt-8 text-lg text-gray-500 md:text-xl">
+          시간과 장소 제약 없이, AI로 만드는 나만의 하이엔드 웨딩 앨범.
+        </p>
       </motion.div>
 
       {/* CTA Button */}
@@ -70,7 +75,7 @@ export function ActIntroSection() {
           className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-black px-12 py-5 text-white shadow-xl transition-all duration-300 hover:scale-105 hover:bg-gray-800"
         >
           <span className="relative mr-3 font-serif text-lg tracking-wider md:text-xl">
-            스튜디오 입장하기
+            무료로 촬영하기
           </span>
           <svg
             className="h-5 w-5 transition-transform group-hover:translate-x-1"
