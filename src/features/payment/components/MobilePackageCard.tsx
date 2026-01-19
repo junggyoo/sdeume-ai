@@ -1,7 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Check, ChevronDown, ChevronUp, Image, RotateCcw, Palette, Crown } from 'lucide-react';
+import Check from 'lucide-react/dist/esm/icons/check';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Package } from '../types';
 import { MultiThemeNotice } from './MultiThemeNotice';
@@ -14,12 +16,15 @@ interface MobilePackageCardProps {
   onToggleExpand: (packageId: string) => void;
 }
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Image,
-  RotateCcw,
-  Palette,
-  Crown,
-};
+function getDiscountBadgeStyle(discount: number) {
+  if (discount >= 33) {
+    return 'bg-rose-500/20 text-rose-400';
+  }
+  if (discount >= 25) {
+    return 'bg-amber-500/20 text-amber-400';
+  }
+  return 'bg-emerald-500/20 text-emerald-400';
+}
 
 export function MobilePackageCard({
   pkg,
@@ -46,17 +51,24 @@ export function MobilePackageCard({
     <div
       className={cn(
         'rounded-2xl transition-all duration-200 overflow-hidden',
-        'bg-slate-800/50 border',
+        'border',
         isSelected
-          ? 'ring-4 ring-amber-400 border-amber-400/50'
-          : 'border-slate-700'
+          ? 'bg-gradient-to-br from-amber-900/40 to-amber-950/60 border-2 border-amber-400 shadow-lg shadow-amber-500/20'
+          : 'bg-slate-800/50 border-slate-700'
       )}
     >
       {/* Header - 항상 표시 */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
-        className="w-full p-4 flex items-center justify-between text-left"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        className="w-full p-4 flex items-center justify-between text-left cursor-pointer"
       >
         <div className="flex items-center gap-3">
           {/* 라디오 버튼 스타일 */}
@@ -75,7 +87,7 @@ export function MobilePackageCard({
           <div className="flex items-center gap-2">
             <span className="font-bold text-white">{pkg.name}</span>
             {pkg.recommended && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-emerald-500">
                 BEST
               </span>
             )}
@@ -90,7 +102,12 @@ export function MobilePackageCard({
                 {pkg.price.toLocaleString()}원
               </span>
             </div>
-            <span className="text-xs font-medium text-rose-400">
+            <span
+              className={cn(
+                'text-xs font-medium px-1.5 py-0.5 rounded',
+                getDiscountBadgeStyle(pkg.discount)
+              )}
+            >
               {pkg.discount}% OFF
             </span>
           </div>
@@ -108,7 +125,7 @@ export function MobilePackageCard({
             )}
           </button>
         </div>
-      </button>
+      </div>
 
       {/* Expanded Content - 아코디언 */}
       <AnimatePresence>
@@ -121,27 +138,22 @@ export function MobilePackageCard({
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 pt-2 border-t border-slate-700/50">
-              {/* 기능 목록 */}
+              {/* 기능 목록 - emoji 렌더링 */}
               <ul className="space-y-2">
-                {pkg.features.map((feature) => {
-                  const IconComponent = iconMap[feature.icon];
-                  return (
-                    <li key={feature.text} className="flex items-center gap-3">
-                      {IconComponent && (
-                        <IconComponent className="w-4 h-4 text-slate-400" />
-                      )}
-                      <span className="text-sm text-slate-300">
-                        {feature.text}
-                      </span>
-                    </li>
-                  );
-                })}
+                {pkg.features.map((feature) => (
+                  <li key={feature.text} className="flex items-center gap-3">
+                    <span className="text-base">{feature.icon}</span>
+                    <span className="text-sm text-slate-300">
+                      {feature.text}
+                    </span>
+                  </li>
+                ))}
               </ul>
 
               {/* 멀티테마 안내 */}
               {showMultiThemeNotice && (
                 <div className="mt-4">
-                  <MultiThemeNotice themeCount={pkg.themeCount} />
+                  <MultiThemeNotice themeCount={pkg.themeCount} isSelected={isSelected} />
                 </div>
               )}
             </div>

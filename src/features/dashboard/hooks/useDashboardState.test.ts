@@ -3,23 +3,28 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { determineDashboardState, useDashboardState } from './useDashboardState';
-import type { Project } from '@/features/project/types';
+import type { Project, LatestGeneration } from '@/features/project/types';
 
 // Mock useProjects hook
 vi.mock('@/features/project/hooks/useProject', () => ({
   useProjects: vi.fn(),
 }));
 
-// Mock apiClient to avoid env variable issues
-vi.mock('@/lib/remote/api-client', () => ({
-  apiClient: {
-    get: vi.fn().mockResolvedValue({ data: { ok: false } }),
-  },
-}));
-
 import { useProjects } from '@/features/project/hooks/useProject';
 
 const mockUseProjects = vi.mocked(useProjects);
+
+// Helper to create mock latest generation
+const createMockLatestGeneration = (
+  overrides: Partial<LatestGeneration> = {}
+): LatestGeneration => ({
+  id: 'gen-1',
+  status: 'completed',
+  images: [],
+  completedAt: '2024-01-01T00:00:00Z',
+  createdAt: '2024-01-01T00:00:00Z',
+  ...overrides,
+});
 
 // Helper to create mock projects
 const createMockProject = (overrides: Partial<Project> = {}): Project => ({
@@ -34,6 +39,7 @@ const createMockProject = (overrides: Partial<Project> = {}): Project => ({
   brideUploadCount: 0,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
+  latestGeneration: null,
   ...overrides,
 });
 
@@ -251,36 +257,66 @@ describe('determineDashboardState', () => {
     });
   });
 
-  describe('generation status override', () => {
-    it('should return ready when project.status is training but generation is completed', () => {
+  describe('generation status override via latestGeneration', () => {
+    it('should return ready when project.status is training but latestGeneration is completed', () => {
       const projects: Project[] = [
         createMockProject({
           id: 'project-with-completed-generation',
           status: 'training',
           groomUploadCount: 5,
           brideUploadCount: 5,
+          latestGeneration: createMockLatestGeneration({ status: 'completed' }),
         }),
       ];
-      // Project has training status, but we pass its ID as having completed generation
-      const completedGenerationProjectIds = new Set(['project-with-completed-generation']);
-      const result = determineDashboardState(projects, completedGenerationProjectIds);
+      const result = determineDashboardState(projects);
       expect(result.state).toBe('ready');
       expect(result.processingProject).toBeNull();
       expect(result.hasFaceModel).toBe(true);
     });
 
-    it('should return processing when project.status is training and no completed generation', () => {
+    it('should return ready when project.status is training but latestGeneration is failed', () => {
+      const projects: Project[] = [
+        createMockProject({
+          id: 'project-with-failed-generation',
+          status: 'training',
+          groomUploadCount: 5,
+          brideUploadCount: 5,
+          latestGeneration: createMockLatestGeneration({ status: 'failed' }),
+        }),
+      ];
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('ready');
+      expect(result.processingProject).toBeNull();
+      expect(result.failedProjects.length).toBe(1);
+      expect(result.failedProjects[0].id).toBe('project-with-failed-generation');
+    });
+
+    it('should return processing when project.status is training and no latestGeneration', () => {
       const projects: Project[] = [
         createMockProject({
           id: 'project-still-processing',
           status: 'training',
           groomUploadCount: 5,
           brideUploadCount: 5,
+          latestGeneration: null,
         }),
       ];
-      // No completed generations
-      const completedGenerationProjectIds = new Set<string>();
-      const result = determineDashboardState(projects, completedGenerationProjectIds);
+      const result = determineDashboardState(projects);
+      expect(result.state).toBe('processing');
+      expect(result.processingProject?.id).toBe('project-still-processing');
+    });
+
+    it('should return processing when project.status is training and latestGeneration is still training', () => {
+      const projects: Project[] = [
+        createMockProject({
+          id: 'project-still-processing',
+          status: 'training',
+          groomUploadCount: 5,
+          brideUploadCount: 5,
+          latestGeneration: createMockLatestGeneration({ status: 'training' }),
+        }),
+      ];
+      const result = determineDashboardState(projects);
       expect(result.state).toBe('processing');
       expect(result.processingProject?.id).toBe('project-still-processing');
     });
@@ -291,32 +327,19 @@ describe('determineDashboardState', () => {
         status: 'training',
         groomUploadCount: 5,
         brideUploadCount: 5,
+        latestGeneration: createMockLatestGeneration({ status: 'completed' }),
       });
       const projectStillProcessing = createMockProject({
         id: 'still-processing-project',
         status: 'generating',
         groomUploadCount: 5,
         brideUploadCount: 5,
+        latestGeneration: createMockLatestGeneration({ status: 'generating' }),
       });
       const projects: Project[] = [projectWithCompleted, projectStillProcessing];
-      // Only first project has completed generation
-      const completedGenerationProjectIds = new Set(['completed-gen-project']);
-      const result = determineDashboardState(projects, completedGenerationProjectIds);
-      expect(result.state).toBe('processing');
-      expect(result.processingProject?.id).toBe('still-processing-project');
-    });
-
-    it('should handle undefined completedGenerationProjectIds (backwards compatible)', () => {
-      const projects: Project[] = [
-        createMockProject({
-          status: 'training',
-          groomUploadCount: 5,
-          brideUploadCount: 5,
-        }),
-      ];
-      // Call without the second parameter for backwards compatibility
       const result = determineDashboardState(projects);
       expect(result.state).toBe('processing');
+      expect(result.processingProject?.id).toBe('still-processing-project');
     });
   });
 

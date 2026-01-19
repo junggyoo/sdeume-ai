@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Check, CreditCard } from 'lucide-react';
+import Check from 'lucide-react/dist/esm/icons/check';
+import CreditCard from 'lucide-react/dist/esm/icons/credit-card';
 import type { PaymentMethod } from '../types';
 
 interface PaymentMethodButtonProps {
@@ -44,7 +45,7 @@ export function PaymentMethodButton({
         'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
         'bg-slate-800/50 border',
         isSelected
-          ? 'border-amber-400 ring-2 ring-amber-400/30'
+          ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-emerald-500/10 shadow-lg'
           : 'border-slate-700 hover:border-slate-600'
       )}
     >
@@ -63,7 +64,7 @@ export function PaymentMethodButton({
 
       {/* 선택 체크 */}
       {isSelected && (
-        <Check className="w-4 h-4 text-amber-400 ml-auto" />
+        <Check className="w-4 h-4 text-emerald-400 ml-auto" />
       )}
     </button>
   );

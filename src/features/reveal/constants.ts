@@ -63,7 +63,17 @@ export const MASONRY_CONFIG = {
   columns: {
     mobile: 2,
     tablet: 3,
-    desktop: 3,
+    desktop: 4,
   },
   gap: 16, // Tailwind gap-4
 } as const;
+
+/**
+ * 포토 카드 aspect ratio 설정
+ */
+export const ASPECT_RATIOS = ['3/4', '4/5', '9/14'] as const;
+
+/**
+ * 하단 액션바 높이 (safe area 제외)
+ */
+export const BOTTOM_ACTION_BAR_HEIGHT = 80;

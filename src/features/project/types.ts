@@ -1,3 +1,5 @@
+import type { GenerationStatus, GenerationImage } from '@/features/generation/types';
+
 export type ProjectStatus =
   | 'draft'
   | 'uploading'
@@ -8,6 +10,18 @@ export type ProjectStatus =
   | 'failed';
 
 export type ProjectStep = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Summary of the latest generation for a project
+ * Used for dashboard state determination without separate API calls
+ */
+export interface LatestGeneration {
+  id: string;
+  status: GenerationStatus;
+  images: GenerationImage[];
+  completedAt: string | null;
+  createdAt: string;
+}
 
 export interface Project {
   id: string;
@@ -21,6 +35,8 @@ export interface Project {
   brideUploadCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Latest generation for this project (joined from generations table) */
+  latestGeneration?: LatestGeneration | null;
 }
 
 export interface CreateProjectInput {

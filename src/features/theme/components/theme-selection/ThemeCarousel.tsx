@@ -55,7 +55,7 @@ export function ThemeCarousel({
         ref={scrollContainerRef}
         data-testid="carousel-scroll"
         className={cn(
-          'flex gap-4 px-4 pb-4',
+          'flex gap-4 px-4 pt-5 pb-4',
           'overflow-x-auto snap-x snap-mandatory',
           'scrollbar-hide'
         )}

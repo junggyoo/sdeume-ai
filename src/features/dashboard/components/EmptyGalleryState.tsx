@@ -23,13 +23,13 @@ export function EmptyGalleryState({ message, className }: EmptyGalleryStateProps
     >
       <div
         data-testid="empty-illustration"
-        className="w-16 h-16 rounded-full bg-muted flex items-center justify-center"
+        className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center"
       >
-        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+        <ImageIcon className="w-8 h-8 text-slate-400" />
       </div>
       <div className="space-y-2">
-        <p className="text-gray-900 font-medium">{displayMessage}</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-white font-medium">{displayMessage}</p>
+        <p className="text-sm text-slate-400">
           {DASHBOARD_COPY.gallery.emptyStateSubtitle}
         </p>
       </div>

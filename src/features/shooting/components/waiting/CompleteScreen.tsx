@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, ChevronRight, Share2, Home, X } from 'lucide-react';
+import { CheckCircle, ChevronRight, Share2, Home } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { PHASES, PHASE_COLORS } from '../../constants';
@@ -16,7 +16,6 @@ interface CompleteScreenProps {
   onViewResults: () => void;
   onShare?: () => void;
   onHomeClick?: () => void;
-  onCloseClick?: () => void;
   className?: string;
 }
 
@@ -26,7 +25,6 @@ export function CompleteScreen({
   onViewResults,
   onShare,
   onHomeClick,
-  onCloseClick,
   className,
 }: CompleteScreenProps) {
   const [showConfetti, setShowConfetti] = useState(false);
@@ -65,13 +63,8 @@ export function CompleteScreen({
 
           <PhaseIndicator currentPhase="complete" />
 
-          <button
-            onClick={onCloseClick}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Spacer for layout balance */}
+          <div className="w-12 h-12" />
         </header>
 
         {/* Theme Badge - Mobile Only */}

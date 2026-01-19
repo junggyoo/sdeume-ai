@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { ImageLightbox } from '../components/ImageLightbox';
 import type { GenerationImage } from '@/features/generation/types';
 
-// Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({
@@ -20,7 +19,6 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }));
 
-// Mock next/image
 vi.mock('next/image', () => ({
   default: ({
     src,
@@ -34,17 +32,20 @@ vi.mock('next/image', () => ({
   }) => <img src={src} alt={alt} data-testid="lightbox-image" {...props} />,
 }));
 
-const mockImage: GenerationImage = {
-  url: 'https://example.com/test-image.jpg',
-  is_blur: false,
-};
+const mockImages: GenerationImage[] = [
+  { url: 'https://example.com/test-image-1.jpg', is_blur: false },
+  { url: 'https://example.com/test-image-2.jpg', is_blur: false },
+  { url: 'https://example.com/test-image-3.jpg', is_blur: false },
+];
 
 describe('ImageLightbox', () => {
   const defaultProps = {
-    image: mockImage,
+    images: mockImages,
+    currentIndex: 0,
     isOpen: true,
     onClose: vi.fn(),
     onDownload: vi.fn(),
+    onNavigate: vi.fn(),
   };
 
   beforeEach(() => {
@@ -62,7 +63,7 @@ describe('ImageLightbox', () => {
       expect(screen.getByTestId('lightbox-image')).toBeInTheDocument();
       expect(screen.getByTestId('lightbox-image')).toHaveAttribute(
         'src',
-        mockImage.url
+        mockImages[0].url
       );
     });
 
@@ -72,8 +73,8 @@ describe('ImageLightbox', () => {
       expect(screen.queryByTestId('lightbox-image')).not.toBeInTheDocument();
     });
 
-    it('should not render when image is null', () => {
-      render(<ImageLightbox {...defaultProps} image={null} />);
+    it('should not render when currentIndex is null', () => {
+      render(<ImageLightbox {...defaultProps} currentIndex={null} />);
 
       expect(screen.queryByTestId('lightbox-image')).not.toBeInTheDocument();
     });
@@ -82,6 +83,12 @@ describe('ImageLightbox', () => {
       render(<ImageLightbox {...defaultProps} />);
 
       expect(screen.getByTestId('lightbox-overlay')).toBeInTheDocument();
+    });
+
+    it('should show current index / total', () => {
+      render(<ImageLightbox {...defaultProps} currentIndex={1} />);
+
+      expect(screen.getByText('2 / 3')).toBeInTheDocument();
     });
   });
 
@@ -112,34 +119,54 @@ describe('ImageLightbox', () => {
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
+  });
 
-    it('should not call onClose when clicking on the image', async () => {
-      const onClose = vi.fn();
-      render(<ImageLightbox {...defaultProps} onClose={onClose} />);
+  describe('Navigation', () => {
+    it('should call onNavigate with prev index on left arrow key', () => {
+      const onNavigate = vi.fn();
+      render(<ImageLightbox {...defaultProps} currentIndex={1} onNavigate={onNavigate} />);
 
-      await userEvent.click(screen.getByTestId('lightbox-image'));
+      fireEvent.keyDown(document, { key: 'ArrowLeft' });
 
-      expect(onClose).not.toHaveBeenCalled();
+      expect(onNavigate).toHaveBeenCalledWith(0);
     });
 
-    it('should not call onClose when clicking on the image container', async () => {
-      const onClose = vi.fn();
-      render(<ImageLightbox {...defaultProps} onClose={onClose} />);
+    it('should call onNavigate with next index on right arrow key', () => {
+      const onNavigate = vi.fn();
+      render(<ImageLightbox {...defaultProps} currentIndex={1} onNavigate={onNavigate} />);
 
-      await userEvent.click(screen.getByTestId('lightbox-content'));
+      fireEvent.keyDown(document, { key: 'ArrowRight' });
 
-      expect(onClose).not.toHaveBeenCalled();
+      expect(onNavigate).toHaveBeenCalledWith(2);
+    });
+
+    it('should not navigate before first image', () => {
+      const onNavigate = vi.fn();
+      render(<ImageLightbox {...defaultProps} currentIndex={0} onNavigate={onNavigate} />);
+
+      fireEvent.keyDown(document, { key: 'ArrowLeft' });
+
+      expect(onNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should not navigate after last image', () => {
+      const onNavigate = vi.fn();
+      render(<ImageLightbox {...defaultProps} currentIndex={2} onNavigate={onNavigate} />);
+
+      fireEvent.keyDown(document, { key: 'ArrowRight' });
+
+      expect(onNavigate).not.toHaveBeenCalled();
     });
   });
 
   describe('Download', () => {
-    it('should call onDownload when download button is clicked', async () => {
+    it('should call onDownload with index when download button is clicked', async () => {
       const onDownload = vi.fn();
-      render(<ImageLightbox {...defaultProps} onDownload={onDownload} />);
+      render(<ImageLightbox {...defaultProps} currentIndex={1} onDownload={onDownload} />);
 
       await userEvent.click(screen.getByTestId('lightbox-download-button'));
 
-      expect(onDownload).toHaveBeenCalledTimes(1);
+      expect(onDownload).toHaveBeenCalledWith(1);
     });
 
     it('should render download button with correct label', () => {
@@ -168,7 +195,6 @@ describe('ImageLightbox', () => {
     it('should trap focus within lightbox', () => {
       render(<ImageLightbox {...defaultProps} />);
 
-      // Lightbox should have a role attribute for accessibility
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });

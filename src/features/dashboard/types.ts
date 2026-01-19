@@ -30,6 +30,8 @@ export interface DashboardStateResult {
   state: DashboardState;
   processingProject: Project | null;
   completedProjects: Project[];
+  /** Projects where generation has failed (for potential toast notifications) */
+  failedProjects: Project[];
   /** All projects for the user (used to fetch all generations) */
   allProjects: Project[];
   /** Whether user has uploaded face photos (groomUploadCount > 0 || brideUploadCount > 0) */

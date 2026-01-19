@@ -6,7 +6,7 @@ import type { Generation } from '../types';
 
 interface GenerationResponse {
   ok: true;
-  data: Generation;
+  data: Generation | null;
 }
 
 interface UseProjectGenerationResult {
@@ -24,24 +24,18 @@ const fetchGenerationByProject = async (
 ): Promise<Generation | null> => {
   const client = getHonoClient();
 
-  try {
-    const response = await client.api.generate.project[':projectId'].$get({
-      param: { projectId },
-    });
+  const response = await client.api.generate.project[':projectId'].$get({
+    param: { projectId },
+  });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error('Failed to fetch generation');
-    }
-
-    const result = (await response.json()) as GenerationResponse;
-    return result.data;
-  } catch (error) {
-    // If it's a 404, return null (generation doesn't exist)
-    return null;
+  if (!response.ok) {
+    throw new Error('Failed to fetch generation');
   }
+
+  // API returns { ok: true, data: Generation | null }
+  // data is null when generation doesn't exist yet (not an error)
+  const result = (await response.json()) as GenerationResponse;
+  return result.data;
 };
 
 const createGenerationForProject = async (

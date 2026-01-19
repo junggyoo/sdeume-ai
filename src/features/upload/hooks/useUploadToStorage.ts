@@ -17,9 +17,13 @@ interface UseUploadToStorageOptions {
   onError?: (error: Error) => void;
 }
 
+interface SyncOptions {
+  projectIdOverride?: string;
+}
+
 interface UseUploadToStorageReturn {
   uploadImage: (item: QueuedFile) => Promise<Upload | null>;
-  syncUploadsToServer: (role: UploadRole) => Promise<Upload[]>;
+  syncUploadsToServer: (role: UploadRole, options?: SyncOptions) => Promise<Upload[]>;
   isSyncing: boolean;
   syncProgress: number;
   syncTotal: number;
@@ -118,7 +122,7 @@ export function useUploadToStorage({
   );
 
   const syncUploadsToServer = useCallback(
-    async (role: UploadRole): Promise<Upload[]> => {
+    async (role: UploadRole, options?: SyncOptions): Promise<Upload[]> => {
       const queue = getQueue(role);
       const completedItems = queue.filter(
         (item) =>
@@ -136,15 +140,32 @@ export function useUploadToStorage({
       setSyncProgress(0);
 
       const uploads: Upload[] = [];
+      const effectiveProjectId = options?.projectIdOverride ?? projectId;
 
       for (let i = 0; i < completedItems.length; i++) {
         const item = completedItems[i];
         try {
-          const upload = await uploadImage(item);
-          if (upload) {
+          // If override is provided, use uploadSingleImage directly with the new projectId
+          if (options?.projectIdOverride) {
+            updateQueueItem(item.id, item.role, { status: 'uploading' });
+            const upload = await uploadSingleImage(effectiveProjectId, item);
+            updateQueueItem(item.id, item.role, { status: 'synced' });
             uploads.push(upload);
+            onUploadComplete?.(upload);
+          } else {
+            const upload = await uploadImage(item);
+            if (upload) {
+              uploads.push(upload);
+            }
           }
-        } catch {
+        } catch (error) {
+          if (options?.projectIdOverride) {
+            updateQueueItem(item.id, item.role, {
+              status: 'error',
+              error: error instanceof Error ? error.message : 'Upload failed',
+            });
+            onError?.(error instanceof Error ? error : new Error('Upload failed'));
+          }
           // Continue with next item
         }
         setSyncProgress(i + 1);
@@ -156,7 +177,7 @@ export function useUploadToStorage({
 
       return uploads;
     },
-    [getQueue, uploadImage]
+    [getQueue, projectId, uploadImage, updateQueueItem, onUploadComplete, onError]
   );
 
   return {

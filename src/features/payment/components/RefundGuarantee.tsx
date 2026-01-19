@@ -1,6 +1,5 @@
 'use client';
 
-import { ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RefundGuaranteeProps {
@@ -15,28 +14,23 @@ export function RefundGuarantee({ variant = 'light' }: RefundGuaranteeProps) {
       className={cn(
         'flex items-start gap-3 p-4 rounded-xl',
         isDark
-          ? 'bg-emerald-900/50 border border-emerald-700/50'
-          : 'bg-emerald-50 border border-emerald-200'
+          ? 'bg-gradient-to-r from-violet-900/30 to-purple-900/30 border border-violet-700/30'
+          : 'bg-violet-50 border border-violet-200'
       )}
     >
       <div
         className={cn(
           'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-          isDark ? 'bg-emerald-800' : 'bg-emerald-100'
+          isDark ? 'bg-violet-800/50' : 'bg-violet-100'
         )}
       >
-        <ShieldCheck
-          className={cn(
-            'w-4 h-4',
-            isDark ? 'text-emerald-400' : 'text-emerald-600'
-          )}
-        />
+        <span className="text-lg">🛡️</span>
       </div>
       <div>
         <p
           className={cn(
             'font-bold text-sm',
-            isDark ? 'text-emerald-300' : 'text-emerald-700'
+            isDark ? 'text-violet-300' : 'text-violet-700'
           )}
         >
           100% 환불 보장
@@ -44,7 +38,7 @@ export function RefundGuarantee({ variant = 'light' }: RefundGuaranteeProps) {
         <p
           className={cn(
             'text-xs mt-0.5',
-            isDark ? 'text-emerald-400/70' : 'text-emerald-600/70'
+            isDark ? 'text-violet-400/70' : 'text-violet-600/70'
           )}
         >
           결과물이 마음에 들지 않으면 전액 환불해 드려요

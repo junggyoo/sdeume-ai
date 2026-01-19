@@ -28,7 +28,7 @@ export function GallerySection({
       aria-labelledby={headingId}
       className={cn('space-y-4', className)}
     >
-      <h2 id={headingId} className="text-lg font-semibold text-primary-desktop">
+      <h2 id={headingId} className="text-lg font-semibold text-white">
         {DASHBOARD_COPY.gallery.title}
       </h2>
 
@@ -61,7 +61,7 @@ function GallerySkeleton() {
         >
           <Skeleton
             data-testid="skeleton-image"
-            className="aspect-[3/4] rounded-lg"
+            className="aspect-[3/4] rounded-lg bg-slate-700"
           />
           <Skeleton
             data-testid="skeleton-text"

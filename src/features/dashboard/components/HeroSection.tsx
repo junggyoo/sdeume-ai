@@ -1,10 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import type { Project } from '@/features/project/types';
 import type { DashboardState } from '../types';
 import { DASHBOARD_COPY } from '../constants';
@@ -33,7 +35,7 @@ export function HeroSection({
       role="region"
       aria-label="대시보드 히어로 섹션"
       className={cn(
-        'rounded-xl bg-gradient-to-r from-primary-desktop to-primary-hover p-6 md:p-8 text-white',
+        'rounded-xl bg-gradient-to-r from-violet-900/80 to-slate-800 border border-slate-700 p-6 md:p-8 text-white',
         className
       )}
     >
@@ -44,7 +46,20 @@ export function HeroSection({
         </div>
 
         {state === 'processing' && processingProject && (
-          <ProcessingIndicator project={processingProject} />
+          <Link
+            href={`/new-shoot/${processingProject.id}/progress`}
+            aria-label="상세 보기"
+            className="flex items-center justify-between cursor-pointer rounded-lg p-3 -mx-3 hover:bg-white/10 transition-colors"
+          >
+            <ProcessingIndicator project={processingProject} />
+            <div className="flex items-center gap-2 text-white/80">
+              <span className="text-sm">상세 보기</span>
+              <ChevronRight
+                data-testid="processing-card-chevron"
+                className="w-5 h-5"
+              />
+            </div>
+          </Link>
         )}
 
         {state !== 'processing' && content.ctaLabel && (
@@ -52,7 +67,7 @@ export function HeroSection({
             <Button
               onClick={onCreateProject}
               disabled={isCreatingProject}
-              className="bg-white text-primary-desktop hover:bg-gray-100"
+              className="bg-violet-600 text-white hover:bg-violet-500"
             >
               {isCreatingProject ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

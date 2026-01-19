@@ -23,8 +23,8 @@ export function PictorialCard({ pictorial, className }: PictorialCardProps) {
       href={`/gallery/${id}`}
       data-testid="pictorial-card"
       className={cn(
-        'group block rounded-lg overflow-hidden bg-card border shadow-sm',
-        'hover:shadow-md hover:border-primary-desktop/30 transition-all',
+        'group block rounded-lg overflow-hidden bg-slate-800/50 border border-slate-700',
+        'hover:shadow-lg hover:border-slate-600 transition-all',
         className
       )}
       aria-label={`${displayName} 화보 보기`}
@@ -32,7 +32,7 @@ export function PictorialCard({ pictorial, className }: PictorialCardProps) {
       {/* Thumbnail Container */}
       <div
         data-testid="image-container"
-        className="relative aspect-[3/4] overflow-hidden bg-muted"
+        className="relative aspect-[3/4] overflow-hidden bg-slate-700"
       >
         {thumbnailUrl ? (
           <Image
@@ -43,7 +43,7 @@ export function PictorialCard({ pictorial, className }: PictorialCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          <div className="absolute inset-0 flex items-center justify-center text-slate-400">
             <span>No Image</span>
           </div>
         )}
@@ -59,7 +59,7 @@ export function PictorialCard({ pictorial, className }: PictorialCardProps) {
 
       {/* Info Section */}
       <div className="p-3">
-        <p className="text-sm font-medium text-primary-desktop truncate">
+        <p className="text-sm font-medium text-white truncate">
           {displayName}
         </p>
       </div>

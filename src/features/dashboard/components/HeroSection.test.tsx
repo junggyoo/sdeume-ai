@@ -109,6 +109,55 @@ describe('HeroSection', () => {
 
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
+
+    describe('interactive ProcessingCard', () => {
+      it('should render a clickable link to progress page', () => {
+        const processingProject = createMockProject({ id: 'project-123', status: 'training' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        const link = screen.getByRole('link', { name: /진행 상황 보기|상세 보기/i });
+        expect(link).toBeInTheDocument();
+        expect(link).toHaveAttribute('href', '/new-shoot/project-123/progress');
+      });
+
+      it('should render chevron icon for visual affordance', () => {
+        const processingProject = createMockProject({ status: 'training' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        expect(screen.getByTestId('processing-card-chevron')).toBeInTheDocument();
+      });
+
+      it('should have cursor-pointer class for clickable affordance', () => {
+        const processingProject = createMockProject({ status: 'training' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        const link = screen.getByRole('link', { name: /진행 상황 보기|상세 보기/i });
+        expect(link.className).toMatch(/cursor-pointer/);
+      });
+
+      it('should have hover state styling', () => {
+        const processingProject = createMockProject({ status: 'training' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        const link = screen.getByRole('link', { name: /진행 상황 보기|상세 보기/i });
+        expect(link.className).toMatch(/hover:/);
+      });
+
+      it('should render "상세 보기" text as action label', () => {
+        const processingProject = createMockProject({ status: 'training' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        expect(screen.getByText(/상세 보기/i)).toBeInTheDocument();
+      });
+
+      it('should render clickable link for generating project', () => {
+        const processingProject = createMockProject({ id: 'gen-456', status: 'generating' });
+        render(<HeroSection state="processing" processingProject={processingProject} />);
+
+        const link = screen.getByRole('link', { name: /상세 보기/i });
+        expect(link).toHaveAttribute('href', '/new-shoot/gen-456/progress');
+      });
+    });
   });
 
   describe('ready state', () => {

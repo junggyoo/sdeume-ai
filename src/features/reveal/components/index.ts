@@ -14,3 +14,8 @@ export {
   MoviePreviewModal,
   type MoviePreviewModalProps,
 } from './MoviePreviewModal';
+export { PhotoCard, type PhotoCardProps } from './PhotoCard';
+export { PhotoGrid, type PhotoGridProps } from './PhotoGrid';
+export { MovieMakerCard, type MovieMakerCardProps } from './MovieMakerCard';
+export { BottomActionBar, type BottomActionBarProps } from './BottomActionBar';
+export { ShareSheet, type ShareSheetProps } from './ShareSheet';

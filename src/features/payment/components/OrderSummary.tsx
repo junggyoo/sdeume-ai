@@ -1,11 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { Check } from 'lucide-react';
+import Check from 'lucide-react/dist/esm/icons/check';
 import { cn } from '@/lib/utils';
 import type { Package } from '../types';
 import { RefundGuarantee } from './RefundGuarantee';
-import { MultiThemeNotice } from './MultiThemeNotice';
 
 interface ThemeInfo {
   id: string;
@@ -31,8 +30,8 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
   return (
     <div className={cn(
       'rounded-2xl p-6',
-      isDark 
-        ? 'bg-slate-800/50 border border-slate-700' 
+      isDark
+        ? 'bg-slate-800/50 border border-slate-700'
         : 'bg-white shadow-lg'
     )}>
       <h3 className={cn(
@@ -40,11 +39,13 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
         isDark ? 'text-white' : 'text-slate-900'
       )}>주문 요약</h3>
 
-      {/* 선택한 테마 */}
+      {/* 선택한 테마 - emerald gradient */}
       {theme && (
         <div className={cn(
           'flex items-center gap-3 p-3 rounded-xl mb-4',
-          isDark ? 'bg-slate-700/50' : 'bg-slate-50'
+          isDark
+            ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-950/60 border border-emerald-700/30'
+            : 'bg-emerald-50 border border-emerald-200'
         )}>
           <div className={cn(
             'w-12 h-12 rounded-lg overflow-hidden flex-shrink-0',
@@ -65,7 +66,7 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
           <div>
             <p className={cn(
               'text-xs',
-              isDark ? 'text-slate-400' : 'text-slate-500'
+              isDark ? 'text-emerald-400/70' : 'text-emerald-600'
             )}>선택한 컨셉</p>
             <p className={cn(
               'font-medium',
@@ -105,17 +106,17 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
           ))}
         </div>
 
-        {/* 멀티테마 안내 */}
+        {/* 멀티테마 안내 - purple theme */}
         {showMultiThemeNotice && (
           <div className={cn(
             'mt-2 p-3 rounded-lg border',
-            isDark 
-              ? 'bg-amber-500/10 border-amber-500/20' 
-              : 'bg-amber-50 border-amber-200'
+            isDark
+              ? 'bg-purple-500/10 border-purple-500/20'
+              : 'bg-purple-50 border-purple-200'
           )}>
             <p className={cn(
               'text-xs',
-              isDark ? 'text-amber-400/90' : 'text-amber-700'
+              isDark ? 'text-purple-400/90' : 'text-purple-700'
             )}>
               ⓘ 지금 1개 선택 완료! 나머지 {selectedPackage.themeCount - 1}개는 언제든 추가 선택 가능
             </p>
@@ -152,7 +153,7 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
         </div>
       </div>
 
-      {/* 총 결제금액 */}
+      {/* 총 결제금액 - rose color */}
       <div className={cn(
         'border-t mt-4 pt-4',
         isDark ? 'border-slate-700' : 'border-slate-200'
@@ -163,8 +164,8 @@ export function OrderSummary({ theme, selectedPackage, variant = 'light' }: Orde
             isDark ? 'text-white' : 'text-slate-900'
           )}>총 결제금액</span>
           <span className={cn(
-            'text-2xl font-bold',
-            isDark ? 'text-amber-400' : 'text-amber-500'
+            'text-3xl font-bold',
+            isDark ? 'text-rose-400' : 'text-rose-500'
           )}>
             {selectedPackage.price.toLocaleString()}원
           </span>

@@ -9,7 +9,8 @@ import {
   type ErrorResult,
 } from '@/backend/http/response';
 import { getLogger, getSupabase, type AppEnv } from '@/backend/hono/context';
-import type { Project } from '@/features/project/types';
+import type { Project, LatestGeneration } from '@/features/project/types';
+import type { GenerationStatus, GenerationImage } from '@/features/generation/types';
 
 // =============================================================================
 // Error Codes
@@ -62,6 +63,40 @@ type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
 // Helpers
 // =============================================================================
 
+interface GenerationRow {
+  id: string;
+  status: string;
+  images: GenerationImage[] | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Extract the latest generation from joined generations array
+ * Returns the most recent one by created_at
+ */
+const extractLatestGeneration = (
+  generations: GenerationRow[] | null | undefined
+): LatestGeneration | null => {
+  if (!generations || generations.length === 0) {
+    return null;
+  }
+
+  // Sort by created_at desc and take the first one
+  const sorted = [...generations].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const latest = sorted[0];
+
+  return {
+    id: latest.id,
+    status: latest.status as GenerationStatus,
+    images: latest.images || [],
+    completedAt: latest.completed_at,
+    createdAt: latest.created_at,
+  };
+};
+
 const mapRowToProject = (row: Record<string, unknown>): Project => ({
   id: row.id as string,
   userId: row.user_id as string,
@@ -74,6 +109,7 @@ const mapRowToProject = (row: Record<string, unknown>): Project => ({
   brideUploadCount: (row.bride_upload_count as number) || 0,
   createdAt: row.created_at as string,
   updatedAt: row.updated_at as string,
+  latestGeneration: extractLatestGeneration(row.generations as GenerationRow[] | null),
 });
 
 // =============================================================================
@@ -125,13 +161,19 @@ const getProjectById = async (
   return success(mapRowToProject(data));
 };
 
+// Select query with generations JOIN for dashboard state
+const PROJECT_SELECT_WITH_GENERATIONS = `
+  *,
+  generations(id, status, images, completed_at, created_at)
+`;
+
 const getProjectsByUserId = async (
   supabase: SupabaseClient,
   userId: string
 ): Promise<HandlerResult<Project[], ProjectServiceError>> => {
   const { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select(PROJECT_SELECT_WITH_GENERATIONS)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 

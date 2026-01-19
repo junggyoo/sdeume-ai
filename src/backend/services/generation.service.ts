@@ -8,7 +8,10 @@ import {
 import { createTrainingZip, uploadGeneratedImage } from './storage.service';
 import { startLoraTraining, type FalClientConfig } from './fal-client';
 import { generateImages, type ModalClientConfig } from './modal-client';
+import { createLoraModel, getLoraModelByFalJobId, updateLoraModelStatus } from './lora-model.service';
+import { upsertUserFaceModel } from './user-face-model.service';
 import type { GenerationImage, GenerationStatus } from '@/features/generation/types';
+import type { FaceRole } from '@/features/face/types';
 
 // =============================================================================
 // Types
@@ -21,6 +24,8 @@ export interface GenerationWithLoRA {
   brideFalJobId: string | null;
   groomLoraUrl: string | null;
   brideLoraUrl: string | null;
+  groomLoraModelId: string | null;
+  brideLoraModelId: string | null;
   trainingCompletedAt: string | null;
   images: GenerationImage[];
 }
@@ -44,6 +49,7 @@ const generationServiceErrorCodes = {
   falError: 'FAL_ERROR',
   modalError: 'MODAL_ERROR',
   databaseError: 'DATABASE_ERROR',
+  loraModelNotFound: 'LORA_MODEL_NOT_FOUND',
 } as const;
 
 type GenerationServiceErrorCode =
@@ -59,6 +65,19 @@ export const startLoraTrainingForGeneration = async (
   projectId: string,
   falConfig: FalClientConfig
 ): Promise<HandlerResult<GenerationWithLoRA, GenerationServiceErrorCode>> => {
+  // 0. Get generation to retrieve user_id
+  const { data: generation, error: genError } = await supabase
+    .from('generations')
+    .select('user_id')
+    .eq('id', generationId)
+    .single();
+
+  if (genError || !generation) {
+    return failure(404, generationServiceErrorCodes.notFound, 'Generation not found');
+  }
+
+  const userId = generation.user_id;
+
   // 1. Create ZIP files for both groom and bride in parallel
   const [groomZipResult, brideZipResult] = await Promise.all([
     createTrainingZip(supabase, projectId, 'groom'),
@@ -117,13 +136,43 @@ export const startLoraTrainingForGeneration = async (
     );
   }
 
-  // 3. Update generation with Fal job IDs and status
+  // 3. Create lora_models records for both roles
+  const [groomLoraResult, brideLoraResult] = await Promise.all([
+    createLoraModel(
+      supabase,
+      projectId,
+      userId,
+      'groom' as FaceRole,
+      groomTrainingResult.data.requestId,
+      'training'
+    ),
+    createLoraModel(
+      supabase,
+      projectId,
+      userId,
+      'bride' as FaceRole,
+      brideTrainingResult.data.requestId,
+      'training'
+    ),
+  ]);
+
+  if (!groomLoraResult.ok) {
+    const groomLoraError = groomLoraResult as ErrorResult<string, unknown>;
+    return failure(500, generationServiceErrorCodes.databaseError, groomLoraError.error.message);
+  }
+
+  if (!brideLoraResult.ok) {
+    const brideLoraError = brideLoraResult as ErrorResult<string, unknown>;
+    return failure(500, generationServiceErrorCodes.databaseError, brideLoraError.error.message);
+  }
+
+  // 4. Update generation with FK references
   const { data, error } = await supabase
     .from('generations')
     .update({
       status: 'training',
-      groom_fal_job_id: groomTrainingResult.data.requestId,
-      bride_fal_job_id: brideTrainingResult.data.requestId,
+      groom_lora_model_id: groomLoraResult.data.id,
+      bride_lora_model_id: brideLoraResult.data.id,
       started_at: new Date().toISOString(),
     })
     .eq('id', generationId)
@@ -141,6 +190,8 @@ export const startLoraTrainingForGeneration = async (
     brideFalJobId: brideTrainingResult.data.requestId,
     groomLoraUrl: null,
     brideLoraUrl: null,
+    groomLoraModelId: groomLoraResult.data.id,
+    brideLoraModelId: brideLoraResult.data.id,
     trainingCompletedAt: null,
     images: [],
   });
@@ -155,64 +206,81 @@ export const handleFalWebhookForGeneration = async (
   falJobId: string,
   loraUrl: string
 ): Promise<HandlerResult<WebhookResult, GenerationServiceErrorCode>> => {
-  // Find generation by Fal job ID (check both groom and bride columns)
-  const { data: groomMatch, error: groomError } = await supabase
+  // 1. Find lora_model by fal_job_id
+  const loraModelResult = await getLoraModelByFalJobId(supabase, falJobId);
+
+  if (!loraModelResult.ok) {
+    return failure(500, generationServiceErrorCodes.databaseError, 'Failed to query lora_models');
+  }
+
+  const loraModel = loraModelResult.data;
+
+  if (!loraModel) {
+    return failure(404, generationServiceErrorCodes.loraModelNotFound, 'LoRA model not found for Fal job ID');
+  }
+
+  const role = loraModel.role as 'groom' | 'bride';
+  const userId = loraModel.userId;
+
+  // 2. Update lora_model status to completed with model_url
+  const updateResult = await updateLoraModelStatus(supabase, loraModel.id, 'completed', loraUrl);
+
+  if (!updateResult.ok) {
+    return failure(500, generationServiceErrorCodes.databaseError, 'Failed to update lora_model');
+  }
+
+  // 3. Upsert user_face_model to link the completed lora_model
+  await upsertUserFaceModel(supabase, userId, role as FaceRole, loraModel.id);
+
+  // 4. Find generation by lora_model_id FK
+  const fkColumn = role === 'groom' ? 'groom_lora_model_id' : 'bride_lora_model_id';
+
+  const { data: generation, error: genError } = await supabase
     .from('generations')
-    .select('*')
-    .eq('groom_fal_job_id', falJobId)
+    .select(`
+      id,
+      user_id,
+      groom_lora_model_id,
+      bride_lora_model_id,
+      groom_lora:lora_models!groom_lora_model_id(model_url),
+      bride_lora:lora_models!bride_lora_model_id(model_url)
+    `)
+    .eq(fkColumn, loraModel.id)
     .single();
 
-  const { data: brideMatch, error: brideError } = await supabase
-    .from('generations')
-    .select('*')
-    .eq('bride_fal_job_id', falJobId)
-    .single();
-
-  const generation = groomMatch || brideMatch;
-  const role: 'groom' | 'bride' = groomMatch ? 'groom' : 'bride';
-
-  if (!generation) {
-    // Both queries returned no results
-    if (groomError?.code === 'PGRST116' && brideError?.code === 'PGRST116') {
-      return failure(404, generationServiceErrorCodes.notFound, 'Generation not found for Fal job ID');
+  if (genError || !generation) {
+    // Generation not found - this might happen if the lora_model was created
+    // but generation link failed. Return error for proper handling.
+    if (genError?.code === 'PGRST116') {
+      return failure(404, generationServiceErrorCodes.notFound, 'Generation not found for lora_model');
     }
-    return failure(500, generationServiceErrorCodes.databaseError, 'Database query failed');
+    return failure(500, generationServiceErrorCodes.databaseError, genError?.message || 'Database query failed');
   }
 
-  // Determine which LoRA URL to update
-  const updateField = role === 'groom' ? 'groom_lora_url' : 'bride_lora_url';
+  // 5. Determine lora URLs from joined data
+  const groomLoraData = generation.groom_lora as { model_url: string | null } | null;
+  const brideLoraData = generation.bride_lora as { model_url: string | null } | null;
 
-  // Check if this completes both trainings
-  const otherLoraUrl = role === 'groom' ? generation.bride_lora_url : generation.groom_lora_url;
-  const bothCompleted = !!otherLoraUrl;
+  const groomLoraUrl = groomLoraData?.model_url || null;
+  const brideLoraUrl = brideLoraData?.model_url || null;
 
-  // Update with LoRA URL
-  const updateData: Record<string, unknown> = {
-    [updateField]: loraUrl,
-  };
+  // 6. Check if both trainings are completed
+  const bothCompleted = !!(groomLoraUrl && brideLoraUrl);
 
-  // If both are completed, set training_completed_at
+  // 7. Update training_completed_at if both trainings are done
   if (bothCompleted) {
-    updateData.training_completed_at = new Date().toISOString();
-  }
-
-  const { data: updated, error: updateError } = await supabase
-    .from('generations')
-    .update(updateData)
-    .eq('id', generation.id)
-    .select()
-    .single();
-
-  if (updateError || !updated) {
-    return failure(500, generationServiceErrorCodes.databaseError, updateError?.message || 'Failed to update generation');
+    await supabase
+      .from('generations')
+      .update({ training_completed_at: new Date().toISOString() })
+      .eq('id', generation.id);
   }
 
   return success({
     generationId: generation.id,
     role,
     loraUrl,
-    groomLoraUrl: role === 'groom' ? loraUrl : (generation.groom_lora_url as string | null),
-    brideLoraUrl: role === 'bride' ? loraUrl : (generation.bride_lora_url as string | null),
+    groomLoraUrl: role === 'groom' ? loraUrl : groomLoraUrl,
+    brideLoraUrl: role === 'bride' ? loraUrl : brideLoraUrl,
     bothCompleted,
   });
 };

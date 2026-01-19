@@ -14,6 +14,7 @@ import {
   handleFalWebhookForGeneration,
   triggerModalGeneration,
 } from '@/backend/services/generation.service';
+import { getUserActiveFaceModels } from '@/backend/services/user-face-model.service';
 import { verifyFalWebhookSignature, parseFalWebhookPayload, getTrainingStatus } from '@/backend/services/fal-client';
 import type {
   Generation,
@@ -75,11 +76,14 @@ const mapRowToGeneration = (row: GenerationRow): Generation => ({
   completedAt: row.completed_at,
   errorMessage: row.error_message,
   createdAt: row.created_at,
-  // LoRA fields
-  groomFalJobId: row.groom_fal_job_id,
-  groomLoraUrl: row.groom_lora_url,
-  brideFalJobId: row.bride_fal_job_id,
-  brideLoraUrl: row.bride_lora_url,
+  // New FK fields
+  groomLoraModelId: row.groom_lora_model_id,
+  brideLoraModelId: row.bride_lora_model_id,
+  // LoRA fields from JOINed lora_models
+  groomFalJobId: row.groom_lora?.fal_job_id ?? null,
+  groomLoraUrl: row.groom_lora?.model_url ?? null,
+  brideFalJobId: row.bride_lora?.fal_job_id ?? null,
+  brideLoraUrl: row.bride_lora?.model_url ?? null,
   trainingCompletedAt: row.training_completed_at,
 });
 
@@ -128,6 +132,14 @@ const createGeneration = async (
   return success(mapRowToGeneration(data), 201);
 };
 
+// Query string for selecting generations with lora_models JOIN
+// Migration 0009 adds FK columns: groom_lora_model_id, bride_lora_model_id
+const GENERATION_SELECT = `
+  *,
+  groom_lora:lora_models!groom_lora_model_id(id, model_url, status, fal_job_id),
+  bride_lora:lora_models!bride_lora_model_id(id, model_url, status, fal_job_id)
+`;
+
 const getGenerationById = async (
   supabase: SupabaseClient,
   generationId: string,
@@ -135,7 +147,7 @@ const getGenerationById = async (
 ): Promise<HandlerResult<Generation, GenerationServiceError>> => {
   const { data, error } = await supabase
     .from('generations')
-    .select('*')
+    .select(GENERATION_SELECT)
     .eq('id', generationId)
     .eq('user_id', userId)
     .single();
@@ -147,17 +159,17 @@ const getGenerationById = async (
     return failure(500, generationErrorCodes.fetchError, error.message);
   }
 
-  return success(mapRowToGeneration(data));
+  return success(mapRowToGeneration(data as GenerationRow));
 };
 
 const getGenerationByProjectId = async (
   supabase: SupabaseClient,
   projectId: string,
   userId: string
-): Promise<HandlerResult<Generation, GenerationServiceError>> => {
+): Promise<HandlerResult<Generation | null, GenerationServiceError>> => {
   const { data, error } = await supabase
     .from('generations')
-    .select('*')
+    .select(GENERATION_SELECT)
     .eq('project_id', projectId)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -166,12 +178,14 @@ const getGenerationByProjectId = async (
 
   if (error) {
     if (error.code === 'PGRST116') {
-      return failure(404, generationErrorCodes.notFound, 'Generation not found');
+      // No generation found - return null instead of 404
+      // This is semantically correct: "not found" is not an error, just "not yet created"
+      return success(null);
     }
     return failure(500, generationErrorCodes.fetchError, error.message);
   }
 
-  return success(mapRowToGeneration(data));
+  return success(mapRowToGeneration(data as GenerationRow));
 };
 
 // =============================================================================
@@ -224,7 +238,66 @@ export const generationRoutes = new Hono<AppEnv>()
 
     const generation = createResult.data;
 
-    // 2. Start LoRA training
+    // 2. Check for existing LoRA models (Smart Navigation users skip training)
+    const faceModelsResult = await getUserActiveFaceModels(supabase, user.id);
+
+    if (faceModelsResult.ok && faceModelsResult.data.length > 0) {
+      const faceModels = faceModelsResult.data;
+      const groomModel = faceModels.find((m) => m.role === 'groom');
+      const brideModel = faceModels.find((m) => m.role === 'bride');
+
+      // If both groom and bride LoRA exist with model URLs, skip training
+      if (
+        groomModel?.loraModel?.modelUrl &&
+        brideModel?.loraModel?.modelUrl
+      ) {
+        logger.info('Using existing LoRA models, skipping training', {
+          generationId: generation.id,
+          groomLoraUrl: groomModel.loraModel.modelUrl,
+          brideLoraUrl: brideModel.loraModel.modelUrl,
+        });
+
+        // Update generation status
+        const { data: updatedGeneration, error: updateError } = await supabase
+          .from('generations')
+          .update({
+            status: 'generating',
+            training_completed_at: new Date().toISOString(),
+          })
+          .eq('id', generation.id)
+          .select()
+          .single();
+
+        if (updateError || !updatedGeneration) {
+          logger.error('Failed to update generation with existing LoRA', updateError?.message);
+          return respond(c, failure(500, generationErrorCodes.trainingError, 'Failed to update generation'));
+        }
+
+        // Trigger Modal generation asynchronously
+        triggerModalGeneration(
+          supabase,
+          generation.id,
+          parsedBody.data.projectId,
+          groomModel.loraModel.modelUrl,
+          brideModel.loraModel.modelUrl,
+          parsedBody.data.themeId || null,
+          { endpoint: config.modal?.endpointUrl || process.env.MODAL_ENDPOINT_URL || '' }
+        ).catch((error) => {
+          logger.error('Modal generation failed', error);
+        });
+
+        return respond(c, success({
+          ...generation,
+          status: 'generating' as GenerationStatus,
+          groomLoraUrl: groomModel.loraModel.modelUrl,
+          brideLoraUrl: brideModel.loraModel.modelUrl,
+          groomFalJobId: null,
+          brideFalJobId: null,
+        }, 201));
+      }
+    }
+
+    // 3. No existing LoRA - Start LoRA training
     const falConfig = {
       apiKey: config.fal?.apiKey || process.env.FAL_KEY || '',
       webhookSecret: config.fal?.webhookSecret || process.env.FAL_WEBHOOK_SECRET || '',
@@ -363,26 +436,43 @@ export const generationRoutes = new Hono<AppEnv>()
 
     // Handle FAILED status
     if (parsedPayload.status === 'FAILED') {
-      // Find and update the generation
-      const { data: generation } = await supabase
-        .from('generations')
-        .select('id')
-        .or(`groom_fal_job_id.eq.${parsedPayload.requestId},bride_fal_job_id.eq.${parsedPayload.requestId}`)
+      // Find lora_model by fal_job_id
+      const { data: loraModel } = await supabase
+        .from('lora_models')
+        .select('id, role')
+        .eq('fal_job_id', parsedPayload.requestId)
         .single();
 
-      if (generation) {
+      if (loraModel) {
+        // Update lora_model status to failed
         await supabase
-          .from('generations')
-          .update({
-            status: 'failed',
-            error_message: parsedPayload.errorMessage || 'Training failed',
-          })
-          .eq('id', generation.id);
+          .from('lora_models')
+          .update({ status: 'failed' })
+          .eq('id', loraModel.id);
 
-        logger.error('LoRA training failed', {
-          generationId: generation.id,
-          error: parsedPayload.errorMessage,
-        });
+        // Find and update the generation via FK
+        const fkColumn = loraModel.role === 'groom' ? 'groom_lora_model_id' : 'bride_lora_model_id';
+        const { data: generation } = await supabase
+          .from('generations')
+          .select('id')
+          .eq(fkColumn, loraModel.id)
+          .single();
+
+        if (generation) {
+          await supabase
+            .from('generations')
+            .update({
+              status: 'failed',
+              error_message: parsedPayload.errorMessage || 'Training failed',
+            })
+            .eq('id', generation.id);
+
+          logger.error('LoRA training failed', {
+            generationId: generation.id,
+            loraModelId: loraModel.id,
+            error: parsedPayload.errorMessage,
+          });
+        }
       }
 
       return respond(c, success({ received: true }));
@@ -523,14 +613,12 @@ export const generationRoutes = new Hono<AppEnv>()
 
     if (!result.ok) {
       const errorResult = result as ErrorResult<GenerationServiceError, unknown>;
-      if (errorResult.error.code === generationErrorCodes.notFound) {
-        logger.warn('Generation not found for project', parsedParams.data.projectId);
-      } else {
-        logger.error('Failed to fetch generation', errorResult.error.message);
-      }
+      logger.error('Failed to fetch generation', errorResult.error.message);
       return respond(c, result);
     }
 
+    // result.data can be null if generation doesn't exist yet
+    // This is normal, not an error - responds with { ok: true, data: null }
     return respond(c, result);
   })
 
