@@ -59,10 +59,11 @@ export const startLoraTraining = async (
 
   const requestBody = {
     images_data_url: params.imagesZipUrl,
-    trigger_word: triggerWord,
-    is_style: false,
-    steps: 1000,
+    trigger_phrase: triggerWord,
+    steps: 1500,
     create_masks: true,
+    subject_crop: true,  
+    multiresolution_training: true, 
     webhook_url: config.webhookUrl,
   };
 
