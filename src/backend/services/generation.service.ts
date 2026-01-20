@@ -258,8 +258,9 @@ export const handleFalWebhookForGeneration = async (
   }
 
   // 5. Determine lora URLs from joined data
-  const groomLoraData = generation.groom_lora as { model_url: string | null } | null;
-  const brideLoraData = generation.bride_lora as { model_url: string | null } | null;
+  // Supabase returns joined relations as arrays, so we take the first element
+  const groomLoraData = (generation.groom_lora as unknown as { model_url: string | null }[] | null)?.[0] ?? null;
+  const brideLoraData = (generation.bride_lora as unknown as { model_url: string | null }[] | null)?.[0] ?? null;
 
   const groomLoraUrl = groomLoraData?.model_url || null;
   const brideLoraUrl = brideLoraData?.model_url || null;
