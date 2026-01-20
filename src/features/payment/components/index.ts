@@ -10,3 +10,4 @@ export { MultiThemeNotice } from './MultiThemeNotice';
 export { FreeTrialLink } from './FreeTrialLink';
 export { SelectedThemeCard } from './SelectedThemeCard';
 export { EarlyBirdBanner } from './EarlyBirdBanner';
+export { PaymentBottomBar } from './PaymentBottomBar';
