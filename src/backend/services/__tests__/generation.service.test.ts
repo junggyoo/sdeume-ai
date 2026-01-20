@@ -344,6 +344,79 @@ describe('Generation Service', () => {
         expect(result.data.brideLoraUrl).toBe('https://fal.ai/lora/bride.safetensors');
         expect(result.data.bothCompleted).toBe(true);
       }
+
+      // Verify that training_completed_at AND status are updated when bothCompleted is true
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('should update status to generating when both trainings complete', async () => {
+      const { getLoraModelByFalJobId, updateLoraModelStatus } = await import('../lora-model.service');
+      const { upsertUserFaceModel } = await import('../user-face-model.service');
+
+      (getLoraModelByFalJobId as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: {
+          id: 'lora-bride-id',
+          projectId: 'project123',
+          userId: 'user123',
+          role: 'bride',
+          falJobId: 'fal-bride-456',
+          modelUrl: null,
+          status: 'training',
+        },
+      });
+
+      (updateLoraModelStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: {
+          id: 'lora-bride-id',
+          modelUrl: 'https://fal.ai/lora/bride.safetensors',
+          status: 'completed',
+        },
+      });
+
+      (upsertUserFaceModel as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: { id: 'face-model-id' },
+      });
+
+      // Track update calls
+      const updateCalls: Record<string, unknown>[] = [];
+      mockUpdate.mockImplementation((data: Record<string, unknown>) => {
+        updateCalls.push(data);
+        return {
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        };
+      });
+
+      mockEq.mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 'gen123',
+            user_id: 'user123',
+            groom_lora_model_id: 'lora-groom-id',
+            bride_lora_model_id: 'lora-bride-id',
+            groom_lora: { model_url: 'https://fal.ai/lora/groom.safetensors' },
+            bride_lora: { model_url: 'https://fal.ai/lora/bride.safetensors' },
+          },
+          error: null,
+        }),
+      });
+
+      await handleFalWebhookForGeneration(
+        mockSupabase,
+        'fal-bride-456',
+        'https://fal.ai/lora/bride.safetensors'
+      );
+
+      // Verify status is updated to 'generating' along with training_completed_at
+      const statusUpdate = updateCalls.find(call => call.status === 'generating');
+      expect(statusUpdate).toBeDefined();
+      expect(statusUpdate?.training_completed_at).toBeDefined();
     });
 
     it('should return failure when lora_model not found by Fal job ID', async () => {

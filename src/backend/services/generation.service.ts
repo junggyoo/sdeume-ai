@@ -258,9 +258,9 @@ export const handleFalWebhookForGeneration = async (
   }
 
   // 5. Determine lora URLs from joined data
-  // Supabase returns joined relations as arrays, so we take the first element
-  const groomLoraData = (generation.groom_lora as unknown as { model_url: string | null }[] | null)?.[0] ?? null;
-  const brideLoraData = (generation.bride_lora as unknown as { model_url: string | null }[] | null)?.[0] ?? null;
+  // Supabase FK JOIN (many-to-one) returns a single object, not an array
+  const groomLoraData = generation.groom_lora as { model_url: string | null } | null;
+  const brideLoraData = generation.bride_lora as { model_url: string | null } | null;
 
   const groomLoraUrl = groomLoraData?.model_url || null;
   const brideLoraUrl = brideLoraData?.model_url || null;
@@ -268,11 +268,14 @@ export const handleFalWebhookForGeneration = async (
   // 6. Check if both trainings are completed
   const bothCompleted = !!(groomLoraUrl && brideLoraUrl);
 
-  // 7. Update training_completed_at if both trainings are done
+  // 7. Update training_completed_at AND status if both trainings are done
   if (bothCompleted) {
     await supabase
       .from('generations')
-      .update({ training_completed_at: new Date().toISOString() })
+      .update({
+        training_completed_at: new Date().toISOString(),
+        status: 'generating',
+      })
       .eq('id', generation.id);
   }
 
