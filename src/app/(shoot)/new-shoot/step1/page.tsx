@@ -9,21 +9,17 @@ import { useBulkUpload } from '@/features/upload/hooks/useBulkUpload';
 import { useUploadToStorage } from '@/features/upload/hooks/useUploadToStorage';
 import { useFaceDataStatus } from '@/features/face/hooks/useUserFaceModels';
 import { preloadFaceModels } from '@/features/upload/lib/face-mesh';
-import {
-  MIN_PHOTOS_PER_ROLE,
-  RECOMMENDED_PHOTOS_PER_ROLE,
-} from '@/features/upload/types';
-import { StickyCTA } from '@/features/studio/components/StickyCTA';
+import { RECOMMENDED_PHOTOS_PER_ROLE } from '@/features/upload/types';
 import { UploadProgress } from '@/features/upload/components/UploadProgress';
-import { PersonTab } from '@/features/upload/components/PersonTab';
-import { UploadZone } from '@/features/upload/components/UploadZone';
-import { PhotoGrid } from '@/features/upload/components/PhotoGrid';
-import { ProgressIndicator } from '@/features/upload/components/ProgressIndicator';
-import { OverallProgress } from '@/features/upload/components/OverallProgress';
-import { TipBanner } from '@/features/upload/components/TipBanner';
-import { GuidelineCard } from '@/features/upload/components/GuidelineCard';
 import { projectKeys } from '@/features/project/hooks/useProject';
 import type { Project } from '@/features/project/types';
+import {
+  AtelierUploadHeader,
+  AtelierDropzone,
+  AtelierPhotoGrid,
+  CircularProgressWidget,
+  QuickGuideWidget,
+} from '@/features/upload-v2';
 
 interface ProjectResponse {
   ok: true;
@@ -83,15 +79,6 @@ export default function Step1Page() {
   const groomCount = groomSummary.total;
   const brideCount = brideSummary.total;
 
-  // Check if both roles have minimum uploads
-  const groomHasMinimum = groomCount >= MIN_PHOTOS_PER_ROLE;
-  const brideHasMinimum = brideCount >= MIN_PHOTOS_PER_ROLE;
-  const groomComplete = groomCount >= RECOMMENDED_PHOTOS_PER_ROLE;
-  const brideComplete = brideCount >= RECOMMENDED_PHOTOS_PER_ROLE;
-
-  // Can proceed only if both roles have minimum
-  const canProceed = groomHasMinimum && brideHasMinimum;
-
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async () => {
@@ -109,7 +96,7 @@ export default function Step1Page() {
   });
 
   const handleNext = async () => {
-    if (!canProceed || isSyncing) return;
+    if (isSyncing) return;
 
     setUploadError(null);
 
@@ -141,93 +128,52 @@ export default function Step1Page() {
     }
   };
 
-  const handleBack = () => {
-    router.push('/dashboard');
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen pb-8">
       {/* Main Content */}
-      <div className="pb-24 px-4 md:px-6">
-        <div className="max-w-5xl mx-auto py-6 space-y-6">
-          {/* Page Header */}
-          <div className="text-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-100">
-              얼굴 사진 등록
-            </h1>
-            {hasBothFaces && (
-              <p className="text-sm text-amber-400 mt-2">
-                기존 얼굴 모델이 있습니다. 새로운 사진을 업로드하면 모델이
-                업데이트됩니다.
-              </p>
-            )}
-          </div>
-
-          {/* Tip Banner + Guideline Card */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TipBanner
-              title="팁"
-              tip="각 역할당 20장의 다양한 얼굴 사진을 올리면 최상의 결과를 얻을 수 있어요!"
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          {/* Left Column - Upload Area (8 cols on desktop) */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Header with Role Switcher */}
+            <AtelierUploadHeader
+              activeRole={activeRole}
+              onRoleChange={setActiveRole}
+              groomCount={groomCount}
+              brideCount={brideCount}
+              hasBothFaces={hasBothFaces}
             />
-            <GuidelineCard />
+
+            {/* Dropzone */}
+            <AtelierDropzone
+              onFilesSelect={(files) => currentUpload.addFiles(files)}
+              isProcessing={currentUpload.isProcessing}
+              processingCount={currentUpload.processingCount}
+            />
+
+            {/* Photo Grid */}
+            <AtelierPhotoGrid
+              items={currentUpload.queue}
+              onRemove={currentUpload.removeFile}
+              onAddMore={(files) => currentUpload.addFiles(files)}
+              maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
+            />
           </div>
 
-          {/* Desktop Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {/* Left Column - Upload Area */}
-            <div className="md:col-span-3 space-y-4">
-              {/* Person Tab */}
-              <PersonTab
-                activeRole={activeRole}
-                onRoleChange={setActiveRole}
+          {/* Right Column - Progress & Guide (4 cols on desktop) */}
+          <div className="lg:col-span-4 pt-0 lg:pt-12">
+            <div className="flex flex-col gap-6 lg:sticky lg:top-24">
+              {/* Circular Progress Widget */}
+              <CircularProgressWidget
                 groomCount={groomCount}
                 brideCount={brideCount}
-                groomComplete={groomComplete}
-                brideComplete={brideComplete}
+                onNext={handleNext}
+                isLoading={createProjectMutation.isPending}
+                isSyncing={isSyncing}
               />
 
-              {/* Upload Zone */}
-              <UploadZone
-                onFilesSelect={(files) => currentUpload.addFiles(files)}
-                photoCount={activeRole === 'groom' ? groomCount : brideCount}
-                maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
-                role={activeRole}
-                isProcessing={currentUpload.isProcessing}
-                processingCount={currentUpload.processingCount}
-              />
-
-              {/* Photo Grid */}
-              <PhotoGrid
-                items={currentUpload.queue}
-                onRemove={currentUpload.removeFile}
-                onAddMore={(files) => currentUpload.addFiles(files)}
-                role={activeRole}
-                maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
-                columns={4}
-              />
-            </div>
-
-            {/* Right Column - Progress */}
-            <div className="md:col-span-2 space-y-4">
-              {/* Current Role Progress */}
-              <ProgressIndicator
-                current={activeRole === 'groom' ? groomCount : brideCount}
-              />
-
-              {/* Overall Progress */}
-              <OverallProgress
-                groomCount={groomCount}
-                brideCount={brideCount}
-              />
-
-              {/* Completion Tip */}
-              {canProceed && (
-                <TipBanner
-                  variant="success"
-                  title="준비 완료!"
-                  tip="최소 요구사항을 충족했어요. 더 좋은 결과를 위해 사진을 추가하거나, 바로 다음 단계로 넘어가세요."
-                />
-              )}
+              {/* Quick Guide Widget */}
+              <QuickGuideWidget />
             </div>
           </div>
         </div>
@@ -238,33 +184,18 @@ export default function Step1Page() {
         <UploadProgress
           progress={syncProgress}
           total={syncTotal}
-          variant="dark"
+          variant="light"
         />
       )}
 
       {/* Error Message */}
       {uploadError && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm">
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-red-500/90 text-white px-6 py-3 rounded-2xl shadow-lg backdrop-blur-sm">
             {uploadError}
           </div>
         </div>
       )}
-
-      <StickyCTA
-        onNext={handleNext}
-        onBack={handleBack}
-        nextLabel={isSyncing ? '업로드 중...' : '테마 선택하기'}
-        backLabel="대시보드"
-        isNextDisabled={!canProceed || isSyncing}
-        isLoading={createProjectMutation.isPending || isSyncing}
-        variant="dark"
-        progress={{
-          brideCount,
-          groomCount,
-          maxPhotos: RECOMMENDED_PHOTOS_PER_ROLE,
-        }}
-      />
     </div>
   );
 }

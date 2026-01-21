@@ -5,15 +5,22 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { useDashboardState } from '@/features/dashboard';
 import { UserMenu } from './UserMenu';
 import type { AtelierHeaderProps } from '../types';
-import { ATELIER_COPY, ATELIER_ROUTES } from '../constants';
+import {
+  ATELIER_COPY,
+  ATELIER_ROUTES,
+  STUDIO_STATUS_TEXT,
+  type StudioStatus,
+} from '../constants';
 
 export function AtelierHeader({
   isScrolled = false,
   className,
 }: AtelierHeaderProps) {
-  const { user, isLoading } = useCurrentUser();
+  const { user } = useCurrentUser();
+  const { state: dashboardState, processingProject } = useDashboardState();
 
   // 사용자 정보 추출
   const userInfo = useMemo(() => {
@@ -29,6 +36,25 @@ export function AtelierHeader({
       userEmail: user.email ?? undefined,
     };
   }, [user]);
+
+  // 스튜디오 상태 계산
+  const studioStatus: StudioStatus = useMemo(() => {
+    if (dashboardState === 'processing' || processingProject) return 'processing';
+    // 완료된 프로젝트가 있으면 completed, 아니면 idle
+    return dashboardState === 'ready' ? 'completed' : 'idle';
+  }, [dashboardState, processingProject]);
+
+  // 상태별 점 색상
+  const statusDotColor = useMemo(() => {
+    switch (studioStatus) {
+      case 'processing':
+        return 'bg-amber-500 animate-pulse';
+      case 'completed':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-400';
+    }
+  }, [studioStatus]);
 
   return (
     <header
@@ -61,9 +87,11 @@ export function AtelierHeader({
         {/* Right Side */}
         <div className="flex items-center gap-4">
           {/* Status Badge */}
-          <div className="hidden md:flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span>{ATELIER_COPY.header.status}</span>
+          <div className="hidden md:flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] text-gray-400">
+            <div className={cn('w-2 h-2 rounded-full', statusDotColor)} />
+            <span>
+              {ATELIER_COPY.header.statusLabel} · {STUDIO_STATUS_TEXT[studioStatus]}
+            </span>
           </div>
 
           {/* User Menu */}

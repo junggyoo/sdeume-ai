@@ -16,7 +16,7 @@ import {
   getProjectDisplayStatus,
   formatProjectDate,
 } from '../types';
-import { ATELIER_COPY } from '../constants';
+import { ATELIER_COPY, getGreeting } from '../constants';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Mock data for lookbook (테마 데이터는 추후 API 연동)
@@ -24,28 +24,28 @@ const LOOKBOOK_THEMES = [
   {
     id: 'garden',
     themeName: 'Garden Whisper',
-    description: 'Soft sunlight filtering through blooming hydrangeas.',
+    description: '만개한 수국 사이로 비치는 부드러운 햇살.',
     image:
       'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=400&fit=crop',
   },
   {
     id: 'midnight',
     themeName: 'Midnight Vogue',
-    description: 'High-contrast flash photography in the city.',
+    description: '도시의 하이콘트라스트 플래시 무드.',
     image:
       'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=400&fit=crop',
   },
   {
     id: 'vintage',
     themeName: 'Vintage Film',
-    description: 'Nostalgic grain and warm tones of the 90s.',
+    description: '90년대 감성의 필름 그레인과 따뜻한 톤.',
     image:
       'https://images.unsplash.com/photo-1511285560982-1351cdeb9821?q=80&w=400&fit=crop',
   },
   {
     id: 'ethereal',
     themeName: 'Ethereal Mist',
-    description: 'Dreamy fog and soft pastel color palettes.',
+    description: '몽환적인 안개와 파스텔 컬러 팔레트.',
     image:
       'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=400&fit=crop',
   },
@@ -152,10 +152,10 @@ export function DashboardHome({
           className="space-y-4"
         >
           <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight text-gray-900">
-            {ATELIER_COPY.reception.greeting(userName)}
+            {getGreeting()}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-500">
-              {ATELIER_COPY.reception.userName(userName)}.
+              {userName}님.
             </span>
           </h1>
           <p className="text-gray-500 font-light flex items-center gap-2 text-lg">
@@ -172,7 +172,7 @@ export function DashboardHome({
           {/* New Project Card - Always First */}
           <ProjectCard
             type="new"
-            title="Start New Shooting"
+            title={ATELIER_COPY.projectCard.startNewShooting}
             onClick={onStartNew}
             isLoading={isCreating}
           />
@@ -269,7 +269,7 @@ export function DashboardHome({
         >
           <FeaturedThemeWidget
             themeName="Royal Palace"
-            description="Experience the elegance of a royal wedding ceremony."
+            description="왕실 웨딩의 품격을 담아보세요."
             image="https://images.unsplash.com/photo-1546193430-c2d207739ed7?q=80&w=800&fit=crop"
           />
         </motion.div>

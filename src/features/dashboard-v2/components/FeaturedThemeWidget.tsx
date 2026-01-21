@@ -44,7 +44,7 @@ export function FeaturedThemeWidget({
           {themeName}
         </h4>
         <p className="text-xs text-gray-300 line-clamp-2 mb-4 font-light">
-          {description || 'Experience the elegance of a royal wedding ceremony.'}
+          {description || '왕실 웨딩의 품격을 담아보세요.'}
         </p>
 
         <button

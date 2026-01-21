@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Plus, ArrowRight, Sparkles, CheckCircle2, Loader2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ProjectCardProps } from '../types';
+import { ATELIER_COPY } from '../constants';
 
 export function ProjectCard({
   type,
@@ -20,10 +21,10 @@ export function ProjectCard({
 
   // 상태에 따른 액션 텍스트
   const getActionText = () => {
-    if (type === 'new') return isLoading ? '생성 중...' : 'Start Now';
-    if (status === 'processing') return 'View Progress';
-    if (status === 'completed') return 'Open Gallery';
-    return 'Continue';
+    if (type === 'new') return isLoading ? '생성 중...' : ATELIER_COPY.projectCard.startNow;
+    if (status === 'processing') return ATELIER_COPY.projectCard.viewProgress;
+    if (status === 'completed') return ATELIER_COPY.projectCard.openGallery;
+    return ATELIER_COPY.projectCard.continue;
   };
 
   return (
@@ -82,7 +83,7 @@ export function ProjectCard({
                   className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[2px]"
                 >
                   <div className="px-4 py-2 bg-black/70 backdrop-blur-md rounded-full text-white text-xs font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
-                    <Sparkles size={12} className="animate-spin" /> Developing
+                    <Sparkles size={12} className="animate-spin" /> {ATELIER_COPY.projectCard.developing}
                   </div>
                 </div>
               )}
@@ -95,7 +96,7 @@ export function ProjectCard({
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">
-                {type === 'new' ? 'New Session' : date}
+                {type === 'new' ? ATELIER_COPY.projectCard.newSession : date}
               </span>
               {status === 'completed' && (
                 <CheckCircle2 size={16} className="text-green-500" />
@@ -107,7 +108,7 @@ export function ProjectCard({
                 type === 'new' ? 'text-purple-900' : 'text-gray-900'
               )}
             >
-              {title || 'Start New Shooting'}
+              {title || ATELIER_COPY.projectCard.startNewShooting}
             </h3>
           </div>
           <div className="flex items-center justify-between mt-2">
