@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -13,6 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { UserMenuProps } from '../types';
 import { ATELIER_ROUTES } from '../constants';
 
@@ -86,8 +88,25 @@ export function UserMenu({
   totalCount = 5,
   className,
 }: UserMenuProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 로그아웃 핸들러
+  const handleLogout = useCallback(async () => {
+    setIsLoggingOut(true);
+    setIsOpen(false);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      setIsLoggingOut(false);
+    }
+  }, [router]);
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -252,12 +271,9 @@ export function UserMenu({
               />
               <MenuItem
                 icon={LogOut}
-                text="Log Out"
+                text={isLoggingOut ? '로그아웃 중...' : 'Log Out'}
                 isDanger
-                onClick={() => {
-                  setIsOpen(false);
-                  // TODO: 로그아웃 로직
-                }}
+                onClick={handleLogout}
               />
             </div>
           </motion.div>

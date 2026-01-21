@@ -3,6 +3,12 @@
  * Atelier Gallery 스타일 대시보드를 위한 타입 정의
  */
 
+import type { DashboardState } from '@/features/dashboard/types';
+import type { Project } from '@/features/project/types';
+
+// Re-export for convenience
+export type { DashboardState };
+
 /**
  * 대시보드 단계 (The Atelier Journey)
  */
@@ -14,9 +20,21 @@ export type DashboardStep = 'home' | 'theme' | 'shooting';
 export type PlanType = 'free' | 'pro';
 
 /**
- * 프로젝트 상태
+ * 프로젝트 상태 (UI 표시용)
  */
-export type ProjectStatus = 'processing' | 'completed';
+export type ProjectStatus = 'processing' | 'completed' | 'pending';
+
+/**
+ * 변환된 프로젝트 데이터 (ProjectCard용)
+ */
+export interface TransformedProject {
+  id: string;
+  title: string;
+  date: string;
+  image: string | null;
+  status: ProjectStatus;
+  projectId: string;
+}
 
 /**
  * ProjectCard Props
@@ -24,6 +42,8 @@ export type ProjectStatus = 'processing' | 'completed';
 export interface ProjectCardProps {
   /** 카드 타입: 새 프로젝트 생성 또는 기존 프로젝트 */
   type: 'new' | 'existing';
+  /** 프로젝트 ID (existing 타입에서 네비게이션용) */
+  projectId?: string;
   /** 프로젝트 제목 */
   title?: string;
   /** 날짜 (existing 타입에서 사용) */
@@ -31,13 +51,15 @@ export interface ProjectCardProps {
   /** 프로젝트 상태 (existing 타입에서 사용) */
   status?: ProjectStatus;
   /** 썸네일 이미지 URL (existing 타입에서 사용) */
-  image?: string;
+  image?: string | null;
   /** 사진 수 (existing 타입에서 사용) */
   photoCount?: number;
   /** 클릭 핸들러 */
   onClick?: () => void;
   /** 추가 CSS 클래스 */
   className?: string;
+  /** 로딩 상태 (new 타입에서 생성 중 표시용) */
+  isLoading?: boolean;
 }
 
 /**
@@ -106,6 +128,34 @@ export interface DashboardHomeProps {
   onStartNew?: () => void;
   /** 추가 CSS 클래스 */
   className?: string;
+  /** 새 촬영 생성 중 여부 */
+  isCreating?: boolean;
+}
+
+/**
+ * 프로젝트 상태를 UI용 ProjectStatus로 변환하는 헬퍼
+ */
+export function getProjectDisplayStatus(project: Project): ProjectStatus {
+  const status = project.status;
+  if (status === 'training' || status === 'generating') {
+    return 'processing';
+  }
+  if (status === 'completed') {
+    return 'completed';
+  }
+  return 'pending';
+}
+
+/**
+ * 날짜를 포맷팅하는 헬퍼
+ */
+export function formatProjectDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Plus, ArrowRight, Sparkles, CheckCircle2, Loader2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ProjectCardProps } from '../types';
 
@@ -14,20 +14,30 @@ export function ProjectCard({
   image,
   onClick,
   className,
+  isLoading = false,
 }: ProjectCardProps) {
   const isProcessing = status === 'processing';
+
+  // 상태에 따른 액션 텍스트
+  const getActionText = () => {
+    if (type === 'new') return isLoading ? '생성 중...' : 'Start Now';
+    if (status === 'processing') return 'View Progress';
+    if (status === 'completed') return 'Open Gallery';
+    return 'Continue';
+  };
 
   return (
     <motion.div
       layout
       data-testid="project-card"
-      onClick={onClick}
+      onClick={isLoading ? undefined : onClick}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      whileHover={isLoading ? {} : { y: -8, scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className={cn(
-        'group relative w-full aspect-[4/5] rounded-[32px] cursor-pointer',
+        'group relative w-full aspect-[4/5] rounded-[32px]',
+        isLoading ? 'cursor-wait' : 'cursor-pointer',
         className
       )}
     >
@@ -41,7 +51,11 @@ export function ProjectCard({
               className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-purple-50 group-hover:bg-purple-100 transition-colors duration-500"
             >
               <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform duration-300">
-                <Plus size={32} />
+                {isLoading ? (
+                  <Loader2 size={32} className="animate-spin" />
+                ) : (
+                  <Plus size={32} />
+                )}
               </div>
             </div>
           ) : (
@@ -58,8 +72,8 @@ export function ProjectCard({
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <Plus className="w-8 h-8 text-gray-300" />
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-50">
+                  <ImageIcon className="w-12 h-12 text-gray-300" />
                 </div>
               )}
               {isProcessing && (
@@ -98,12 +112,19 @@ export function ProjectCard({
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="text-sm text-gray-500 font-medium group-hover:text-purple-600 transition-colors">
-              {type === 'new' ? 'Start Now' : 'Open Gallery'}
+              {getActionText()}
             </span>
-            <ArrowRight
-              size={16}
-              className="text-gray-400 group-hover:text-purple-600 transition-colors"
-            />
+            {isLoading ? (
+              <Loader2
+                size={16}
+                className="text-purple-600 animate-spin"
+              />
+            ) : (
+              <ArrowRight
+                size={16}
+                className="text-gray-400 group-hover:text-purple-600 transition-colors"
+              />
+            )}
           </div>
         </div>
       </div>

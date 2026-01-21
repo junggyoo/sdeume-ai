@@ -1,15 +1,25 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Lightbulb, Sparkles, Check } from 'lucide-react';
+import { Lightbulb, Sparkles, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardState } from '@/features/dashboard';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { ProjectCard } from './ProjectCard';
 import { FeaturedThemeWidget } from './FeaturedThemeWidget';
 import { LookbookCard } from './LookbookCard';
-import type { DashboardHomeProps } from '../types';
+import {
+  type DashboardHomeProps,
+  type TransformedProject,
+  getProjectDisplayStatus,
+  formatProjectDate,
+} from '../types';
 import { ATELIER_COPY } from '../constants';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data for lookbook
+// Mock data for lookbook (테마 데이터는 추후 API 연동)
 const LOOKBOOK_THEMES = [
   {
     id: 'garden',
@@ -41,33 +51,85 @@ const LOOKBOOK_THEMES = [
   },
 ];
 
-export function DashboardHome({ onStartNew, className }: DashboardHomeProps) {
-  // TODO: 실제 프로젝트 데이터 연동
-  const projects: Array<{
-    id: string;
-    title: string;
-    date: string;
-    image: string;
-    status: 'processing' | 'completed';
-  }> = [
-    {
-      id: '1',
-      title: 'Summer Wedding',
-      date: 'Dec 15, 2024',
-      image: 'https://picsum.photos/seed/project1/400/600',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      title: 'Garden Party',
-      date: 'Dec 10, 2024',
-      image: 'https://picsum.photos/seed/project2/400/600',
-      status: 'processing',
-    },
-  ];
+export function DashboardHome({
+  onStartNew,
+  className,
+  isCreating = false,
+}: DashboardHomeProps) {
+  const router = useRouter();
+  const { user } = useCurrentUser();
+  const {
+    state: dashboardState,
+    processingProject,
+    allProjects,
+    isLoading,
+  } = useDashboardState();
 
-  // TODO: 실제 사용자 이름 연동
-  const userName = 'Ji-min';
+  // 사용자 이름 추출 (메타데이터 또는 이메일에서)
+  const userName = useMemo(() => {
+    if (!user) return 'Guest';
+    const name = user.userMetadata?.name as string | undefined;
+    if (name) return name;
+    if (user.email) return user.email.split('@')[0];
+    return 'Guest';
+  }, [user]);
+
+  // 프로젝트 데이터를 ProjectCard 형식으로 변환
+  const transformedProjects: TransformedProject[] = useMemo(() => {
+    if (!allProjects || allProjects.length === 0) return [];
+
+    return allProjects.map((project) => ({
+      id: project.id,
+      projectId: project.id,
+      title:
+        project.name ??
+        `촬영 ${new Date(project.createdAt).toLocaleDateString('ko-KR')}`,
+      date: formatProjectDate(project.createdAt),
+      image: project.latestGeneration?.images?.[0]?.url ?? null,
+      status: getProjectDisplayStatus(project),
+    }));
+  }, [allProjects]);
+
+  // 프로젝트 카드 클릭 핸들러
+  const handleProjectClick = (projectId: string, status: string) => {
+    if (status === 'processing') {
+      router.push(`/new-shoot/${projectId}/progress`);
+    } else if (status === 'completed') {
+      router.push(`/new-shoot/${projectId}/results`);
+    } else {
+      // pending 상태 - 진행 중인 단계로 이동
+      router.push(`/new-shoot/${projectId}/step2`);
+    }
+  };
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <main
+        data-testid="dashboard-home-loading"
+        className={cn(
+          'w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 pb-20',
+          className
+        )}
+      >
+        <div className="lg:col-span-8 flex flex-col gap-12">
+          <div className="space-y-4">
+            <Skeleton className="h-16 w-3/4 rounded-xl" />
+            <Skeleton className="h-6 w-1/2 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[4/5] rounded-[32px]" />
+            ))}
+          </div>
+        </div>
+        <div className="lg:col-span-4 space-y-8">
+          <Skeleton className="h-48 rounded-[32px]" />
+          <Skeleton className="h-64 rounded-[32px]" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -112,17 +174,22 @@ export function DashboardHome({ onStartNew, className }: DashboardHomeProps) {
             type="new"
             title="Start New Shooting"
             onClick={onStartNew}
+            isLoading={isCreating}
           />
 
           {/* Existing Projects */}
-          {projects.map((project) => (
+          {transformedProjects.map((project) => (
             <ProjectCard
               key={project.id}
               type="existing"
+              projectId={project.projectId}
               title={project.title}
               date={project.date}
               image={project.image}
               status={project.status}
+              onClick={() =>
+                handleProjectClick(project.projectId, project.status)
+              }
             />
           ))}
         </div>

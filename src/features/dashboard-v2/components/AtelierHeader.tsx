@@ -1,16 +1,35 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { UserMenu } from './UserMenu';
 import type { AtelierHeaderProps } from '../types';
-import { ATELIER_COPY, ATELIER_ROUTES, HEADER_HEIGHT } from '../constants';
+import { ATELIER_COPY, ATELIER_ROUTES } from '../constants';
 
 export function AtelierHeader({
   isScrolled = false,
   className,
 }: AtelierHeaderProps) {
+  const { user, isLoading } = useCurrentUser();
+
+  // 사용자 정보 추출
+  const userInfo = useMemo(() => {
+    if (!user) {
+      return {
+        userName: 'Guest',
+        userEmail: undefined,
+      };
+    }
+    const name = user.userMetadata?.name as string | undefined;
+    return {
+      userName: name ?? user.email?.split('@')[0] ?? 'Guest',
+      userEmail: user.email ?? undefined,
+    };
+  }, [user]);
+
   return (
     <header
       data-testid="atelier-header"
@@ -48,7 +67,10 @@ export function AtelierHeader({
           </div>
 
           {/* User Menu */}
-          <UserMenu />
+          <UserMenu
+            userName={userInfo.userName}
+            userEmail={userInfo.userEmail}
+          />
         </div>
       </nav>
     </header>
