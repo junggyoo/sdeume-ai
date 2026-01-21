@@ -5,118 +5,56 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@utility container {
-  margin-inline: auto;
-  width: 100%;
-  padding-inline: 2rem;
-
-  @media (width >=1400px) {
-    max-width: 1400px;
-  }
-}
-
+/* =========================================
+   1. Sdeume AI Design System Tokens
+   Concept: "The Atelier of Dreams"
+   ========================================= */
 @theme {
-  /* ===== Sdeume AI Design Tokens - The Atelier of Dreams ===== */
-
-  /* Core Palette - Pure White & Aurora */
+  /* --- Colors: Pure White & Aurora --- */
   --color-background: #FAFAFA;
-  --color-surface: #FFFFFF;
   --color-foreground: #1A1A1A;
-
-  /* Text Colors */
-  --text-primary: #1A1A1A;
-  --text-secondary: #4B5563;
-  --text-muted: #6B7280;
-  --text-light: #9CA3AF;
-
-  /* Aurora Palette */
-  --aurora-purple: rgba(192, 132, 252, 0.2);
-  --aurora-blue: rgba(147, 197, 253, 0.2);
-  --aurora-pink: rgba(251, 207, 232, 0.3);
-  --color-purple-600: #9333EA;
-  --color-blue-600: #2563EB;
-
-  /* Sdeume AI Primary Colors (for Tailwind) */
-  --color-primary-desktop: #1A1A1A;
-  --color-primary-hover: #2D2D2D;
-  --color-primary-pressed: #0A0A0A;
-  --color-ghost-hover: rgba(26, 26, 26, 0.05);
-
-  /* Typography Scale - Editorial */
-  --text-display-hero: clamp(3rem, 12vw, 9rem);
-  --text-display-lg: clamp(2.5rem, 8vw, 6rem);
-  --text-body-base: 1rem;
-  --text-body-lg: 1.25rem;
-
-  /* Spacing - Fluid */
-  --space-section: clamp(8rem, 15vw, 16rem);
-  --space-content: clamp(2rem, 5vw, 6rem);
-  --spacing-safe-bottom: 80px;
-
-  /* Animations */
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-shine: shine 1s ease-in-out;
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-  }
-
-  @keyframes shine {
-    0% {
-      transform: translateX(-100%) skewX(-12deg);
-    }
-    100% {
-      transform: translateX(200%) skewX(-12deg);
-    }
-  }
-
-  @keyframes blur-in {
-    0% {
-      opacity: 0;
-      filter: blur(20px);
-      transform: scale(0.98);
-    }
-    100% {
-      opacity: 1;
-      filter: blur(0px);
-      transform: scale(1);
-    }
-  }
-
-  /* Waiting Screen Animations */
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes aurora-float {
-    0%, 100% {
-      transform: translateY(0) translateX(0);
-    }
-    50% {
-      transform: translateY(-20px) translateX(10px);
-    }
-  }
-
-  --animate-shimmer: shimmer 2s ease-in-out infinite;
-  --animate-aurora-float: aurora-float 8s ease-in-out infinite;
-
-  /* Shadcn/Tailwind Compat (Light Theme Base) */
-  --color-border: #E5E7EB;
-  --color-input: #E5E7EB;
-  --color-ring: #9333EA;
+  
   --color-primary: #1A1A1A;
   --color-primary-foreground: #FFFFFF;
+  
+  /* Aurora Palette */
+  --color-aurora-purple: rgba(192, 132, 252, 0.2);
+  --color-aurora-blue: rgba(147, 197, 253, 0.2);
+  --color-aurora-pink: rgba(251, 207, 232, 0.3);
+
+  /* --- Typography (Essential for Atelier Vibe) --- */
+  /* [중요] layout.tsx에서 폰트 로드 필요 */
+  --font-serif: "Playfair Display", "Noto Serif KR", serif;
+  --font-sans: "Inter", "Pretendard", sans-serif;
+
+  /* --- Animations --- */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shine: shine 1s ease-in-out;
+  --animate-drop-in: drop-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; /* Shooting Phase용 */
+  --animate-breathing: breathing 4s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-12deg); }
+    100% { transform: translateX(200%) skewX(-12deg); }
+  }
+  @keyframes drop-in {
+    0% { opacity: 0; transform: translateY(-20px) scale(0.95); filter: blur(10px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+  }
+  @keyframes breathing {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.03); opacity: 0.8; }
+  }
+
+  /* --- Shadcn UI Base Tokens (Light Mode Forced) --- */
+  --color-border: #E5E7EB;
+  --color-input: #E5E7EB;
+  --color-ring: #9333EA; /* Focus Ring 색상을 브랜드 보라색으로 */
+  
   --color-secondary: #F3F4F6;
   --color-secondary-foreground: #1A1A1A;
   --color-muted: #F9FAFB;
@@ -130,144 +68,60 @@
   --color-destructive: #B83A4B;
   --color-destructive-foreground: #FFFFFF;
 
-  --radius-lg: 0.5rem;
-  --radius-md: calc(0.5rem - 2px);
-  --radius-sm: calc(0.5rem - 4px);
+  --radius-lg: 1.5rem; /* 24px - 더 둥글게 (Apple Style) */
+  --radius-md: 1rem;   /* 16px */
+  --radius-sm: 0.5rem; /* 8px */
 }
 
-/* Compatibility for legacy tailwind borders */
-@layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-border, currentColor);
-  }
-}
-
-@layer base {
-  :root {
-    /* Shadcn UI / Semantic Mapping - Light Theme (The Atelier of Dreams) */
-    --background: #FAFAFA;
-    --foreground: #1A1A1A;
-    --card: #FFFFFF;
-    --card-foreground: #1A1A1A;
-    --popover: #FFFFFF;
-    --popover-foreground: #1A1A1A;
-    --primary: #1A1A1A;
-    --primary-foreground: #FFFFFF;
-    --secondary: #F3F4F6;
-    --secondary-foreground: #1A1A1A;
-    --muted: #F9FAFB;
-    --muted-foreground: #6B7280;
-    --accent: #F3F4F6;
-    --accent-foreground: #1A1A1A;
-    --destructive: #B83A4B;
-    --destructive-foreground: #FFFFFF;
-    --border: #E5E7EB;
-    --input: #E5E7EB;
-    --ring: #9333EA;
-    --radius: 0.5rem;
-  }
-}
-
+/* =========================================
+   2. Base Resets & Global Styles
+   ========================================= */
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
-
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', 'Pretendard', sans-serif;
+    @apply bg-background text-foreground antialiased selection:bg-purple-100 selection:text-purple-900;
+    font-family: var(--font-sans);
+  }
+  /* 제목은 명조체 강제 적용 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
   }
 }
 
-@layer utilities {
-  /* Hide scrollbar utility */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  /* Text Gradient - Purple to Blue */
-  .text-gradient-purple {
-    background: linear-gradient(to right, #9333EA, #2563EB);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Aurora Background Blur Elements */
-  .aurora-blob {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(120px);
-    pointer-events: none;
-  }
-
-  /* Selection styling */
-  ::selection {
-    background-color: rgba(192, 132, 252, 0.3);
-    color: #1A1A1A;
-  }
+/* =========================================
+   3. Custom Utilities (For Interactions)
+   ========================================= */
+@utility container {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 2rem;
+  @media (width >= 1400px) { max-width: 1400px; }
 }
 
-/* Progress bar indeterminate animation */
-@keyframes progress-indeterminate {
-  0% {
-    width: 0%;
-  }
-  50% {
-    width: 100%;
-  }
-  100% {
-    width: 0%;
-  }
+/* 3D Tilt 효과를 위한 원근감 유틸리티 */
+@utility perspective-1000 {
+  perspective: 1000px;
 }
 
-.animate-progress-indeterminate {
-  animation: progress-indeterminate 2s ease-in-out infinite;
+/* 스크롤바 숨김 (가로 스크롤 갤러리용) */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
-/* Shimmer animation for CTA button */
-.animate-shimmer {
-  animation: shimmer 2s ease-in-out infinite;
+/* 유리 질감 표준 (Glassmorphism) */
+@utility glass-panel {
+  @apply bg-white/60 backdrop-blur-xl border border-white/60 shadow-lg;
 }
 
-/* Aurora float animation */
-.animate-aurora-float {
-  animation: aurora-float 8s ease-in-out infinite;
+@utility glass-header {
+  @apply bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm transition-all duration-300;
 }
 
-/* Gradient shift animation for glassmorphism border */
-@keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.animate-gradient-shift {
-  animation: gradient-shift 4s ease infinite;
-}
-
-/* Safe area inset for mobile */
-.safe-area-inset-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Photo card lift effect */
-.photo-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.photo-card-hover:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+/* 텍스트 그라데이션 (Aurora Text) */
+@utility text-aurora {
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500;
 }
