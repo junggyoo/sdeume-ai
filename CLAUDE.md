@@ -10,6 +10,7 @@
 - @./vooster-docs/git-commit-message.md
 - @./vooster-docs/isms-p.md
 - @./vooster-docs/react-best-practices.md
+- @./vooster-docs/upload-flow.md
 </vooster-docs>
 
 ## TDD 워크플로우 (필수 - 예외 없음)
