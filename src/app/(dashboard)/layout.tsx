@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { DashboardSidebar } from '@/features/dashboard/components/DashboardSidebar';
 import { LOGIN_PATH } from '@/constants/auth';
+import { AuroraBackground } from '@/components/ui/aurora/AuroraBackground';
 
 export default async function DashboardGroupLayout({
   children,
@@ -18,16 +18,12 @@ export default async function DashboardGroupLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <div className="hidden md:block w-[280px] min-h-screen p-4 sticky top-0">
-          <DashboardSidebar />
-        </div>
+    <div className="relative min-h-screen bg-background">
+      {/* Aurora Background */}
+      <AuroraBackground />
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-screen">{children}</main>
-      </div>
+      {/* Main Content */}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }

@@ -1,43 +1,63 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { useSmartNavigation } from '@/features/shoot/hooks/useSmartNavigation';
 import {
-  HeroSection,
-  GallerySection,
-  useDashboardState,
-  useCompletedGenerations,
-  DASHBOARD_COPY,
-} from '@/features/dashboard';
+  AtelierHeader,
+  DashboardHome,
+  useDashboardStep,
+  HEADER_HEIGHT,
+  type DashboardStep,
+} from '@/features/dashboard-v2';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { startNewShoot, isCreating } = useSmartNavigation();
+  const { step, setStep } = useDashboardStep();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const {
-    state,
-    processingProject,
-    allProjects,
-    isLoading: isStateLoading,
-  } = useDashboardState();
+  // 스크롤 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
 
-  const { pictorials } = useCompletedGenerations(allProjects);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  const handleCreateProject = async () => {
+  // 초기 로딩 시뮬레이션 (실제로는 데이터 로딩과 연동)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleStartNew = async () => {
     await startNewShoot();
   };
 
-  if (isStateLoading) {
+  if (isLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
-        <Skeleton className="h-40 rounded-xl bg-slate-700" />
-        <div className="space-y-4">
-          <Skeleton variant="text" className="h-6 w-24 bg-slate-700" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[3/4] rounded-lg bg-slate-700" />
-            ))}
+      <div className="min-h-screen">
+        <div className={cn('w-full max-w-7xl mx-auto px-8', HEADER_HEIGHT.padding, 'pb-12')}>
+          <div className="space-y-8">
+            <Skeleton className="h-20 w-64 rounded-xl" />
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 lg:col-span-8 space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="aspect-[4/5] rounded-2xl" />
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-12 lg:col-span-4 space-y-4">
+                <Skeleton className="h-40 rounded-2xl" />
+                <Skeleton className="h-48 rounded-2xl" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -45,21 +65,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-8">
-      <header>
-        <h1 className="font-serif text-2xl md:text-3xl font-bold text-white">
-          {DASHBOARD_COPY.pageTitle}
-        </h1>
-      </header>
+    <div className="relative min-h-screen">
+      {/* Fixed Header */}
+      <AtelierHeader isScrolled={isScrolled} />
 
-      <HeroSection
-        state={state}
-        processingProject={processingProject}
-        onCreateProject={handleCreateProject}
-        isCreatingProject={isCreating}
-      />
-
-      <GallerySection pictorials={pictorials} isLoading={isStateLoading} />
+      {/* Main Content */}
+      <div className={cn('relative z-10 w-full max-w-7xl mx-auto px-8', HEADER_HEIGHT.padding, 'pb-12')}>
+        <AnimatePresence mode="wait">
+          {step === 'home' && (
+            <DashboardHome
+              key="home"
+              onStartNew={handleStartNew}
+            />
+          )}
+          {/* theme, shooting 단계는 추후 구현 */}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

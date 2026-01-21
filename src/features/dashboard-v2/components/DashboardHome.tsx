@@ -1,0 +1,259 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Lightbulb, Sparkles, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ProjectCard } from './ProjectCard';
+import { FeaturedThemeWidget } from './FeaturedThemeWidget';
+import { LookbookCard } from './LookbookCard';
+import type { DashboardHomeProps } from '../types';
+import { ATELIER_COPY } from '../constants';
+
+// Mock data for lookbook
+const LOOKBOOK_THEMES = [
+  {
+    id: 'garden',
+    themeName: 'Garden Whisper',
+    description: 'Soft sunlight filtering through blooming hydrangeas.',
+    image:
+      'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=400&fit=crop',
+  },
+  {
+    id: 'midnight',
+    themeName: 'Midnight Vogue',
+    description: 'High-contrast flash photography in the city.',
+    image:
+      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=400&fit=crop',
+  },
+  {
+    id: 'vintage',
+    themeName: 'Vintage Film',
+    description: 'Nostalgic grain and warm tones of the 90s.',
+    image:
+      'https://images.unsplash.com/photo-1511285560982-1351cdeb9821?q=80&w=400&fit=crop',
+  },
+  {
+    id: 'ethereal',
+    themeName: 'Ethereal Mist',
+    description: 'Dreamy fog and soft pastel color palettes.',
+    image:
+      'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=400&fit=crop',
+  },
+];
+
+export function DashboardHome({ onStartNew, className }: DashboardHomeProps) {
+  // TODO: 실제 프로젝트 데이터 연동
+  const projects: Array<{
+    id: string;
+    title: string;
+    date: string;
+    image: string;
+    status: 'processing' | 'completed';
+  }> = [
+    {
+      id: '1',
+      title: 'Summer Wedding',
+      date: 'Dec 15, 2024',
+      image: 'https://picsum.photos/seed/project1/400/600',
+      status: 'completed',
+    },
+    {
+      id: '2',
+      title: 'Garden Party',
+      date: 'Dec 10, 2024',
+      image: 'https://picsum.photos/seed/project2/400/600',
+      status: 'processing',
+    },
+  ];
+
+  // TODO: 실제 사용자 이름 연동
+  const userName = 'Ji-min';
+
+  return (
+    <main
+      data-testid="dashboard-home"
+      className={cn(
+        'w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 pb-20',
+        className
+      )}
+    >
+      {/* Main Content (8 columns) */}
+      <div
+        data-testid="main-content"
+        className="lg:col-span-8 flex flex-col gap-12"
+      >
+        {/* Greeting Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="space-y-4"
+        >
+          <h1 className="text-5xl md:text-6xl font-serif font-medium leading-tight text-gray-900">
+            {ATELIER_COPY.reception.greeting(userName)}
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-500">
+              {ATELIER_COPY.reception.userName(userName)}.
+            </span>
+          </h1>
+          <p className="text-gray-500 font-light flex items-center gap-2 text-lg">
+            <Sparkles size={18} className="text-purple-400" />
+            {ATELIER_COPY.reception.subtitle}
+          </p>
+        </motion.section>
+
+        {/* Projects Grid */}
+        <div
+          data-testid="projects-grid"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          {/* New Project Card - Always First */}
+          <ProjectCard
+            type="new"
+            title="Start New Shooting"
+            onClick={onStartNew}
+          />
+
+          {/* Existing Projects */}
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              type="existing"
+              title={project.title}
+              date={project.date}
+              image={project.image}
+              status={project.status}
+            />
+          ))}
+        </div>
+
+        {/* Curated Lookbook Section */}
+        <div
+          data-testid="lookbook-section"
+          className="pt-8 border-t border-gray-100/50"
+        >
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-2xl font-serif font-bold text-gray-900 flex items-center gap-2">
+              {ATELIER_COPY.reception.curatedLookbook}
+              <Sparkles className="text-purple-400" size={20} />
+            </h2>
+            <button
+              type="button"
+              className="text-sm text-gray-400 hover:text-purple-600 transition-colors font-medium"
+            >
+              {ATELIER_COPY.reception.viewAll}
+            </button>
+          </div>
+
+          {/* Horizontal Scroll Gallery */}
+          <div className="flex gap-4 overflow-x-auto pb-8 -mx-4 px-4 scrollbar-hide snap-x">
+            {LOOKBOOK_THEMES.map((theme) => (
+              <LookbookCard
+                key={theme.id}
+                themeName={theme.themeName}
+                description={theme.description}
+                image={theme.image}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Side Content (4 columns) */}
+      <div
+        data-testid="side-content"
+        className="lg:col-span-4 space-y-8 pt-8 lg:pt-0"
+      >
+        {/* Artist's Tip Widget - Glass Morphism */}
+        <motion.div
+          data-testid="tip-widget"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[32px] p-6 shadow-lg"
+        >
+          <h3 className="text-lg font-serif font-bold mb-4 flex items-center gap-2 text-gray-800">
+            <Lightbulb className="text-amber-500 fill-amber-100" size={20} />
+            {ATELIER_COPY.widgets.artistTip.title}
+          </h3>
+          <div className="space-y-3">
+            {ATELIER_COPY.widgets.artistTip.tips.map((tip, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 rounded-2xl bg-white/50 border border-white/40 hover:bg-white/80 transition-colors"
+              >
+                <div className="mt-0.5 p-1 rounded-full bg-green-100 text-green-600">
+                  <Check size={10} strokeWidth={4} />
+                </div>
+                <p className="text-sm font-medium text-gray-700 leading-snug">
+                  {tip}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Featured Theme Widget */}
+        <motion.div
+          data-testid="theme-widget"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <FeaturedThemeWidget
+            themeName="Royal Palace"
+            description="Experience the elegance of a royal wedding ceremony."
+            image="https://images.unsplash.com/photo-1546193430-c2d207739ed7?q=80&w=800&fit=crop"
+          />
+        </motion.div>
+
+        {/* Membership Widget - Dark Gradient */}
+        <motion.div
+          data-testid="membership-widget"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="group bg-gradient-to-br from-[#191F28] to-[#2D3748] rounded-[32px] p-6 shadow-xl text-white relative overflow-hidden"
+        >
+          {/* Background Ambient Light */}
+          <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-colors duration-700" />
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-serif font-bold">
+                {ATELIER_COPY.widgets.membership.title}
+              </h3>
+              <span className="px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold tracking-widest uppercase border border-white/10">
+                {ATELIER_COPY.widgets.membership.freePlan}
+              </span>
+            </div>
+
+            {/* Credits Display */}
+            <div className="mb-6">
+              <div className="flex justify-between text-xs font-medium text-gray-300 mb-2">
+                <span>{ATELIER_COPY.widgets.membership.credits}</span>
+                <span>3 / 4</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: '75%' }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                  className="h-full bg-gradient-to-r from-purple-400 to-blue-400"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="w-full py-3 px-4 rounded-xl bg-white text-[#191F28] font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-purple-500/20"
+            >
+              {ATELIER_COPY.widgets.membership.upgrade}
+              <Sparkles size={16} className="text-purple-600 fill-purple-200" />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </main>
+  );
+}

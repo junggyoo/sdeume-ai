@@ -1,56 +1,28 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
-import React, { ReactNode } from "react";
+import { motion } from 'framer-motion';
 
-export interface AuroraBackgroundProps extends React.HTMLProps<HTMLDivElement> {
-  children?: ReactNode;
-  showRadialGradient?: boolean;
-}
-
-export function AuroraBackground({
-  className,
-  children,
-  showRadialGradient = true,
-  ...props
-}: AuroraBackgroundProps) {
+export function AuroraBackground() {
   return (
     <div
       data-testid="aurora-background"
-      className={cn(
-        "relative flex flex-col h-[100vh] items-center justify-center bg-zinc-50 dark:bg-[#0E1B2A] text-slate-950 transition-bg",
-        className
-      )}
-      {...props}
+      className="fixed inset-0 pointer-events-none overflow-hidden z-0"
     >
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          data-testid="aurora-effect-layer"
-          data-radial-gradient={showRadialGradient ? "true" : "false"}
-          className={cn(
-            `[--white-gradient:repeating-linear-gradient(100deg,var(--white)_0%,var(--white)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--white)_16%)]`,
-            `[--dark-gradient:repeating-linear-gradient(100deg,var(--black)_0%,var(--black)_7%,var(--transparent)_10%,var(--transparent)_12%,var(--black)_16%)]`,
-            `[--aurora:repeating-linear-gradient(100deg,var(--indigo-500)_10%,var(--purple-400)_15%,var(--pink-300)_20%,var(--violet-300)_25%,var(--indigo-400)_30%)]`,
-            `[background-image:var(--white-gradient),var(--aurora)]`,
-            `dark:[background-image:var(--dark-gradient),var(--aurora)]`,
-            `[background-size:300%,_200%]`,
-            `[background-position:50%_50%,50%_50%]`,
-            "filter blur-[10px] invert dark:invert-0",
-            `after:content-[""] after:absolute after:inset-0`,
-            `after:[background-image:var(--white-gradient),var(--aurora)]`,
-            `after:dark:[background-image:var(--dark-gradient),var(--aurora)]`,
-            `after:[background-size:200%,_100%]`,
-            "after:animate-aurora after:[background-attachment:fixed]",
-            "after:mix-blend-difference",
-            "pointer-events-none absolute -inset-[10px] opacity-50 will-change-transform",
-            "motion-reduce:after:animate-none",
-            showRadialGradient &&
-              `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,var(--transparent)_70%)]`
-          )}
-          aria-hidden="true"
-        />
-      </div>
-      {children}
+      <motion.div
+        animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        className="absolute -top-[10%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-purple-100/40 blur-[100px]"
+      />
+      <motion.div
+        animate={{ scale: [1.1, 1, 1.1], rotate: [0, -45, 0] }}
+        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+        className="absolute top-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-blue-100/40 blur-[100px]"
+      />
+      <motion.div
+        animate={{ opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute bottom-[10%] left-[20%] w-[50vw] h-[50vw] rounded-full bg-pink-100/30 blur-[100px]"
+      />
     </div>
   );
 }
