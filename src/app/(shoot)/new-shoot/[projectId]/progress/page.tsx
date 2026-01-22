@@ -6,23 +6,18 @@ import { AnimatePresence, motion } from 'framer-motion';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
 import WifiOff from 'lucide-react/dist/esm/icons/wifi-off';
-import Home from 'lucide-react/dist/esm/icons/home';
 import { useProject } from '@/features/project/hooks/useProject';
 import { useProjectGeneration } from '@/features/generation/hooks/useProjectGeneration';
 import { useGenerationJob } from '@/features/generation/hooks/useGenerationJob';
 import { useThemes } from '@/features/theme/hooks/useThemes';
 import { AuroraBackground } from '@/features/shooting/components';
 import {
-  WaitingContent,
-  CompleteScreen,
-  DesktopPoster,
-} from '@/features/shooting/components/waiting';
-import {
   PROGRESS_CONFIG,
   type WaitingPhase,
 } from '@/features/shooting/constants';
 import { Button } from '@/components/ui/button';
 import { useNetworkState } from 'react-use';
+import GeneratingStage, { type GeneratingPhase } from '@/components/GeneratingStage';
 import type {
   GenerationImage,
   GenerationStatus,
@@ -58,6 +53,12 @@ function determinePhase(
 
 function mapPhaseToWaitingPhase(phase: Phase): WaitingPhase {
   if (phase === 'training') return 'learning';
+  if (phase === 'generating') return 'generating';
+  return 'complete';
+}
+
+function mapPhaseToGeneratingPhase(phase: Phase): GeneratingPhase {
+  if (phase === 'training') return 'training';
   if (phase === 'generating') return 'generating';
   return 'complete';
 }
@@ -121,7 +122,7 @@ export default function ProgressPage() {
     return themes.find((t) => t.id === project.selectedThemeId) || null;
   }, [project?.selectedThemeId, themes]);
 
-  const themeName = selectedTheme?.name || '가든 스튜디오';
+  const themeImage = selectedTheme?.thumbnailUrl || selectedTheme?.sampleImages?.[0] || '/images/default-theme.jpg';
 
   useEffect(() => {
     if (isLoadingGeneration || isCreating || isRegenerating || !project) return;
@@ -176,6 +177,7 @@ export default function ProgressPage() {
   );
 
   const waitingPhase = useMemo(() => mapPhaseToWaitingPhase(phase), [phase]);
+  const generatingPhase = useMemo(() => mapPhaseToGeneratingPhase(phase), [phase]);
 
   useEffect(() => {
     if (phase === 'loading' || phase === 'error' || phase === 'completed') {
@@ -213,10 +215,6 @@ export default function ProgressPage() {
     }
   }, [phase]);
 
-  const handleHomeClick = useCallback(() => {
-    router.push('/dashboard');
-  }, [router]);
-
   const handleViewResults = useCallback(() => {
     router.push(`/new-shoot/${params.projectId}/results`);
   }, [router, params.projectId]);
@@ -224,18 +222,6 @@ export default function ProgressPage() {
   const handleRetry = useCallback(() => {
     router.push(`/new-shoot/${params.projectId}/step2`);
   }, [router, params.projectId]);
-
-  const handleShare = useCallback(() => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: '스드메 AI 화보',
-          text: `${themeName} 컨셉으로 완성된 아름다운 AI 웨딩 화보를 확인하세요!`,
-          url: window.location.href,
-        })
-        .catch(console.error);
-    }
-  }, [themeName]);
 
   if (!isOnline && isPolling) {
     return (
@@ -269,106 +255,22 @@ export default function ProgressPage() {
             </motion.div>
           )}
 
-          {(phase === 'training' || phase === 'generating') && (
+          {(phase === 'training' || phase === 'generating' || phase === 'completed') && (
             <motion.div
-              key="waiting"
+              key="generating"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="min-h-screen"
             >
-              <div className="hidden lg:grid lg:grid-cols-2 lg:h-screen">
-                <div className="p-8 flex flex-col h-full overflow-hidden">
-                  <header className="flex items-center justify-between mb-6 shrink-0">
-                    <button
-                      onClick={handleHomeClick}
-                      className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-                    >
-                      <Home className="w-5 h-5" />
-                      <span>마이 스튜디오</span>
-                    </button>
-                    <div className="text-center">
-                      <p className="text-sm text-white font-medium">
-                        촬영 진행 중
-                      </p>
-                    </div>
-                  </header>
-
-                  <div className="flex-1 min-h-0">
-                    <DesktopPoster theme={selectedTheme} imageCount={12} />
-                  </div>
-                </div>
-
-                <div className="h-full overflow-y-auto flex flex-col">
-                  <div className="flex-1">
-                    <WaitingContent
-                      phase={waitingPhase}
-                      progress={progress}
-                      themeName={themeName}
-                      onHomeClick={handleHomeClick}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:hidden">
-                <WaitingContent
-                  phase={waitingPhase}
-                  progress={progress}
-                  themeName={themeName}
-                  onHomeClick={handleHomeClick}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {phase === 'completed' && (
-            <motion.div
-              key="completed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div className="hidden lg:grid lg:grid-cols-2 lg:h-screen">
-                <div className="p-8 flex flex-col h-full overflow-hidden">
-                  <header className="flex items-center justify-between mb-6 shrink-0">
-                    <button
-                      onClick={handleHomeClick}
-                      className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-                    >
-                      <Home className="w-5 h-5" />
-                      <span>마이 스튜디오</span>
-                    </button>
-                  </header>
-                  <div className="flex-1 min-h-0">
-                    <DesktopPoster
-                      theme={selectedTheme}
-                      imageCount={generation?.images?.length || 12}
-                    />
-                  </div>
-                </div>
-
-                <div className="h-full overflow-y-auto flex flex-col">
-                  <div className="flex-1">
-                    <CompleteScreen
-                      images={generation?.images || []}
-                      themeName={themeName}
-                      onViewResults={handleViewResults}
-                      onShare={handleShare}
-                      onHomeClick={handleHomeClick}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:hidden">
-                <CompleteScreen
-                  images={generation?.images || []}
-                  themeName={themeName}
-                  onViewResults={handleViewResults}
-                  onShare={handleShare}
-                  onHomeClick={handleHomeClick}
-                />
-              </div>
+              <GeneratingStage
+                themeImage={themeImage}
+                onFinish={handleViewResults}
+                controlledPhase={generatingPhase}
+                controlledProgress={progress}
+                completedPhotos={generation?.images?.length ?? 0}
+                totalPhotos={12}
+              />
             </motion.div>
           )}
 
