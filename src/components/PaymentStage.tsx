@@ -40,36 +40,36 @@ interface PaymentStageProps {
 const PLANS: Plan[] = [
   {
     id: 'basic',
-    name: 'Essential',
-    price: '29,900',
-    originalPrice: '39,900',
-    features: ['12 Photos', '1 Regeneration', 'Standard Quality', 'JPG Download'],
+    name: 'Basic',
+    price: '19,900',
+    originalPrice: '29,900',
+    features: ['1개 테마', '12장 제공', '재생성 1회', 'JPG 다운로드'],
     saveBadge: null,
   },
   {
     id: 'pro',
     name: 'Signature',
-    price: '49,900',
-    originalPrice: '69,900',
+    price: '49,000',
+    originalPrice: '69,000',
     isBest: true,
-    features: ['36 Photos', '3 Regenerations', '3 Themes', 'High Resolution', 'Priority Processing'],
+    features: ['3개 테마', '36장 제공', '재생성 3회', '세부 보정 5회', '고해상도 다운로드'],
     saveBadge: { text: 'SAVE 33%', color: 'bg-purple-600 text-white' },
   },
   {
     id: 'max',
     name: 'Masterpiece',
-    price: '79,900',
-    originalPrice: '129,900',
-    features: ['60 Photos', '5 Regenerations', '5 Themes', '4K Ultra HD', 'Raw Files Included'],
+    price: '99,000',
+    originalPrice: '149,000',
+    features: ['테마 무제한', '60장 제공', '재생성 무제한', '세부 보정 무제한', '4K 초고해상도'],
     saveBadge: { text: 'SAVE 40%', color: 'bg-[#191F28] text-white' },
   },
 ];
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'card', name: 'Credit Card', icon: CreditCard },
-  { id: 'kakaopay', name: 'Kakao Pay', icon: Wallet },
-  { id: 'toss', name: 'Toss', icon: Smartphone },
-  { id: 'naverpay', name: 'Naver Pay', icon: Wallet },
+  { id: 'card', name: '신용카드', icon: CreditCard },
+  { id: 'kakaopay', name: '카카오페이', icon: Wallet },
+  { id: 'toss', name: '토스', icon: Smartphone },
+  { id: 'naverpay', name: '네이버페이', icon: Wallet },
 ];
 
 export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
@@ -91,10 +91,10 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
         </button>
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-serif text-gray-900 leading-tight">
-            Choose your <span className="italic text-purple-600">Collection.</span>
+            나만의 <span className="italic text-purple-600">패키지</span> 선택
           </h1>
           <p className="text-lg text-gray-500 font-light">
-            Select the perfect package to preserve your moments.
+            소중한 순간을 담을 완벽한 패키지를 선택하세요.
           </p>
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
                     isSelected ? 'bg-purple-50 text-purple-700' : 'bg-gray-50 text-gray-400'
                   )}
                 >
-                  {isSelected ? 'Selected' : 'Select Plan'}
+                  {isSelected ? '선택됨' : '선택하기'}
                 </div>
               </div>
             </motion.button>
@@ -196,7 +196,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
         transition={{ delay: 0.3 }}
         className="mt-16 max-w-2xl mx-auto px-6"
       >
-        <h2 className="text-lg font-serif font-bold mb-6 text-center text-gray-900">Payment Method</h2>
+        <h2 className="text-lg font-serif font-bold mb-6 text-center text-gray-900">결제 수단</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {PAYMENT_METHODS.map((method) => {
             const Icon = method.icon;
@@ -232,10 +232,10 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
         <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-sm text-gray-500 bg-purple-50/50 py-4 px-6 rounded-2xl border border-purple-100/80 text-center">
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-purple-600" />
-            <span className="font-semibold text-gray-700">100% Money-back Guarantee</span>
+            <span className="font-semibold text-gray-700">안 닮으면 100% 환불</span>
           </div>
           <span className="hidden md:inline w-1 h-1 rounded-full bg-gray-300" />
-          <span>If you&apos;re not satisfied with the results.</span>
+          <span>결과물이 만족스럽지 않으면 전액 환불해 드립니다.</span>
         </div>
       </motion.div>
 
@@ -248,9 +248,9 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
           <div className="hidden md:flex flex-col">
-            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Selected Plan</p>
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">선택한 패키지</p>
             <p data-testid="footer-plan-name" className="text-xl font-serif font-bold text-gray-900">
-              {selectedPlan.name} Collection
+              {selectedPlan.name} 패키지
             </p>
           </div>
 
@@ -259,8 +259,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
               <p className="text-xs text-gray-400 line-through decoration-gray-300 font-medium">
                 ₩{selectedPlan.originalPrice}
               </p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-sm text-purple-600 font-bold">Total</span>
+              <div className="flex items-baseline">
                 <p data-testid="footer-plan-price" className="text-2xl md:text-3xl font-bold text-gray-900 font-serif">
                   ₩{selectedPlan.price}
                 </p>
@@ -271,7 +270,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
               onClick={onNext}
               className="shrink-0 px-6 md:px-12 py-4 bg-[#191F28] text-white rounded-full font-bold text-base md:text-lg hover:scale-105 active:scale-95 transition-all shadow-lg shadow-purple-900/20 flex items-center justify-center gap-2 group whitespace-nowrap"
             >
-              <span>Pay &amp; Start</span>
+              <span>결제하고 시작하기</span>
               <Sparkles size={18} className="text-purple-400 group-hover:animate-spin" />
             </button>
           </div>

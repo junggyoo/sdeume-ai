@@ -84,11 +84,11 @@ export function ThemeSelectionStage({
             Dreamy Moments
           </span>
           <span className="italic text-gray-400 text-3xl md:text-5xl font-light">
-            Capture Your Light
+            당신만의 빛을 담아보세요
           </span>
         </h2>
         <p className="text-lg md:text-xl text-gray-500 font-light max-w-2xl mx-auto">
-          Select a studio atmosphere to begin your session.
+        원하는 스튜디오 분위기를 선택하고 촬영을 시작하세요.
         </p>
       </div>
 
