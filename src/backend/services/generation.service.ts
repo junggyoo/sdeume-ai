@@ -259,8 +259,9 @@ export const handleFalWebhookForGeneration = async (
 
   // 5. Determine lora URLs from joined data
   // Supabase FK JOIN (many-to-one) returns a single object, not an array
-  const groomLoraData = generation.groom_lora as { model_url: string | null } | null;
-  const brideLoraData = generation.bride_lora as { model_url: string | null } | null;
+  // Cast through unknown to satisfy TypeScript's strict type checking
+  const groomLoraData = generation.groom_lora as unknown as { model_url: string | null } | null;
+  const brideLoraData = generation.bride_lora as unknown as { model_url: string | null } | null;
 
   const groomLoraUrl = groomLoraData?.model_url || null;
   const brideLoraUrl = brideLoraData?.model_url || null;
