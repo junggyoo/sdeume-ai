@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LOGIN_PATH } from '@/constants/auth';
 import { AuroraBackground } from '@/components/ui/aurora/AuroraBackground';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 export default async function DashboardGroupLayout({
   children,
@@ -22,8 +23,11 @@ export default async function DashboardGroupLayout({
       {/* Aurora Background */}
       <AuroraBackground />
 
+      {/* Header */}
+      <AppHeader variant="light" />
+
       {/* Main Content */}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 pt-24">{children}</div>
     </div>
   );
 }

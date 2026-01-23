@@ -201,7 +201,7 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#FAFAFA] px-6 py-12 pb-40">
+    <div className="w-full min-h-screen bg-[#FAFAFA] px-6 pt-32 pb-40">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

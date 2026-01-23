@@ -71,6 +71,33 @@ interface GenerationRow {
   created_at: string;
 }
 
+interface UploadRow {
+  role: 'groom' | 'bride';
+}
+
+/**
+ * Calculate upload counts from uploads array
+ */
+const calculateUploadCounts = (
+  uploads: UploadRow[] | null | undefined
+): { groomCount: number; brideCount: number } => {
+  if (!uploads || uploads.length === 0) {
+    return { groomCount: 0, brideCount: 0 };
+  }
+
+  return uploads.reduce(
+    (acc, upload) => {
+      if (upload.role === 'groom') {
+        acc.groomCount++;
+      } else if (upload.role === 'bride') {
+        acc.brideCount++;
+      }
+      return acc;
+    },
+    { groomCount: 0, brideCount: 0 }
+  );
+};
+
 /**
  * Extract the latest generation from joined generations array
  * Returns the most recent one by created_at
@@ -97,20 +124,26 @@ const extractLatestGeneration = (
   };
 };
 
-const mapRowToProject = (row: Record<string, unknown>): Project => ({
-  id: row.id as string,
-  userId: row.user_id as string,
-  name: row.name as string | null,
-  status: row.status as Project['status'],
-  currentStep: ((row.current_step as number) || 1) as Project['currentStep'],
-  selectedThemeId: row.selected_theme_id as string | null,
-  planId: row.plan_id as string | null,
-  groomUploadCount: (row.groom_upload_count as number) || 0,
-  brideUploadCount: (row.bride_upload_count as number) || 0,
-  createdAt: row.created_at as string,
-  updatedAt: row.updated_at as string,
-  latestGeneration: extractLatestGeneration(row.generations as GenerationRow[] | null),
-});
+const mapRowToProject = (row: Record<string, unknown>): Project => {
+  // uploads 배열에서 실시간 count 계산
+  const uploads = row.uploads as UploadRow[] | null | undefined;
+  const { groomCount, brideCount } = calculateUploadCounts(uploads);
+
+  return {
+    id: row.id as string,
+    userId: row.user_id as string,
+    name: row.name as string | null,
+    status: row.status as Project['status'],
+    currentStep: ((row.current_step as number) || 1) as Project['currentStep'],
+    selectedThemeId: row.selected_theme_id as string | null,
+    planId: row.plan_id as string | null,
+    groomUploadCount: groomCount,
+    brideUploadCount: brideCount,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+    latestGeneration: extractLatestGeneration(row.generations as GenerationRow[] | null),
+  };
+};
 
 // =============================================================================
 // Service Functions
@@ -139,6 +172,12 @@ const createProject = async (
   return success(mapRowToProject(data));
 };
 
+// Select query with uploads for counting
+const PROJECT_SELECT_WITH_UPLOADS = `
+  *,
+  uploads(role)
+`;
+
 const getProjectById = async (
   supabase: SupabaseClient,
   projectId: string,
@@ -146,7 +185,7 @@ const getProjectById = async (
 ): Promise<HandlerResult<Project, ProjectServiceError>> => {
   const { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select(PROJECT_SELECT_WITH_UPLOADS)
     .eq('id', projectId)
     .eq('user_id', userId)
     .single();
@@ -161,10 +200,11 @@ const getProjectById = async (
   return success(mapRowToProject(data));
 };
 
-// Select query with generations JOIN for dashboard state
+// Select query with generations and uploads JOIN for dashboard state
 const PROJECT_SELECT_WITH_GENERATIONS = `
   *,
-  generations(id, status, images, completed_at, created_at)
+  generations(id, status, images, completed_at, created_at),
+  uploads(role)
 `;
 
 const getProjectsByUserId = async (

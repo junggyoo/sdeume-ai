@@ -1,10 +1,14 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import pLimit from 'p-limit';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { useUploadStore } from '../store/upload-store';
 import type { UploadRole, QueuedFile, Upload } from '../types';
+
+// 동시 업로드 제한 (서버 부하 방지)
+const CONCURRENT_UPLOAD_LIMIT = 5;
 
 interface UploadResult {
   ok: true;
@@ -121,6 +125,9 @@ export function useUploadToStorage({
     [uploadMutation, updateQueueItem]
   );
 
+  // 진행률 추적을 위한 ref (클로저 문제 방지)
+  const progressRef = useRef(0);
+
   const syncUploadsToServer = useCallback(
     async (role: UploadRole, options?: SyncOptions): Promise<Upload[]> => {
       const queue = getQueue(role);
@@ -138,38 +145,50 @@ export function useUploadToStorage({
       setIsSyncing(true);
       setSyncTotal(completedItems.length);
       setSyncProgress(0);
+      progressRef.current = 0;
 
       const uploads: Upload[] = [];
       const effectiveProjectId = options?.projectIdOverride ?? projectId;
 
-      for (let i = 0; i < completedItems.length; i++) {
-        const item = completedItems[i];
-        try {
-          // If override is provided, use uploadSingleImage directly with the new projectId
-          if (options?.projectIdOverride) {
-            updateQueueItem(item.id, item.role, { status: 'uploading' });
-            const upload = await uploadSingleImage(effectiveProjectId, item);
-            updateQueueItem(item.id, item.role, { status: 'synced' });
-            uploads.push(upload);
-            onUploadComplete?.(upload);
-          } else {
-            const upload = await uploadImage(item);
-            if (upload) {
+      // p-limit으로 동시 업로드 수 제한
+      const limit = pLimit(CONCURRENT_UPLOAD_LIMIT);
+
+      // 각 파일에 대한 업로드 작업 생성
+      const uploadTasks = completedItems.map((item) =>
+        limit(async () => {
+          try {
+            // If override is provided, use uploadSingleImage directly with the new projectId
+            if (options?.projectIdOverride) {
+              updateQueueItem(item.id, item.role, { status: 'uploading' });
+              const upload = await uploadSingleImage(effectiveProjectId, item);
+              updateQueueItem(item.id, item.role, { status: 'synced' });
               uploads.push(upload);
+              onUploadComplete?.(upload);
+            } else {
+              const upload = await uploadImage(item);
+              if (upload) {
+                uploads.push(upload);
+              }
             }
+          } catch (error) {
+            if (options?.projectIdOverride) {
+              updateQueueItem(item.id, item.role, {
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Upload failed',
+              });
+              onError?.(error instanceof Error ? error : new Error('Upload failed'));
+            }
+            // Continue with other items (don't throw)
+          } finally {
+            // 각 파일 완료 시 진행률 업데이트
+            progressRef.current += 1;
+            setSyncProgress(progressRef.current);
           }
-        } catch (error) {
-          if (options?.projectIdOverride) {
-            updateQueueItem(item.id, item.role, {
-              status: 'error',
-              error: error instanceof Error ? error.message : 'Upload failed',
-            });
-            onError?.(error instanceof Error ? error : new Error('Upload failed'));
-          }
-          // Continue with next item
-        }
-        setSyncProgress(i + 1);
-      }
+        })
+      );
+
+      // 모든 업로드 작업 병렬 실행 (p-limit이 동시성 제한)
+      await Promise.all(uploadTasks);
 
       setIsSyncing(false);
       setSyncProgress(0);

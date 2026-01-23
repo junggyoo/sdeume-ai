@@ -86,12 +86,14 @@ export function UserMenu({
   planType = 'free',
   remainingCount = 3,
   totalCount = 5,
+  variant = 'light',
   className,
 }: UserMenuProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isDark = variant === 'dark';
 
   // 로그아웃 핸들러
   const handleLogout = useCallback(async () => {
@@ -174,18 +176,36 @@ export function UserMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 p-1 pr-3 rounded-full bg-white/40 hover:bg-white/60 border border-white/60 transition-all shadow-sm backdrop-blur-md"
+        className={cn(
+          'flex items-center gap-3 p-1 pr-3 rounded-full transition-all shadow-sm backdrop-blur-md',
+          isDark
+            ? 'bg-white/10 hover:bg-white/20 border border-white/20'
+            : 'bg-white/40 hover:bg-white/60 border border-white/60'
+        )}
       >
-        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-200 to-blue-200 border border-white shadow-inner flex items-center justify-center text-purple-700 font-bold text-xs">
+        <div
+          className={cn(
+            'w-9 h-9 rounded-full bg-gradient-to-tr border shadow-inner flex items-center justify-center font-bold text-xs',
+            isDark
+              ? 'from-purple-400 to-blue-400 border-white/30 text-white'
+              : 'from-purple-200 to-blue-200 border-white text-purple-700'
+          )}
+        >
           {getInitials()}
         </div>
-        <span className="text-sm font-medium text-gray-700 hidden md:block">
+        <span
+          className={cn(
+            'text-sm font-medium hidden md:block',
+            isDark ? 'text-white' : 'text-gray-700'
+          )}
+        >
           {userName}
         </span>
         <ChevronDown
           size={14}
           className={cn(
-            'text-gray-400 transition-transform duration-300',
+            'transition-transform duration-300',
+            isDark ? 'text-gray-300' : 'text-gray-400',
             isOpen && 'rotate-180'
           )}
         />

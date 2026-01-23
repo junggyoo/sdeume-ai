@@ -4,11 +4,13 @@ import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import { cn } from '@/lib/utils';
-import type { QueuedFile } from '@/features/upload/types';
+import type { QueuedFile, Upload } from '@/features/upload/types';
 import { AtelierPhotoCard } from './AtelierPhotoCard';
+import { ExistingUploadCard } from './ExistingUploadCard';
 
 interface AtelierPhotoGridProps {
   items: QueuedFile[];
+  existingUploads?: Upload[];
   onRemove: (id: string) => void;
   onAddMore: (files: File[]) => void;
   maxPhotos?: number;
@@ -18,6 +20,7 @@ const ACCEPTED_TYPES = '.jpg,.jpeg,.png,.webp,.heic,.heif';
 
 export function AtelierPhotoGrid({
   items,
+  existingUploads = [],
   onRemove,
   onAddMore,
   maxPhotos = 20,
@@ -42,9 +45,12 @@ export function AtelierPhotoGrid({
     [onAddMore]
   );
 
-  const canAddMore = items.length < maxPhotos;
+  // Combined count of existing uploads + new uploads in queue
+  const totalCount = existingUploads.length + items.length;
+  const canAddMore = totalCount < maxPhotos;
 
-  if (items.length === 0) {
+  // Don't render if there are no items to display
+  if (totalCount === 0) {
     return null;
   }
 
@@ -56,7 +62,7 @@ export function AtelierPhotoGrid({
           업로드된 사진
         </h3>
         <span className="text-sm text-gray-500">
-          {items.length}/{maxPhotos}장
+          {totalCount}/{maxPhotos}장
         </span>
       </div>
 
@@ -88,14 +94,23 @@ export function AtelierPhotoGrid({
           </motion.button>
         )}
 
-        {/* Photo cards */}
+        {/* Existing uploads (read-only) */}
+        {existingUploads.map((upload, index) => (
+          <ExistingUploadCard
+            key={upload.id}
+            upload={upload}
+            index={index}
+          />
+        ))}
+
+        {/* New photo cards (from local queue) */}
         <AnimatePresence mode="popLayout">
           {items.map((item, index) => (
             <AtelierPhotoCard
               key={item.id}
               item={item}
               onRemove={onRemove}
-              index={index}
+              index={existingUploads.length + index}
             />
           ))}
         </AnimatePresence>

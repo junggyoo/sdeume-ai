@@ -64,17 +64,34 @@ export function ThemeSelectionStage({
   return (
     <div className="w-full flex flex-col items-center px-6 py-12 pb-32">
       {/* Header */}
-      <div className="relative w-full text-center mb-12 md:mb-16 space-y-4 max-w-7xl">
+      <div 
+        className="relative w-full text-center mb-12 md:mb-16 space-y-4 max-w-7xl"
+        onClick={(e) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:headerDiv',message:'Header div clicked',data:{targetTag:(e.target as HTMLElement).tagName,targetClass:(e.target as HTMLElement).className?.slice?.(0,50)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+          // #endregion
+        }}
+      >
         <button
-          onClick={onBack}
-          className="absolute left-0 top-0 md:hidden text-gray-400 hover:text-gray-900 transition-colors"
+          onClick={() => {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:mobileBackBtn',message:'Mobile back button clicked',data:{onBackType:typeof onBack,onBackExists:!!onBack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
+            // #endregion
+            onBack();
+          }}
+          className="absolute left-0 top-0 md:hidden text-gray-400 hover:text-gray-900 transition-colors z-50"
         >
           <ArrowLeft size={24} />
         </button>
 
         <button
-          onClick={onBack}
-          className="absolute left-0 top-2 text-gray-400 hover:text-gray-900 text-sm items-center gap-1 transition-colors hidden md:flex"
+          onClick={() => {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:desktopBackBtn',message:'Desktop back button clicked',data:{onBackType:typeof onBack,onBackExists:!!onBack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
+            // #endregion
+            onBack();
+          }}
+          className="absolute left-0 top-2 text-gray-400 hover:text-gray-900 text-sm items-center gap-1 transition-colors hidden md:flex z-50"
         >
           <ArrowLeft size={14} /> Back
         </button>

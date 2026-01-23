@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SimpleHeader } from '@/components/shoot/SimpleHeader';
 import { LOGIN_PATH } from '@/constants/auth';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 export default async function ShootGroupLayout({
   children,
@@ -18,8 +18,8 @@ export default async function ShootGroupLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <SimpleHeader />
+    <div className="min-h-screen">
+      <AppHeader variant="light" />
       <main>{children}</main>
     </div>
   );

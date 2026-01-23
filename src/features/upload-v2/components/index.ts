@@ -4,6 +4,7 @@ export { AtelierRoleSwitcher } from './AtelierRoleSwitcher';
 export { AtelierDropzone } from './AtelierDropzone';
 export { AtelierPhotoCard } from './AtelierPhotoCard';
 export { AtelierPhotoGrid } from './AtelierPhotoGrid';
+export { ExistingUploadCard } from './ExistingUploadCard';
 export { CircularProgressWidget } from './CircularProgressWidget';
 export { QuickGuideWidget } from './QuickGuideWidget';
 export { MagneticButton } from './MagneticButton';

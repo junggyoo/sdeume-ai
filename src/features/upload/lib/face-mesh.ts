@@ -31,9 +31,6 @@ async function loadModels(): Promise<void> {
 			]);
 
 			modelsLoaded = true;
-			console.log(
-				"[face-api] Models loaded successfully (ssdMobilenetv1, landmark, expression)"
-			);
 		} catch (error) {
 			loadingPromise = null;
 			console.error("[face-api] Failed to load models:", error);
@@ -143,7 +140,6 @@ export async function analyzeFace(
 
 		// No face detected
 		if (allDetections.length === 0) {
-			console.log("[face-api] No face detected");
 			const noFaceResult = classifyBucket(0, 0, false, false);
 			return {
 				faceDetected: false,
@@ -180,20 +176,8 @@ export async function analyzeFace(
 				f.faceRatio >= SIGNIFICANT_FACE_SIZE_RATIO
 		);
 
-		console.log(
-			`[face-api] Detected ${allDetections.length} face(s), ` +
-				`${
-					significantFaces.length
-				} significant (conf≥${SIGNIFICANT_FACE_CONFIDENCE}, size≥${
-					SIGNIFICANT_FACE_SIZE_RATIO * 100
-				}%)`
-		);
-
 		// Check for multiple significant faces (not suitable for LoRA training)
 		if (significantFaces.length > 1) {
-			console.log(
-				`[face-api] Multiple significant faces detected: ${significantFaces.length}`
-			);
 			return {
 				faceDetected: true,
 				yawAngle: 0,
@@ -209,9 +193,6 @@ export async function analyzeFace(
 
 		// No significant face found
 		if (significantFaces.length === 0) {
-			console.log(
-				"[face-api] No significant face detected (low confidence or too small)"
-			);
 			return {
 				faceDetected: false,
 				yawAngle: 0,
@@ -232,11 +213,6 @@ export async function analyzeFace(
 
 		// Check if face is too small relative to image (e.g., full body shot)
 		if (largestFace.faceRatio < MIN_FACE_SIZE_RATIO) {
-			console.log(
-				`[face-api] Face too small: ${(largestFace.faceRatio * 100).toFixed(
-					2
-				)}% of image`
-			);
 			return {
 				faceDetected: true,
 				yawAngle: 0,
@@ -262,16 +238,6 @@ export async function analyzeFace(
 
 		// Classify using Waterfall Logic (imported from bucket-classifier)
 		const classification = classifyBucket(yawAngle, happyScore, eyesOpen, true);
-
-		console.log(
-			`[face-api] Face detected - yaw: ${yawAngle}°, happy: ${(
-				happyScore * 100
-			).toFixed(1)}%, ` +
-				`EAR: ${eyeAspectRatio.toFixed(2)}, faceRatio: ${(
-					largestFace.faceRatio * 100
-				).toFixed(1)}%, ` +
-				`bucket: ${classification.bucket}, usable: ${classification.isUsable}`
-		);
 
 		return {
 			faceDetected: true,

@@ -81,22 +81,31 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
   return (
     <div className="w-full max-w-7xl mx-auto pt-8 pb-32">
       {/* Header */}
-      <div className="relative mb-12 px-6">
+      <div className="relative w-full text-center mb-12 md:mb-16 space-y-4 max-w-7xl mx-auto px-6">
+        {/* Mobile Back Button */}
         <button
           onClick={onBack}
           aria-label="뒤로"
-          className="absolute left-6 top-0 text-gray-400 hover:text-gray-900 transition-colors"
+          className="absolute left-6 top-0 md:hidden text-gray-400 hover:text-gray-900 transition-colors z-50"
         >
           <ArrowLeft size={24} />
         </button>
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-serif text-gray-900 leading-tight">
-            나만의 <span className="italic text-purple-600">패키지</span> 선택
-          </h1>
-          <p className="text-lg text-gray-500 font-light">
-            소중한 순간을 담을 완벽한 패키지를 선택하세요.
-          </p>
-        </div>
+
+        {/* Desktop Back Button */}
+        <button
+          onClick={onBack}
+          aria-label="뒤로"
+          className="absolute left-6 top-2 text-gray-400 hover:text-gray-900 text-sm items-center gap-1 transition-colors hidden md:flex z-50"
+        >
+          <ArrowLeft size={14} /> Back
+        </button>
+
+        <h1 className="text-4xl md:text-6xl font-serif text-gray-900 leading-tight">
+          나만의 <span className="italic text-purple-600">패키지</span> 선택
+        </h1>
+        <p className="text-lg text-gray-500 font-light">
+          소중한 순간을 담을 완벽한 패키지를 선택하세요.
+        </p>
       </div>
 
       {/* Pricing Grid */}

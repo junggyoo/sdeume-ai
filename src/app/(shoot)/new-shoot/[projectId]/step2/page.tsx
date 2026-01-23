@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 
 import { useProject } from '@/features/project/hooks/useProject';
 import { useUpdateProject } from '@/features/project/hooks/useUpdateProject';
-import { useSmartNavigation } from '@/features/shoot/hooks/useSmartNavigation';
 import { useThemes } from '@/features/theme/hooks/useThemes';
 import { getThemeWithUI } from '@/features/theme/lib/theme-ui-config';
 import { ThemeSelectionStage } from '@/features/theme/components/theme-selection';
@@ -56,7 +55,6 @@ export default function Step2Page() {
   const { data: project } = useProject(params.projectId);
   const updateProject = useUpdateProject();
   const { data: themes, isLoading } = useThemes();
-  const { goBackFromStep2 } = useSmartNavigation();
 
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
@@ -87,18 +85,35 @@ export default function Step2Page() {
     router.push(`/new-shoot/${params.projectId}/step3`);
   };
 
-  const handleBack = goBackFromStep2;
+  const handleBack = () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'step2/page.tsx:handleBack',message:'handleBack called',data:{projectId:params.projectId,routerExists:!!router},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H2'})}).catch(()=>{});
+    // #endregion
+    try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'step2/page.tsx:handleBack:beforePush',message:'About to call router.push',data:{targetUrl:`/new-shoot/step1?projectId=${params.projectId}`},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
+      router.push(`/new-shoot/step1?projectId=${params.projectId}`);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'step2/page.tsx:handleBack:afterPush',message:'router.push completed',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
+    } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'step2/page.tsx:handleBack:error',message:'Error in handleBack',data:{error:String(err)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+      // #endregion
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-24 flex items-center justify-center">
         <div className="text-gray-500">로딩 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-24">
       <ThemeSelectionStage
         themes={themesWithUI}
         selectedThemeId={selectedTheme}

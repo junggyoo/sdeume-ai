@@ -1,17 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '@/lib/remote/api-client';
 import { useUploadStore } from '@/features/upload/store/upload-store';
 import { useBulkUpload } from '@/features/upload/hooks/useBulkUpload';
 import { useUploadToStorage } from '@/features/upload/hooks/useUploadToStorage';
+import { useProjectUploads } from '@/features/upload/hooks/useProjectUploads';
 import { useFaceDataStatus } from '@/features/face/hooks/useUserFaceModels';
 import { preloadFaceModels } from '@/features/upload/lib/face-mesh';
 import { RECOMMENDED_PHOTOS_PER_ROLE } from '@/features/upload/types';
 import { UploadProgress } from '@/features/upload/components/UploadProgress';
-import { projectKeys } from '@/features/project/hooks/useProject';
 import type { Project } from '@/features/project/types';
 import {
   AtelierUploadHeader,
@@ -28,8 +28,20 @@ interface ProjectResponse {
 
 export default function Step1Page() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const { hasBothFaces } = useFaceDataStatus();
+
+  // Edit Mode: Check if projectId exists in URL
+  const existingProjectId = searchParams.get('projectId');
+  const isEditMode = Boolean(existingProjectId);
+
+  // Fetch existing uploads when in Edit Mode
+  const {
+    groomUploads: existingGroomUploads,
+    brideUploads: existingBrideUploads,
+    groomCount: existingGroomCount,
+    brideCount: existingBrideCount,
+  } = useProjectUploads(existingProjectId ?? '');
 
   // Preload face detection models on page mount
   useEffect(() => {
@@ -65,6 +77,10 @@ export default function Step1Page() {
   // Upload error state
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // 중복 클릭 방지 및 프로젝트 재사용을 위한 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+
   // Get current role's upload handler
   const currentUpload = activeRole === 'groom' ? groomUpload : brideUpload;
 
@@ -73,11 +89,11 @@ export default function Step1Page() {
   const syncProgress = groomStorage.syncProgress + brideStorage.syncProgress;
   const syncTotal = groomStorage.syncTotal + brideStorage.syncTotal;
 
-  // Calculate total for both roles
+  // Calculate total for both roles (local queue + existing uploads)
   const groomSummary = getBucketSummary('groom');
   const brideSummary = getBucketSummary('bride');
-  const groomCount = groomSummary.total;
-  const brideCount = brideSummary.total;
+  const groomCount = groomSummary.total + (isEditMode ? existingGroomCount : 0);
+  const brideCount = brideSummary.total + (isEditMode ? existingBrideCount : 0);
 
   // Create project mutation
   const createProjectMutation = useMutation({
@@ -90,46 +106,61 @@ export default function Step1Page() {
       }
       return data.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
-    },
+    // Note: invalidateQueries 제거 - Step1에서 프로젝트 목록을 사용하지 않으며,
+    // 대시보드 진입 시 staleTime에 따라 자동으로 refetch됨
   });
 
   const handleNext = async () => {
-    if (isSyncing) return;
+    // 중복 클릭 방지: isSubmitting 또는 isSyncing 상태일 때 무시
+    if (isSubmitting || isSyncing) return;
 
+    // 즉시 submitting 상태로 설정 (동기적)
+    setIsSubmitting(true);
     setUploadError(null);
 
     try {
-      // 1. Create project first
-      const project = await createProjectMutation.mutateAsync();
+      // 1. Edit Mode: Use existing projectId, Fresh Mode: Create new project
+      let projectId = existingProjectId ?? createdProjectId;
+      if (!projectId) {
+        const project = await createProjectMutation.mutateAsync();
+        projectId = project.id;
+        setCreatedProjectId(projectId);
 
-      // 2. Upload all images to Supabase Storage in parallel
+        // Update URL with projectId before navigation (for back button support)
+        window.history.replaceState(null, '', `/new-shoot/step1?projectId=${projectId}`);
+      }
+
+      // 2. Upload NEW images to Supabase Storage in parallel (existing ones are already synced)
       // Note: Images will be uploaded with the real project ID (override the temp one)
-      const [groomUploads, brideUploads] = await Promise.all([
-        groomStorage.syncUploadsToServer('groom', { projectIdOverride: project.id }),
-        brideStorage.syncUploadsToServer('bride', { projectIdOverride: project.id }),
+      const [newGroomUploads, newBrideUploads] = await Promise.all([
+        groomStorage.syncUploadsToServer('groom', { projectIdOverride: projectId }),
+        brideStorage.syncUploadsToServer('bride', { projectIdOverride: projectId }),
       ]);
 
-      // Check if uploads were successful
-      if (groomUploads.length === 0 && brideUploads.length === 0) {
+      // Check if there are any uploads (existing + new)
+      const totalExistingUploads = existingGroomUploads.length + existingBrideUploads.length;
+      const totalNewUploads = newGroomUploads.length + newBrideUploads.length;
+
+      if (totalExistingUploads === 0 && totalNewUploads === 0) {
         setUploadError('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
         return;
       }
 
       // 3. Navigate to step 2
-      router.push(`/new-shoot/${project.id}/step2`);
+      router.push(`/new-shoot/${projectId}/step2`);
     } catch (error) {
       setUploadError(
         error instanceof Error
           ? error.message
           : '업로드 중 오류가 발생했습니다.'
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen pb-8">
+    <div className="min-h-screen pb-8 pt-24">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
@@ -154,6 +185,7 @@ export default function Step1Page() {
             {/* Photo Grid */}
             <AtelierPhotoGrid
               items={currentUpload.queue}
+              existingUploads={activeRole === 'groom' ? existingGroomUploads : existingBrideUploads}
               onRemove={currentUpload.removeFile}
               onAddMore={(files) => currentUpload.addFiles(files)}
               maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
@@ -168,7 +200,7 @@ export default function Step1Page() {
                 groomCount={groomCount}
                 brideCount={brideCount}
                 onNext={handleNext}
-                isLoading={createProjectMutation.isPending}
+                isLoading={createProjectMutation.isPending || isSubmitting}
                 isSyncing={isSyncing}
               />
 

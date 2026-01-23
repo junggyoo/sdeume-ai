@@ -17,10 +17,12 @@ import {
 
 export function AtelierHeader({
   isScrolled = false,
+  variant = 'light',
   className,
 }: AtelierHeaderProps) {
   const { user } = useCurrentUser();
   const { state: dashboardState, processingProject } = useDashboardState();
+  const isDark = variant === 'dark';
 
   // 사용자 정보 추출
   const userInfo = useMemo(() => {
@@ -62,24 +64,36 @@ export function AtelierHeader({
       role="banner"
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled
-          ? 'bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm h-20'
-          : 'bg-transparent border-transparent h-24',
+        // 스크롤 상태에 따른 높이
+        isScrolled ? 'h-20' : 'h-24',
+        // 스크롤되지 않은 상태: 투명 배경, 클릭 통과
+        !isScrolled && 'bg-transparent border-transparent pointer-events-none',
+        // 스크롤된 상태: variant에 따른 배경
+        isScrolled && isDark && 'bg-slate-950/70 backdrop-blur-xl border-b border-white/10 shadow-sm',
+        isScrolled && !isDark && 'bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm',
         className
       )}
     >
       <nav
         role="navigation"
         data-testid="header-inner"
-        className="max-w-7xl mx-auto px-6 md:px-8 h-full flex items-center justify-between"
+        className="max-w-7xl mx-auto px-6 md:px-8 h-full flex items-center justify-between pointer-events-auto"
       >
         {/* Brand */}
         <Link
           href={ATELIER_ROUTES.dashboard}
           className="flex items-center gap-2"
         >
-          <Sparkles className="text-purple-600" size={20} />
-          <span className="text-xl font-serif font-bold tracking-wide text-[#191F28]">
+          <Sparkles
+            className={cn(isDark ? 'text-purple-400' : 'text-purple-600')}
+            size={20}
+          />
+          <span
+            className={cn(
+              'text-xl font-serif font-bold tracking-wide',
+              isDark ? 'text-white' : 'text-[#191F28]'
+            )}
+          >
             {ATELIER_COPY.header.brand}
           </span>
         </Link>
@@ -87,7 +101,12 @@ export function AtelierHeader({
         {/* Right Side */}
         <div className="flex items-center gap-4">
           {/* Status Badge */}
-          <div className="hidden md:flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] text-gray-400">
+          <div
+            className={cn(
+              'hidden md:flex items-center gap-2 text-[10px] font-bold tracking-[0.15em]',
+              isDark ? 'text-gray-300' : 'text-gray-400'
+            )}
+          >
             <div className={cn('w-2 h-2 rounded-full', statusDotColor)} />
             <span>
               {ATELIER_COPY.header.statusLabel} · {STUDIO_STATUS_TEXT[studioStatus]}
@@ -98,6 +117,7 @@ export function AtelierHeader({
           <UserMenu
             userName={userInfo.userName}
             userEmail={userInfo.userEmail}
+            variant={variant}
           />
         </div>
       </nav>
