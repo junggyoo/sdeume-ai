@@ -80,6 +80,12 @@ export const ATELIER_COPY = {
     developing: '생성 중',
     completed: '완료',
     continue: '이어하기',
+    // 새로운 상태별 텍스트
+    selectTheme: '테마 고르기',
+    payAndStart: '결제하고 시작',
+    // 상태 배지
+    themeSelectingBadge: '테마 선택중',
+    paymentPendingBadge: '결제 대기',
   },
   widgets: {
     artistTip: {

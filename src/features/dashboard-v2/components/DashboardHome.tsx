@@ -36,13 +36,6 @@ const LOOKBOOK_THEMES = [
       'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=400&fit=crop',
   },
   {
-    id: 'vintage',
-    themeName: 'Vintage Film',
-    description: '90년대 감성의 필름 그레인과 따뜻한 톤.',
-    image:
-      'https://images.unsplash.com/photo-1511285560982-1351cdeb9821?q=80&w=400&fit=crop',
-  },
-  {
     id: 'ethereal',
     themeName: 'Ethereal Mist',
     description: '몽환적인 안개와 파스텔 컬러 팔레트.',
@@ -92,13 +85,22 @@ export function DashboardHome({
 
   // 프로젝트 카드 클릭 핸들러
   const handleProjectClick = (projectId: string, status: string) => {
-    if (status === 'processing') {
-      router.push(`/new-shoot/${projectId}/progress`);
-    } else if (status === 'completed') {
-      router.push(`/new-shoot/${projectId}/results`);
-    } else {
-      // pending 상태 - 진행 중인 단계로 이동
-      router.push(`/new-shoot/${projectId}/step2`);
+    switch (status) {
+      case 'uploading':
+        router.push(`/new-shoot/${projectId}/step2`);
+        break;
+      case 'theme_selecting':
+        router.push(`/new-shoot/${projectId}/step3`);
+        break;
+      case 'processing':
+        router.push(`/new-shoot/${projectId}/progress`);
+        break;
+      case 'completed':
+      case 'failed':
+        router.push(`/new-shoot/${projectId}/results`);
+        break;
+      default:
+        router.push(`/new-shoot/${projectId}/step2`);
     }
   };
 

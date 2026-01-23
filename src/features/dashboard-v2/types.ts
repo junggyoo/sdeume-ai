@@ -21,8 +21,24 @@ export type PlanType = 'free' | 'pro';
 
 /**
  * 프로젝트 상태 (UI 표시용)
+ * @deprecated Use ProjectDisplayStatus instead
  */
 export type ProjectStatus = 'processing' | 'completed' | 'pending';
+
+/**
+ * 프로젝트 표시 상태 (UI 표시용 - 확장된 상태)
+ * - uploading: 얼굴 업로드 완료, 테마 선택 대기
+ * - theme_selecting: 테마 선택 완료, 결제 대기
+ * - processing: AI 학습/생성 중
+ * - completed: 생성 완료
+ * - failed: 생성 실패
+ */
+export type ProjectDisplayStatus =
+  | 'uploading'
+  | 'theme_selecting'
+  | 'processing'
+  | 'completed'
+  | 'failed';
 
 /**
  * 변환된 프로젝트 데이터 (ProjectCard용)
@@ -32,7 +48,7 @@ export interface TransformedProject {
   title: string;
   date: string;
   image: string | null;
-  status: ProjectStatus;
+  status: ProjectDisplayStatus;
   projectId: string;
 }
 
@@ -49,7 +65,7 @@ export interface ProjectCardProps {
   /** 날짜 (existing 타입에서 사용) */
   date?: string;
   /** 프로젝트 상태 (existing 타입에서 사용) */
-  status?: ProjectStatus;
+  status?: ProjectDisplayStatus;
   /** 썸네일 이미지 URL (existing 타입에서 사용) */
   image?: string | null;
   /** 사진 수 (existing 타입에서 사용) */
@@ -106,9 +122,16 @@ export interface UserMenuProps {
   remainingCount?: number;
   /** 총 장수 */
   totalCount?: number;
+  /** 테마 variant (light: 밝은 배경용, dark: 어두운 배경용) */
+  variant?: HeaderVariant;
   /** 추가 CSS 클래스 */
   className?: string;
 }
+
+/**
+ * 헤더 테마 variant 타입
+ */
+export type HeaderVariant = 'light' | 'dark';
 
 /**
  * AtelierHeader Props
@@ -116,6 +139,8 @@ export interface UserMenuProps {
 export interface AtelierHeaderProps {
   /** 스크롤 상태 */
   isScrolled?: boolean;
+  /** 테마 variant (light: 밝은 배경용, dark: 어두운 배경용) */
+  variant?: HeaderVariant;
   /** 추가 CSS 클래스 */
   className?: string;
 }
@@ -133,17 +158,46 @@ export interface DashboardHomeProps {
 }
 
 /**
- * 프로젝트 상태를 UI용 ProjectStatus로 변환하는 헬퍼
+ * 프로젝트 상태를 UI용 ProjectDisplayStatus로 변환하는 헬퍼
  */
-export function getProjectDisplayStatus(project: Project): ProjectStatus {
+export function getProjectDisplayStatus(project: Project): ProjectDisplayStatus {
   const status = project.status;
-  if (status === 'training' || status === 'generating') {
-    return 'processing';
+  switch (status) {
+    case 'training':
+    case 'generating':
+      return 'processing';
+    case 'completed':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    case 'uploading':
+      return 'uploading';
+    case 'theme_selecting':
+      return 'theme_selecting';
+    default:
+      return 'uploading';
   }
-  if (status === 'completed') {
-    return 'completed';
+}
+
+/**
+ * 프로젝트 상태에 따른 라우트 경로를 반환하는 헬퍼
+ */
+export function getProjectRoute(project: Project): string {
+  const { id, status } = project;
+  switch (status) {
+    case 'uploading':
+      return `/new-shoot/${id}/step2`;
+    case 'theme_selecting':
+      return `/new-shoot/${id}/step3`;
+    case 'training':
+    case 'generating':
+      return `/new-shoot/${id}/progress`;
+    case 'completed':
+    case 'failed':
+      return `/new-shoot/${id}/results`;
+    default:
+      return `/new-shoot/${id}/step2`;
   }
-  return 'pending';
 }
 
 /**

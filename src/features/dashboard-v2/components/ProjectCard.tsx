@@ -24,8 +24,20 @@ export function ProjectCard({
     if (type === 'new') return isLoading ? '생성 중...' : ATELIER_COPY.projectCard.startNow;
     if (status === 'processing') return ATELIER_COPY.projectCard.viewProgress;
     if (status === 'completed') return ATELIER_COPY.projectCard.openGallery;
+    if (status === 'uploading') return ATELIER_COPY.projectCard.selectTheme;
+    if (status === 'theme_selecting') return ATELIER_COPY.projectCard.payAndStart;
     return ATELIER_COPY.projectCard.continue;
   };
+
+  // 상태에 따른 배지 텍스트
+  const getStatusBadge = () => {
+    if (type === 'new') return null;
+    if (status === 'uploading') return ATELIER_COPY.projectCard.themeSelectingBadge;
+    if (status === 'theme_selecting') return ATELIER_COPY.projectCard.paymentPendingBadge;
+    return null;
+  };
+
+  const statusBadge = getStatusBadge();
 
   return (
     <motion.div
@@ -100,6 +112,14 @@ export function ProjectCard({
               </span>
               {status === 'completed' && (
                 <CheckCircle2 size={16} className="text-green-500" />
+              )}
+              {statusBadge && (
+                <span
+                  data-testid="status-badge"
+                  className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold tracking-wide rounded-full"
+                >
+                  {statusBadge}
+                </span>
               )}
             </div>
             <h3

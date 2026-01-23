@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProjectCard } from './ProjectCard';
+import type { ProjectDisplayStatus } from '../types';
 
 // Mock next/image
 vi.mock('next/image', () => ({
@@ -105,16 +106,16 @@ describe('ProjectCard', () => {
       expect(plusIcon).toBeInTheDocument();
     });
 
-    it('should display "New Session" text', () => {
+    it('should display "새 촬영" text', () => {
       render(<ProjectCard type="new" />);
 
-      expect(screen.getByText('New Session')).toBeInTheDocument();
+      expect(screen.getByText('새 촬영')).toBeInTheDocument();
     });
 
-    it('should display "Start Now" CTA text', () => {
+    it('should display "지금 시작" CTA text', () => {
       render(<ProjectCard type="new" />);
 
-      expect(screen.getByText('Start Now')).toBeInTheDocument();
+      expect(screen.getByText('지금 시작')).toBeInTheDocument();
     });
 
     it('should call onClick when clicked', async () => {
@@ -171,10 +172,10 @@ describe('ProjectCard', () => {
       expect(screen.getByText('Dec 15, 2024')).toBeInTheDocument();
     });
 
-    it('should display "Open Gallery" CTA text', () => {
+    it('should display "갤러리 열기" CTA text', () => {
       render(<ProjectCard {...existingProps} />);
 
-      expect(screen.getByText('Open Gallery')).toBeInTheDocument();
+      expect(screen.getByText('갤러리 열기')).toBeInTheDocument();
     });
 
     it('should show completed check icon', () => {
@@ -207,7 +208,7 @@ describe('ProjectCard', () => {
         />
       );
 
-      expect(screen.getByText(/Developing/)).toBeInTheDocument();
+      expect(screen.getByText(/생성 중/)).toBeInTheDocument();
     });
 
     it('should show processing animation or indicator', () => {
@@ -255,6 +256,96 @@ describe('ProjectCard', () => {
     });
   });
 
+  describe('Uploading Status (Theme Selection Pending)', () => {
+    it('should display "테마 고르기" action text for uploading status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Uploading Project"
+          status="uploading"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.getByText('테마 고르기')).toBeInTheDocument();
+    });
+
+    it('should display "테마 선택중" badge for uploading status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Uploading Project"
+          status="uploading"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.getByTestId('status-badge')).toHaveTextContent('테마 선택중');
+    });
+  });
+
+  describe('Theme Selecting Status (Payment Pending)', () => {
+    it('should display "결제하고 시작" action text for theme_selecting status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Theme Selected Project"
+          status="theme_selecting"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.getByText('결제하고 시작')).toBeInTheDocument();
+    });
+
+    it('should display "결제 대기" badge for theme_selecting status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Theme Selected Project"
+          status="theme_selecting"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.getByTestId('status-badge')).toHaveTextContent('결제 대기');
+    });
+  });
+
+  describe('Status Badge Visibility', () => {
+    it('should not show badge for new type card', () => {
+      render(<ProjectCard type="new" />);
+
+      expect(screen.queryByTestId('status-badge')).not.toBeInTheDocument();
+    });
+
+    it('should not show badge for completed status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Completed Project"
+          status="completed"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.queryByTestId('status-badge')).not.toBeInTheDocument();
+    });
+
+    it('should not show badge for processing status', () => {
+      render(
+        <ProjectCard
+          type="existing"
+          title="Processing Project"
+          status="processing"
+          image="https://example.com/thumb.jpg"
+        />
+      );
+
+      expect(screen.queryByTestId('status-badge')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle missing image gracefully for existing type', () => {
       render(<ProjectCard type="existing" title="No Image Project" />);
@@ -276,7 +367,7 @@ describe('ProjectCard', () => {
     it('should show default title for new type when title not provided', () => {
       render(<ProjectCard type="new" />);
 
-      expect(screen.getByText('Start New Shooting')).toBeInTheDocument();
+      expect(screen.getByText('새 촬영 시작하기')).toBeInTheDocument();
     });
   });
 
