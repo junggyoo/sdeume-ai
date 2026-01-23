@@ -100,7 +100,8 @@ export function createFaceAnalysisResult(
 	smileScore: number,
 	eyesOpen: boolean,
 	confidence: number,
-	additionalIssues: QualityIssue[] = []
+	additionalIssues: QualityIssue[] = [],
+	rollAngle: number = 0
 ): FaceAnalysisResult {
 	const classification = classifyBucket(
 		yawAngle,
@@ -127,6 +128,7 @@ export function createFaceAnalysisResult(
 	return {
 		faceDetected,
 		yawAngle,
+		rollAngle,
 		smileScore,
 		eyesOpen,
 		bucket: classification.bucket,

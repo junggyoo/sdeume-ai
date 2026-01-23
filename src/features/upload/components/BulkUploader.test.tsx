@@ -128,6 +128,7 @@ describe('BulkUploader', () => {
         analysis: {
           faceDetected: true,
           yawAngle: 80,
+          rollAngle: 0,
           smileScore: 0,
           eyesOpen: true,
           bucket: 'D',
@@ -149,6 +150,7 @@ describe('BulkUploader', () => {
         analysis: {
           faceDetected: true,
           yawAngle: 5,
+          rollAngle: 0,
           smileScore: 0.3,
           eyesOpen: true,
           bucket: 'A',

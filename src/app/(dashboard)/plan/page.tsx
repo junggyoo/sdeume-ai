@@ -31,7 +31,7 @@ export default function PlanPage() {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-8">
+    <div className="px-4 md:px-6 pb-4 md:pb-6 space-y-8">
       <header>
         <h1 className="font-serif text-2xl md:text-3xl font-bold text-white">
           내 플랜

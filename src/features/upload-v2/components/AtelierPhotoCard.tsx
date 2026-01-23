@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import X from 'lucide-react/dist/esm/icons/x';
+import RotateCw from 'lucide-react/dist/esm/icons/rotate-cw';
 import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2';
 import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
@@ -12,6 +13,7 @@ import type { QueuedFile, BucketType } from '@/features/upload/types';
 interface AtelierPhotoCardProps {
   item: QueuedFile;
   onRemove: (id: string) => void;
+  onRotate?: (id: string, degrees: 90 | -90) => void;
   index?: number;
 }
 
@@ -47,6 +49,7 @@ function getStatusBadge(
 export function AtelierPhotoCard({
   item,
   onRemove,
+  onRotate,
   index = 0,
 }: AtelierPhotoCardProps) {
   const statusBadge = getStatusBadge(item.status, item.analysis?.bucket);
@@ -91,19 +94,36 @@ export function AtelierPhotoCard({
         </div>
       )}
 
-      {/* Remove button (visible on hover) */}
-      <button
-        onClick={() => onRemove(item.id)}
-        className={cn(
-          'absolute top-2 right-2 w-7 h-7 rounded-full',
-          'bg-black/60 hover:bg-black/80',
-          'flex items-center justify-center',
-          'opacity-0 group-hover:opacity-100 transition-opacity',
-          'text-white'
+      {/* Action buttons (visible on hover) */}
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Rotate button */}
+        {onRotate && item.status === 'completed' && (
+          <button
+            onClick={() => onRotate(item.id, 90)}
+            className={cn(
+              'w-7 h-7 rounded-full',
+              'bg-black/60 hover:bg-black/80',
+              'flex items-center justify-center',
+              'text-white'
+            )}
+            title="90도 회전"
+          >
+            <RotateCw size={14} />
+          </button>
         )}
-      >
-        <X size={14} />
-      </button>
+        {/* Remove button */}
+        <button
+          onClick={() => onRemove(item.id)}
+          className={cn(
+            'w-7 h-7 rounded-full',
+            'bg-black/60 hover:bg-black/80',
+            'flex items-center justify-center',
+            'text-white'
+          )}
+        >
+          <X size={14} />
+        </button>
+      </div>
 
       {/* Status badge */}
       {statusBadge && (

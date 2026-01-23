@@ -79,37 +79,28 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
   const selectedPlan = PLANS.find((p) => p.id === selectedPlanId) || PLANS[1];
 
   return (
-    <div className="w-full max-w-7xl mx-auto pt-8 pb-32">
+    <div className="w-full pb-24">
       {/* Header */}
-      <div className="relative w-full text-center mb-12 md:mb-16 space-y-4 max-w-7xl mx-auto px-6">
-        {/* Mobile Back Button */}
+      <div className="mb-12 md:mb-16">
         <button
           onClick={onBack}
-          aria-label="뒤로"
-          className="absolute left-6 top-0 md:hidden text-gray-400 hover:text-gray-900 transition-colors z-50"
+          className="text-gray-400 hover:text-gray-900 text-sm mb-4 flex items-center gap-1 transition-colors"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={14} />
+          이전 단계로
         </button>
-
-        {/* Desktop Back Button */}
-        <button
-          onClick={onBack}
-          aria-label="뒤로"
-          className="absolute left-6 top-2 text-gray-400 hover:text-gray-900 text-sm items-center gap-1 transition-colors hidden md:flex z-50"
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
-
-        <h1 className="text-4xl md:text-6xl font-serif text-gray-900 leading-tight">
-          나만의 <span className="italic text-purple-600">패키지</span> 선택
+        <h1 className="text-3xl md:text-5xl font-serif text-gray-900">
+          나만의 패키지를
+          <br className="md:hidden" />
+          <span className="italic text-purple-600"> 선택해주세요.</span>
         </h1>
-        <p className="text-lg text-gray-500 font-light">
+        <p className="text-gray-500 mt-3">
           소중한 순간을 담을 완벽한 패키지를 선택하세요.
         </p>
       </div>
 
       {/* Pricing Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
         {PLANS.map((plan) => {
           const isSelected = selectedPlanId === plan.id;
           const isBest = plan.isBest;
@@ -203,7 +194,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="mt-16 max-w-2xl mx-auto px-6"
+        className="mt-16 max-w-2xl mx-auto"
       >
         <h2 className="text-lg font-serif font-bold mb-6 text-center text-gray-900">결제 수단</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -236,7 +227,7 @@ export default function PaymentStage({ onNext, onBack }: PaymentStageProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="mt-8 max-w-2xl mx-auto px-6"
+        className="mt-8 max-w-2xl mx-auto"
       >
         <div className="flex flex-col md:flex-row items-center justify-center gap-3 text-sm text-gray-500 bg-purple-50/50 py-4 px-6 rounded-2xl border border-purple-100/80 text-center">
           <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ export default async function DashboardGroupLayout({
       <AppHeader variant="light" />
 
       {/* Main Content */}
-      <div className="relative z-10 pt-24">{children}</div>
+      <div className="relative z-10 pt-24 py-12">{children}</div>
     </div>
   );
 }

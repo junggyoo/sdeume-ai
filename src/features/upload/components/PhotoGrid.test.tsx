@@ -20,6 +20,7 @@ function createQueuedFile(
       ? {
           faceDetected: true,
           yawAngle: 0,
+          rollAngle: 0,
           smileScore: 0.5,
           eyesOpen: true,
           bucket,

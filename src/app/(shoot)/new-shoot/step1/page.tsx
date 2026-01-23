@@ -162,7 +162,7 @@ export default function Step1Page() {
   return (
     <div className="min-h-screen pb-8 pt-24">
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Left Column - Upload Area (8 cols on desktop) */}
           <div className="lg:col-span-8 space-y-8">

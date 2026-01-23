@@ -3,7 +3,8 @@
 import { useCallback, useState } from 'react';
 import { useUploadStore } from '../store/upload-store';
 import { processImage } from '../lib/image-processor';
-import { analyzeFaceFromFile } from '../lib/face-mesh';
+import { analyzeFaceFromFile, analyzeForRotationFromFile } from '../lib/face-mesh';
+import { rotateImage90 } from '../lib/rotate-image';
 import type { UploadRole, QueuedFile, BucketSummary } from '../types';
 import { MIN_IMAGES_TO_PROCEED, BUCKET_TARGETS } from '../types';
 
@@ -97,22 +98,52 @@ export function useBulkUpload({
         // Yield before heavy operations
         await yieldToMain();
 
-        // Compress image
-        const processed = await processImage(item.file);
-        updateQueueItem(item.id, role, { progress: 40 });
+        // Step 1: Preliminary rotation check (20%)
+        let fileToProcess = item.file;
+        let wasRotated = false;
+        let rotationApplied: 0 | 90 | -90 | 180 = 0;
+
+        const rotationCheck = await analyzeForRotationFromFile(item.file);
+        updateQueueItem(item.id, role, { progress: 20 });
+
+        // Step 2: Apply rotation if needed (30%)
+        if (rotationCheck?.needsRotation && rotationCheck.correctionDegrees !== 0) {
+          await yieldToMain();
+          const rotationDegrees = rotationCheck.correctionDegrees as 90 | -90 | 180;
+          fileToProcess = await rotateImage90(item.file, rotationDegrees);
+          wasRotated = true;
+          rotationApplied = rotationDegrees;
+          console.log(`[useBulkUpload] Applied ${rotationDegrees}° rotation to ${item.file.name}`);
+        }
+        updateQueueItem(item.id, role, { progress: 30 });
+
+        // Yield before compression
+        await yieldToMain();
+
+        // Step 3: Compress image (60%)
+        const processed = await processImage(fileToProcess);
+        updateQueueItem(item.id, role, { progress: 60 });
 
         // Yield between compression and analysis
         await yieldToMain();
 
-        // Analyze face
+        // Step 4: Final face analysis (100%)
         const analysis = await analyzeFaceFromFile(processed.file);
+
+        // Add rotation info to analysis result
+        const enrichedAnalysis = {
+          ...analysis,
+          wasRotated,
+          rotationApplied,
+        };
+
         updateQueueItem(item.id, role, {
           status: 'completed',
           progress: 100,
-          analysis,
+          analysis: enrichedAnalysis,
         });
 
-        onUploadComplete?.({ ...item, status: 'completed', analysis });
+        onUploadComplete?.({ ...item, status: 'completed', analysis: enrichedAnalysis });
       } catch (error) {
         updateQueueItem(item.id, role, {
           status: 'error',

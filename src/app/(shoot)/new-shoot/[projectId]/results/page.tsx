@@ -201,7 +201,8 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#FAFAFA] px-6 pt-32 pb-40">
+    <div className="w-full min-h-screen bg-[#FAFAFA] px-6 pt-24 pb-40">
+      <div className="py-12">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -269,6 +270,7 @@ export default function ResultsPage() {
           </motion.div>
         ))}
       </motion.div>
+      </div>
 
       {/* Floating Action Bar */}
       <motion.div

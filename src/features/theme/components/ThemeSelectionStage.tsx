@@ -62,55 +62,28 @@ export function ThemeSelectionStage({
   const selected = selectedThemeId || internalSelected;
 
   return (
-    <div className="w-full flex flex-col items-center px-6 py-12 pb-32">
+    <div className="w-full">
       {/* Header */}
-      <div 
-        className="relative w-full text-center mb-12 md:mb-16 space-y-4 max-w-7xl"
-        onClick={(e) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:headerDiv',message:'Header div clicked',data:{targetTag:(e.target as HTMLElement).tagName,targetClass:(e.target as HTMLElement).className?.slice?.(0,50)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-          // #endregion
-        }}
-      >
+      <div className="mb-12 md:mb-16">
         <button
-          onClick={() => {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:mobileBackBtn',message:'Mobile back button clicked',data:{onBackType:typeof onBack,onBackExists:!!onBack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
-            // #endregion
-            onBack();
-          }}
-          className="absolute left-0 top-0 md:hidden text-gray-400 hover:text-gray-900 transition-colors z-50"
+          onClick={onBack}
+          className="text-gray-400 hover:text-gray-900 text-sm mb-4 flex items-center gap-1 transition-colors"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={14} />
+          이전 단계로
         </button>
-
-        <button
-          onClick={() => {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/ac8f6ddb-4fcc-4dab-b8f8-ce308ca9b7db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThemeSelectionStage.tsx:desktopBackBtn',message:'Desktop back button clicked',data:{onBackType:typeof onBack,onBackExists:!!onBack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
-            // #endregion
-            onBack();
-          }}
-          className="absolute left-0 top-2 text-gray-400 hover:text-gray-900 text-sm items-center gap-1 transition-colors hidden md:flex z-50"
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
-
-        <h2 className="text-4xl md:text-7xl font-serif font-medium leading-tight tracking-tight">
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 animate-pulse pb-2">
-            Dreamy Moments
-          </span>
-          <span className="italic text-gray-400 text-3xl md:text-5xl font-light">
-            당신만의 빛을 담아보세요
-          </span>
-        </h2>
-        <p className="text-lg md:text-xl text-gray-500 font-light max-w-2xl mx-auto">
-        원하는 스튜디오 분위기를 선택하고 촬영을 시작하세요.
+        <h1 className="text-3xl md:text-5xl font-serif text-gray-900">
+          원하는 테마를
+          <br className="md:hidden" />
+          <span className="italic text-purple-600"> 선택해주세요.</span>
+        </h1>
+        <p className="text-gray-500 mt-3">
+          스튜디오 분위기를 선택하고 촬영을 시작하세요.
         </p>
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full max-w-7xl mb-12 md:mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full mb-12 md:mb-16">
         {themes.map((theme) => (
           <ThemeCard
             key={theme.id}

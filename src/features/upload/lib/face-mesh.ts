@@ -4,6 +4,7 @@ import * as faceapi from "@vladmandic/face-api";
 import type { FaceAnalysisResult, QualityIssue } from "../types";
 import { BUCKET_THRESHOLDS } from "../types";
 import { classifyBucket } from "./bucket-classifier";
+import { calculateRollAngle, determineRotationCorrection, type RotationCorrection } from "./roll-angle";
 
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
@@ -144,6 +145,7 @@ export async function analyzeFace(
 			return {
 				faceDetected: false,
 				yawAngle: 0,
+				rollAngle: 0,
 				smileScore: 0,
 				eyesOpen: false,
 				bucket: noFaceResult.bucket,
@@ -181,6 +183,7 @@ export async function analyzeFace(
 			return {
 				faceDetected: true,
 				yawAngle: 0,
+				rollAngle: 0,
 				smileScore: 0,
 				eyesOpen: false,
 				bucket: "D",
@@ -196,6 +199,7 @@ export async function analyzeFace(
 			return {
 				faceDetected: false,
 				yawAngle: 0,
+				rollAngle: 0,
 				smileScore: 0,
 				eyesOpen: false,
 				bucket: "D",
@@ -216,6 +220,7 @@ export async function analyzeFace(
 			return {
 				faceDetected: true,
 				yawAngle: 0,
+				rollAngle: 0,
 				smileScore: 0,
 				eyesOpen: false,
 				bucket: "D",
@@ -232,6 +237,7 @@ export async function analyzeFace(
 
 		// Calculate metrics
 		const yawAngle = calculateYawAngle(landmarks);
+		const rollAngle = calculateRollAngle(landmarks.positions);
 		const eyeAspectRatio = calculateEyeAspectRatio(landmarks);
 		const eyesOpen = eyeAspectRatio >= BUCKET_THRESHOLDS.MIN_EYE_ASPECT_RATIO;
 		const happyScore = expressions.happy;
@@ -242,6 +248,7 @@ export async function analyzeFace(
 		return {
 			faceDetected: true,
 			yawAngle,
+			rollAngle,
 			smileScore: happyScore,
 			eyesOpen,
 			bucket: classification.bucket,
@@ -264,6 +271,7 @@ export async function analyzeFace(
 		return {
 			faceDetected: false,
 			yawAngle: 0,
+			rollAngle: 0,
 			smileScore: 0,
 			eyesOpen: false,
 			bucket: errorResult.bucket,
@@ -310,6 +318,75 @@ export async function analyzeFaceFromFile(
 					}
 				}
 
+				resolve(result);
+			} catch (error) {
+				reject(error);
+			}
+		};
+
+		img.onerror = () => {
+			URL.revokeObjectURL(url);
+			reject(new Error("Failed to load image"));
+		};
+
+		img.crossOrigin = "anonymous";
+		img.src = url;
+	});
+}
+
+/**
+ * Lightweight face analysis for rotation detection only
+ * Skips expression analysis for better performance
+ * Returns rotation correction info if face is detected
+ */
+export async function analyzeForRotation(
+	imageElement: HTMLImageElement | HTMLCanvasElement
+): Promise<RotationCorrection | null> {
+	try {
+		await loadModels();
+
+		const detectorOptions = new faceapi.SsdMobilenetv1Options({
+			minConfidence: 0.5,
+		});
+
+		// Only detect face with landmarks (skip expressions for speed)
+		const detections = await faceapi
+			.detectAllFaces(imageElement, detectorOptions)
+			.withFaceLandmarks();
+
+		if (detections.length === 0) {
+			return null; // No face detected
+		}
+
+		// Use the first (largest) face
+		const detection = detections[0];
+		const landmarks = detection.landmarks;
+
+		// Calculate roll angle
+		const rollAngle = calculateRollAngle(landmarks.positions);
+
+		// Determine if rotation is needed
+		return determineRotationCorrection(rollAngle);
+	} catch (error) {
+		console.error("[face-api] Rotation analysis error:", error);
+		return null;
+	}
+}
+
+/**
+ * Analyze face from a File for rotation detection only
+ */
+export async function analyzeForRotationFromFile(
+	file: File
+): Promise<RotationCorrection | null> {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+		const url = URL.createObjectURL(file);
+
+		img.onload = async () => {
+			URL.revokeObjectURL(url);
+			try {
+				const result = await analyzeForRotation(img);
 				resolve(result);
 			} catch (error) {
 				reject(error);

@@ -5,6 +5,7 @@ export type BucketType = 'A' | 'B' | 'C' | 'D';
 export interface FaceAnalysisResult {
   faceDetected: boolean;
   yawAngle: number; // -90 to 90 (negative: left, positive: right)
+  rollAngle: number; // -180 to 180 (head tilt / image rotation)
   smileScore: number; // 0.0 to 1.0 (happy expression score)
   eyesOpen: boolean; // Eye Aspect Ratio check
   bucket: BucketType;
@@ -12,6 +13,8 @@ export interface FaceAnalysisResult {
   qualityIssues: QualityIssue[];
   isUsable: boolean; // Passed all quality checks
   rejectionReason?: string; // Reason for D bucket classification
+  wasRotated?: boolean; // True if automatic rotation was applied
+  rotationApplied?: 0 | 90 | -90 | 180; // Rotation angle applied to correct image
   faceBox?: {
     x: number;
     y: number;
@@ -78,6 +81,15 @@ export interface UploadAnalysis {
 // Note: calculateYawAngle uses 2D coordinates which causes foreshortening distortion
 // - Actual 30° head turn may be calculated as 40-45°
 // - Thresholds are adjusted higher to compensate for this distortion
+// Roll angle thresholds for automatic rotation correction
+// Used to detect and correct 90-degree unit rotated images
+export const ROLL_THRESHOLDS = {
+  NORMAL_MAX: 15,         // |roll| <= 15° = normal (head tilt)
+  ROTATION_90_MIN: 45,    // |roll| > 45° = 90° rotation detection start
+  ROTATION_90_MAX: 135,   // |roll| < 135° = 90° rotation detection end
+  ROTATION_180_MIN: 135,  // |roll| >= 135° = 180° flip detected
+} as const;
+
 export const BUCKET_THRESHOLDS = {
   // Bucket A (Identity): |yaw| <= 12° - Core frontal shots for identity learning
   FRONTAL_MAX_YAW: 12,

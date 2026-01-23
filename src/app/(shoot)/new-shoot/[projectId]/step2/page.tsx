@@ -113,16 +113,18 @@ export default function Step2Page() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-24">
-      <ThemeSelectionStage
-        themes={themesWithUI}
-        selectedThemeId={selectedTheme}
-        onSelectTheme={handleSelectTheme}
-        onNext={handleNext}
-        onBack={handleBack}
-        isLoading={updateProject.isPending}
-        isNextDisabled={!selectedTheme}
-      />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-8 pt-24">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <ThemeSelectionStage
+          themes={themesWithUI}
+          selectedThemeId={selectedTheme}
+          onSelectTheme={handleSelectTheme}
+          onNext={handleNext}
+          onBack={handleBack}
+          isLoading={updateProject.isPending}
+          isNextDisabled={!selectedTheme}
+        />
+      </div>
     </div>
   );
 }

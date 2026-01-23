@@ -44,12 +44,17 @@ const createMockQueuedFile = (
   file: new File(['test'], `${id}.jpg`, { type: 'image/jpeg' }),
   role,
   status: 'completed',
+  progress: 100,
   analysis: {
     bucket,
     yawAngle: 0,
+    rollAngle: 0,
     smileScore: 0.8,
     confidence: 0.9,
     faceDetected: true,
+    eyesOpen: true,
+    qualityIssues: [],
+    isUsable: bucket !== 'D',
   },
 });
 

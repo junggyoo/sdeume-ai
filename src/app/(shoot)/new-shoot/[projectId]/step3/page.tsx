@@ -17,8 +17,10 @@ export default function Step3Page() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pt-16">
-      <PaymentStage onBack={handleBack} onNext={handleNext} />
+    <div className="min-h-screen bg-[#FAFAFA] pb-8 pt-24">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <PaymentStage onBack={handleBack} onNext={handleNext} />
+      </div>
     </div>
   );
 }

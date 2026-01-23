@@ -13,6 +13,7 @@ interface AtelierPhotoGridProps {
   existingUploads?: Upload[];
   onRemove: (id: string) => void;
   onAddMore: (files: File[]) => void;
+  onRotate?: (id: string, degrees: 90 | -90) => void;
   maxPhotos?: number;
 }
 
@@ -23,6 +24,7 @@ export function AtelierPhotoGrid({
   existingUploads = [],
   onRemove,
   onAddMore,
+  onRotate,
   maxPhotos = 20,
 }: AtelierPhotoGridProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +112,7 @@ export function AtelierPhotoGrid({
               key={item.id}
               item={item}
               onRemove={onRemove}
+              onRotate={onRotate}
               index={existingUploads.length + index}
             />
           ))}

@@ -169,6 +169,7 @@ describe('upload-store', () => {
           analysis: {
             faceDetected: true,
             yawAngle: 5,
+            rollAngle: 0,
             smileScore: 0.3,
             eyesOpen: true,
             bucket: 'A',
@@ -196,6 +197,7 @@ describe('upload-store', () => {
           analysis: {
             faceDetected: true,
             yawAngle: 5,
+            rollAngle: 0,
             smileScore: 0.3,
             eyesOpen: true,
             bucket: 'A',
@@ -224,6 +226,7 @@ describe('upload-store', () => {
           analysis: {
             faceDetected: true,
             yawAngle: 5,
+            rollAngle: 0,
             smileScore: 0.3,
             eyesOpen: true,
             bucket: 'A',
@@ -268,6 +271,7 @@ describe('upload-store', () => {
         analysis: {
           faceDetected: true,
           yawAngle: 5,
+          rollAngle: 0,
           smileScore: 0.3,
           eyesOpen: true,
           bucket: 'A',
@@ -294,6 +298,7 @@ describe('upload-store', () => {
           analysis: {
             faceDetected: true,
             yawAngle: 5,
+            rollAngle: 0,
             smileScore: 0.3,
             eyesOpen: true,
             bucket: buckets[index],
