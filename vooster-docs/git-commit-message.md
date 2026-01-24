@@ -1,6 +1,50 @@
 
 # Git Commit Message Rules
 
+## Branch Naming Convention
+
+### Format
+```
+<type>/<short-description>
+```
+
+### Types
+
+| Type | 설명 | 예시 |
+|------|------|------|
+| `feat` | 새 기능 | `feat/user-profile` |
+| `fix` | 버그 수정 | `fix/upload-error` |
+| `refactor` | 리팩토링 | `refactor/gallery-layout` |
+| `perf` | 성능 개선 | `perf/image-loading` |
+| `test` | 테스트 | `test/auth-e2e` |
+| `docs` | 문서 | `docs/api-guide` |
+| `chore` | 기타 작업 | `chore/dependencies` |
+| `style` | 스타일 변경 | `style/button-hover` |
+
+### Rules
+
+- **소문자만 사용**: `feat/User-Profile` ❌ → `feat/user-profile` ✅
+- **단어 구분**: 하이픈(`-`) 사용
+- **최대 50자**: 간결하게 유지
+- **영어 권장**: 한글 사용 시 인코딩 이슈 가능
+
+### Examples
+
+```bash
+# Good
+feat/oauth-google-login
+fix/memory-leak-session
+refactor/extract-validation-utils
+perf/lazy-load-images
+
+# Bad
+feat/AddNewUserProfileFeature    # 너무 길고 대문자 사용
+fix_upload_error                 # 언더스코어 사용
+feature/login                    # 잘못된 type (feature → feat)
+```
+
+---
+
 ## Format Structure
 ```
 <type>(<scope>): <description>
