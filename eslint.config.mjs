@@ -18,6 +18,14 @@ const eslintConfig = [
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**/*'],
+    rules: {
+      'react/display-name': 'off',
+      '@next/next/no-assign-module-variable': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ];
 
 export default eslintConfig;
