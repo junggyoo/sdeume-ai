@@ -52,6 +52,17 @@ vi.mock('@/lib/supabase/browser-client', () => ({
   }),
 }));
 
+// Mock useCurrentUser hook
+const mockUserRefresh = vi.fn().mockResolvedValue(undefined);
+vi.mock('@/features/auth/hooks/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    user: { id: 'test-user', email: 'test@example.com' },
+    isAuthenticated: true,
+    isLoading: false,
+    refresh: mockUserRefresh,
+  }),
+}));
+
 describe('UserMenu', () => {
   const defaultProps = {
     userName: '홍길동',
@@ -63,6 +74,7 @@ describe('UserMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSignOut.mockResolvedValue({});
+    mockUserRefresh.mockResolvedValue(undefined);
   });
 
   describe('Avatar Rendering', () => {
@@ -376,6 +388,19 @@ describe('UserMenu', () => {
 
       await waitFor(() => {
         expect(mockPush).not.toHaveBeenCalledWith('/login');
+      });
+    });
+
+    it('should refresh client auth state after logout to prevent redirect loop', async () => {
+      const user = userEvent.setup();
+      render(<UserMenu {...defaultProps} />);
+
+      await user.click(screen.getByRole('button', { name: /사용자 메뉴/i }));
+      await user.click(screen.getByRole('menuitem', { name: /Log Out/i }));
+
+      // signOut 후 클라이언트 인증 상태를 동기화해야 함
+      await waitFor(() => {
+        expect(mockUserRefresh).toHaveBeenCalled();
       });
     });
   });
