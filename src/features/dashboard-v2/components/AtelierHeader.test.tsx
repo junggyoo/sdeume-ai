@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AtelierHeader } from './AtelierHeader';
+import type { DashboardStateResult } from '@/features/dashboard/types';
 
 // Mock next/link
 vi.mock('next/link', () => ({
@@ -24,9 +25,43 @@ vi.mock('./UserMenu', () => ({
   ),
 }));
 
+// Mock useDashboardState
+const mockUseDashboardState = vi.fn<() => DashboardStateResult>();
+vi.mock('@/features/dashboard', () => ({
+  useDashboardState: () => mockUseDashboardState(),
+}));
+
+// Mock useCurrentUser
+vi.mock('@/features/auth/hooks/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    user: { email: 'test@example.com', userMetadata: { name: 'Test User' } },
+  }),
+}));
+
+// Helper to create mock dashboard state
+const createMockDashboardState = (
+  overrides: Partial<DashboardStateResult> = {}
+): DashboardStateResult => ({
+  state: 'onboarding',
+  processingProject: null,
+  completedProjects: [],
+  failedProjects: [],
+  allProjects: [],
+  hasFaceModel: false,
+  isLoading: false,
+  ...overrides,
+});
+
 describe('AtelierHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: ready state with completed projects
+    mockUseDashboardState.mockReturnValue(
+      createMockDashboardState({
+        state: 'ready',
+        completedProjects: [{ id: '1', status: 'completed' }] as DashboardStateResult['completedProjects'],
+      })
+    );
   });
 
   describe('Brand Rendering', () => {
@@ -60,10 +95,10 @@ describe('AtelierHeader', () => {
   });
 
   describe('Status Badge', () => {
-    it('should render RECEPTION status badge', () => {
+    it('should render status label', () => {
       render(<AtelierHeader />);
 
-      expect(screen.getByText('RECEPTION')).toBeInTheDocument();
+      expect(screen.getByText(/스튜디오 상태/)).toBeInTheDocument();
     });
 
     it('should render status indicator dot', () => {
@@ -71,6 +106,103 @@ describe('AtelierHeader', () => {
 
       // Status indicator with green color
       const indicator = document.querySelector('.bg-green-500.rounded-full');
+      expect(indicator).toBeInTheDocument();
+    });
+  });
+
+  describe('Studio Status Logic', () => {
+    it('should show "대기 중" (idle) when onboarding state', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({ state: 'onboarding' })
+      );
+
+      render(<AtelierHeader />);
+
+      expect(screen.getByText(/대기 중/)).toBeInTheDocument();
+      const indicator = document.querySelector('.bg-gray-400.rounded-full');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('should show "생성 중" (processing) when processing state', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({
+          state: 'processing',
+          processingProject: { id: '1', status: 'training' } as DashboardStateResult['processingProject'],
+        })
+      );
+
+      render(<AtelierHeader />);
+
+      expect(screen.getByText(/생성 중/)).toBeInTheDocument();
+      const indicator = document.querySelector('.bg-amber-500.rounded-full');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('should show "완료" (completed) when there are completed projects', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({
+          state: 'ready',
+          completedProjects: [{ id: '1', status: 'completed' }] as DashboardStateResult['completedProjects'],
+        })
+      );
+
+      render(<AtelierHeader />);
+
+      expect(screen.getByText(/완료/)).toBeInTheDocument();
+      const indicator = document.querySelector('.bg-green-500.rounded-full');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    // BUG FIX TEST: This is the core test for the bug
+    it('should show "대기 중" (idle) when hasFaceModel but no completed projects', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({
+          state: 'ready', // ready because hasFaceModel
+          hasFaceModel: true,
+          completedProjects: [], // but no completed projects!
+        })
+      );
+
+      render(<AtelierHeader />);
+
+      // Should NOT show "완료" - this is the bug we're fixing
+      expect(screen.getByText(/대기 중/)).toBeInTheDocument();
+      const indicator = document.querySelector('.bg-gray-400.rounded-full');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('should show "완료" when there are completed generations', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({
+          state: 'ready',
+          completedProjects: [],
+          allProjects: [
+            {
+              id: '1',
+              status: 'completed',
+              latestGeneration: { status: 'completed' },
+            },
+          ] as DashboardStateResult['allProjects'],
+        })
+      );
+
+      render(<AtelierHeader />);
+
+      expect(screen.getByText(/완료/)).toBeInTheDocument();
+    });
+
+    it('should show "생성 중" (processing) when processingProject exists regardless of state', () => {
+      mockUseDashboardState.mockReturnValue(
+        createMockDashboardState({
+          state: 'ready', // state는 ready지만 processingProject 존재
+          processingProject: { id: '1', status: 'training' } as DashboardStateResult['processingProject'],
+        })
+      );
+
+      render(<AtelierHeader />);
+
+      expect(screen.getByText(/생성 중/)).toBeInTheDocument();
+      const indicator = document.querySelector('.bg-amber-500.rounded-full');
       expect(indicator).toBeInTheDocument();
     });
   });

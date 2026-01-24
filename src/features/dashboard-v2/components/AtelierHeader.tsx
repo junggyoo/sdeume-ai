@@ -21,7 +21,12 @@ export function AtelierHeader({
   className,
 }: AtelierHeaderProps) {
   const { user } = useCurrentUser();
-  const { state: dashboardState, processingProject } = useDashboardState();
+  const {
+    state: dashboardState,
+    processingProject,
+    completedProjects,
+    allProjects,
+  } = useDashboardState();
   const isDark = variant === 'dark';
 
   // 사용자 정보 추출
@@ -41,10 +46,20 @@ export function AtelierHeader({
 
   // 스튜디오 상태 계산
   const studioStatus: StudioStatus = useMemo(() => {
+    // 처리 중인 프로젝트가 있으면 processing
     if (dashboardState === 'processing' || processingProject) return 'processing';
-    // 완료된 프로젝트가 있으면 completed, 아니면 idle
-    return dashboardState === 'ready' ? 'completed' : 'idle';
-  }, [dashboardState, processingProject]);
+
+    // 완료된 프로젝트가 있거나, 완료된 generation이 있을 때만 completed
+    const hasCompletedProjects = completedProjects.length > 0;
+    const hasCompletedGenerations = allProjects.some(
+      (p) => p.latestGeneration?.status === 'completed'
+    );
+
+    if (hasCompletedProjects || hasCompletedGenerations) return 'completed';
+
+    // 그 외에는 idle (hasFaceModel만 있는 경우 포함)
+    return 'idle';
+  }, [dashboardState, processingProject, completedProjects, allProjects]);
 
   // 상태별 점 색상
   const statusDotColor = useMemo(() => {

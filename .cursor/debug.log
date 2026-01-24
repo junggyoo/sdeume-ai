@@ -124,3 +124,9 @@
 {"location":"step2/page.tsx:handleBack","message":"handleBack called","data":{"projectId":"5edd7e36-f855-46a1-8220-88fc02af1778","routerExists":true},"timestamp":1769173170277,"sessionId":"debug-session","hypothesisId":"H1,H2"}
 {"location":"step2/page.tsx:handleBack:beforePush","message":"About to call router.push","data":{"targetUrl":"/new-shoot/step1?projectId=5edd7e36-f855-46a1-8220-88fc02af1778"},"timestamp":1769173170278,"sessionId":"debug-session","hypothesisId":"H2"}
 {"location":"step2/page.tsx:handleBack:afterPush","message":"router.push completed","data":{},"timestamp":1769173170280,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"step2/page.tsx:handleBack","message":"handleBack called","data":{"projectId":"5edd7e36-f855-46a1-8220-88fc02af1778","routerExists":true},"timestamp":1769173195458,"sessionId":"debug-session","hypothesisId":"H1,H2"}
+{"location":"step2/page.tsx:handleBack:afterPush","message":"router.push completed","data":{},"timestamp":1769173195460,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"step2/page.tsx:handleBack:beforePush","message":"About to call router.push","data":{"targetUrl":"/new-shoot/step1?projectId=5edd7e36-f855-46a1-8220-88fc02af1778"},"timestamp":1769173195459,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"step2/page.tsx:handleBack","message":"handleBack called","data":{"projectId":"a7d6fb9a-66c3-4e77-90eb-d6ae541121bb","routerExists":true},"timestamp":1769173205259,"sessionId":"debug-session","hypothesisId":"H1,H2"}
+{"location":"step2/page.tsx:handleBack:beforePush","message":"About to call router.push","data":{"targetUrl":"/new-shoot/step1?projectId=a7d6fb9a-66c3-4e77-90eb-d6ae541121bb"},"timestamp":1769173205261,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"step2/page.tsx:handleBack:afterPush","message":"router.push completed","data":{},"timestamp":1769173205264,"sessionId":"debug-session","hypothesisId":"H2"}
