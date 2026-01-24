@@ -55,7 +55,7 @@ image = (
         "pyyaml",  # 프롬프트 YAML 로딩용
     )
     # 프롬프트 디렉토리 복사 (Modal 배포 환경용)
-    .copy_local_dir("modal/prompts", "/app/prompts")
+    .add_local_dir("modal/prompts", "/app/prompts")
     .run_commands(
         # ComfyUI 설치
         "comfy --skip-prompt install --nvidia",
@@ -941,6 +941,39 @@ class ComfyUIServer:
             steps=steps,
             seed=seed,
         )
+
+        # =================================================================
+        # 디버그 로깅: 적용된 프롬프트 및 설정 출력
+        # =================================================================
+        print("\n" + "=" * 60)
+        print(f"📝 PROMPT DEBUG - Theme: {theme_slug}, Shot: {shot_type}")
+        print("=" * 60)
+
+        # Generation settings
+        print(f"\n[Settings] cfg={workflow['3']['inputs']['cfg']}, "
+              f"steps={workflow['3']['inputs']['steps']}, "
+              f"size={workflow['5']['inputs']['width']}x{workflow['5']['inputs']['height']}")
+
+        # Main prompts
+        main_pos = workflow['6']['inputs']['text']
+        main_neg = workflow['7']['inputs']['text']
+        print(f"\n[Node 6] Main Positive ({len(main_pos)} chars):")
+        print(f"  {main_pos[:150]}..." if len(main_pos) > 150 else f"  {main_pos}")
+        print(f"\n[Node 7] Main Negative:")
+        print(f"  {main_neg}")
+
+        # Face prompts
+        print(f"\n[Node 21] Groom Face Positive:")
+        print(f"  {workflow['21']['inputs']['text']}")
+        print(f"\n[Node 23] Bride Face Positive:")
+        print(f"  {workflow['23']['inputs']['text']}")
+
+        # Hand prompts
+        print(f"\n[Node 38] Hand Positive:")
+        print(f"  {workflow['38']['inputs']['text']}")
+
+        print("\n" + "=" * 60 + "\n")
+        # =================================================================
 
         self.profiler.record("Before Workflow Queue")
 
