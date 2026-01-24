@@ -1,134 +1,81 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { GuidelineCard } from './GuidelineCard';
 
-// TODO: Fix props interface mismatch - See docs/testing-strategy.md
-describe.skip('GuidelineCard', () => {
+describe('GuidelineCard', () => {
   describe('렌더링', () => {
-    it('should render title', () => {
+    it('should render good examples section with Korean title', () => {
       render(<GuidelineCard />);
 
-      expect(screen.getByText(/사진 가이드/i)).toBeInTheDocument();
+      expect(screen.getByText('이런 사진이 좋아요')).toBeInTheDocument();
     });
 
-    it('should render toggle button', () => {
+    it('should render bad examples section with Korean title', () => {
       render(<GuidelineCard />);
 
-      expect(screen.getByRole('button', { name: /접기|펼치기/i })).toBeInTheDocument();
+      expect(screen.getByText('이런 사진은 피해주세요')).toBeInTheDocument();
     });
   });
 
-  describe('접기/펼치기 동작', () => {
-    it('should be expanded by default', () => {
-      render(<GuidelineCard defaultExpanded />);
+  describe('좋은 예시 표시', () => {
+    it('should display hardcoded good examples', () => {
+      render(<GuidelineCard />);
 
-      expect(screen.getByTestId('guideline-content')).toBeVisible();
-    });
-
-    it('should be collapsed when defaultExpanded is false', () => {
-      render(<GuidelineCard defaultExpanded={false} />);
-
-      expect(screen.queryByTestId('guideline-content')).not.toBeInTheDocument();
-    });
-
-    it('should toggle content visibility when button is clicked', () => {
-      render(<GuidelineCard defaultExpanded={false} />);
-
-      // 처음에는 접혀있음
-      expect(screen.queryByTestId('guideline-content')).not.toBeInTheDocument();
-
-      // 클릭하면 펼쳐짐
-      fireEvent.click(screen.getByRole('button', { name: /펼치기/i }));
-      expect(screen.getByTestId('guideline-content')).toBeInTheDocument();
-
-      // 다시 클릭하면 접힘
-      fireEvent.click(screen.getByRole('button', { name: /접기/i }));
-      expect(screen.queryByTestId('guideline-content')).not.toBeInTheDocument();
+      expect(screen.getByText('정면을 바라본 사진')).toBeInTheDocument();
+      expect(screen.getByText('밝고 선명한 사진')).toBeInTheDocument();
+      expect(screen.getByText('얼굴이 잘 보이는 사진')).toBeInTheDocument();
     });
   });
 
-  describe('좋은/나쁜 예시 섹션', () => {
-    it('should display good examples section', () => {
-      render(<GuidelineCard defaultExpanded />);
+  describe('나쁜 예시 표시', () => {
+    it('should display hardcoded bad examples', () => {
+      render(<GuidelineCard />);
 
-      expect(screen.getByText('좋은 사진')).toBeInTheDocument();
-    });
-
-    it('should display bad examples section', () => {
-      render(<GuidelineCard defaultExpanded />);
-
-      expect(screen.getByText('피해야 할 사진')).toBeInTheDocument();
-    });
-
-    it('should display good example items', () => {
-      render(<GuidelineCard defaultExpanded />);
-
-      expect(screen.getByText(/정면 얼굴/i)).toBeInTheDocument();
-      expect(screen.getByText(/자연스러운 표정/i)).toBeInTheDocument();
-    });
-
-    it('should display bad example items', () => {
-      render(<GuidelineCard defaultExpanded />);
-
-      expect(screen.getByText(/얼굴이 가려진 사진/i)).toBeInTheDocument();
-      expect(screen.getByText(/흐린 사진/i)).toBeInTheDocument();
+      expect(screen.getByText('선글라스나 마스크 착용')).toBeInTheDocument();
+      expect(screen.getByText('심하게 흐릿하거나 어두운 사진')).toBeInTheDocument();
+      expect(screen.getByText('얼굴이 가려진 사진')).toBeInTheDocument();
     });
   });
 
-  describe('아이콘 표시', () => {
-    it('should show check icon for good examples', () => {
-      render(<GuidelineCard defaultExpanded />);
+  describe('스타일링', () => {
+    it('should apply custom className', () => {
+      const { container } = render(<GuidelineCard className="custom-class" />);
 
-      expect(screen.getAllByTestId('good-icon').length).toBeGreaterThan(0);
+      const card = container.firstChild;
+      expect(card).toHaveClass('custom-class');
     });
 
-    it('should show x icon for bad examples', () => {
-      render(<GuidelineCard defaultExpanded />);
-
-      expect(screen.getAllByTestId('bad-icon').length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('커스텀 예시', () => {
-    it('should display custom good examples', () => {
-      const goodExamples = ['밝은 조명', '고해상도'];
-      render(<GuidelineCard defaultExpanded goodExamples={goodExamples} />);
-
-      expect(screen.getByText('밝은 조명')).toBeInTheDocument();
-      expect(screen.getByText('고해상도')).toBeInTheDocument();
-    });
-
-    it('should display custom bad examples', () => {
-      const badExamples = ['역광', '저해상도'];
-      render(<GuidelineCard defaultExpanded badExamples={badExamples} />);
-
-      expect(screen.getByText('역광')).toBeInTheDocument();
-      expect(screen.getByText('저해상도')).toBeInTheDocument();
-    });
-  });
-
-  describe('접근성', () => {
-    it('should have accessible toggle button with expanded state', () => {
-      render(<GuidelineCard defaultExpanded />);
-
-      const button = screen.getByRole('button', { name: /접기/i });
-      expect(button).toHaveAttribute('aria-expanded', 'true');
-    });
-
-    it('should have accessible toggle button with collapsed state', () => {
-      render(<GuidelineCard defaultExpanded={false} />);
-
-      const button = screen.getByRole('button', { name: /펼치기/i });
-      expect(button).toHaveAttribute('aria-expanded', 'false');
-    });
-  });
-
-  describe('다크 모드 스타일', () => {
-    it('should have dark background', () => {
+    it('should have grid layout', () => {
       const { container } = render(<GuidelineCard />);
 
       const card = container.firstChild;
-      expect(card).toHaveClass('bg-slate-800');
+      expect(card).toHaveClass('grid');
+    });
+
+    it('should have dark background for sections', () => {
+      render(<GuidelineCard />);
+
+      // Find containers with bg-slate-800/50 class
+      const sections = document.querySelectorAll('.bg-slate-800\\/50');
+      expect(sections).toHaveLength(2); // Good and bad sections
+    });
+  });
+
+  describe('아이콘', () => {
+    it('should display check icon for good examples section', () => {
+      render(<GuidelineCard />);
+
+      // Check icon is rendered in the good examples section header
+      const goodSection = screen.getByText('이런 사진이 좋아요').closest('div');
+      expect(goodSection?.querySelector('svg')).toBeInTheDocument();
+    });
+
+    it('should display X icons for bad examples', () => {
+      render(<GuidelineCard />);
+
+      // X icon is rendered in the bad examples section header and each item
+      const badSection = screen.getByText('이런 사진은 피해주세요').closest('div');
+      expect(badSection?.querySelector('svg')).toBeInTheDocument();
     });
   });
 });

@@ -6,12 +6,12 @@
 
 | 구분 | 수량 |
 |------|------|
-| 전체 테스트 파일 | 77개 |
-| 통과 | 70개 |
-| Skip 처리 | 7개 |
-| 전체 테스트 케이스 | 1,331개 |
-| 통과 | 1,172개 |
-| Skip 처리 | 159개 |
+| 전체 테스트 파일 | 79개 |
+| 통과 | 74개 |
+| Skip 처리 | 5개 |
+| 전체 테스트 케이스 | 1,348개 |
+| 통과 | 1,235개 |
+| Skip 처리 | 113개 |
 
 ### Skip 처리된 테스트 목록
 
@@ -22,36 +22,38 @@
 | `image-processor.service.test.ts` | sharp mock 이슈 | P2 |
 | `modal-client.test.ts` | fetch mock 이슈 | P2 |
 | `AuroraBackground.test.tsx` | 컴포넌트 props 타입 불일치 | P2 |
-| `GuidelineCard.test.tsx` | props interface 변경 | P1 |
 | `storage.service.test.ts` | Supabase mock 이슈 | P2 |
 | `DashboardSidebar.test.tsx` | class name 검증 실패 | P3 |
-| `PaymentStage.test.tsx` | i18n 텍스트 불일치 (EN→KO) | P1 |
 | `roll-angle.test.ts` | 테스트 기대값 오류 | P2 |
 | `UserMenu.test.tsx` | Next.js App Router mock 필요 | P1 |
 | `DashboardHome.test.tsx` | Next.js App Router mock 필요 | P1 |
-| `ShootingPage.test.tsx` | import 경로 오류 (파일 삭제됨) | P1 |
 
 ---
 
-## 단기 계획 (1-2주)
+## 단기 계획 (1-2주) ✅ 완료
 
 ### 목표
 - CI 파이프라인 안정화
 - 긴급한 테스트 수정
 
-### 작업 항목
+### 완료된 작업 항목
 
-1. **ShootingPage.test.tsx 정리**
-   - [ ] 삭제된 페이지에 대한 테스트 파일 제거
-   - [ ] 또는 새 경로로 import 수정
+1. **ShootingPage.test.tsx 수정** ✅
+   - [x] Import 경로를 `@/app/(shoot)/new-shoot/[projectId]/progress/page`로 수정
+   - [x] 컴포넌트명을 `ProgressPage`로 변경
+   - [x] 테스트를 새 컴포넌트 동작에 맞게 업데이트
+   - [x] vitest.config.ts exclude 목록에서 제거
 
-2. **i18n 관련 테스트 수정 (PaymentStage)**
-   - [ ] 영어 텍스트 → 한국어 텍스트로 테스트 기대값 수정
-   - [ ] 또는 i18n mock 추가
+2. **i18n 관련 테스트 수정 (PaymentStage)** ✅
+   - [x] 영어 텍스트 → 한국어 텍스트로 테스트 기대값 수정
+   - [x] 가격 정보를 실제 컴포넌트 값과 동기화
+   - [x] describe.skip 제거하여 테스트 활성화
 
-3. **Props 인터페이스 테스트 수정 (GuidelineCard)**
-   - [ ] 컴포넌트 props와 테스트 동기화
-   - [ ] defaultExpanded prop 제거/추가 확인
+3. **Props 인터페이스 테스트 수정 (GuidelineCard)** ✅
+   - [x] 존재하지 않는 props (defaultExpanded, goodExamples, badExamples) 테스트 제거
+   - [x] 현재 컴포넌트의 하드코딩된 예시 텍스트에 맞게 테스트 수정
+   - [x] className prop 테스트 추가
+   - [x] describe.skip 제거하여 테스트 활성화
 
 ---
 
@@ -100,7 +102,6 @@
 | UserMenu.test.tsx | 2h | - |
 | DashboardHome.test.tsx | 3h | - |
 | AuroraBackground.test.tsx | 1h | - |
-| PaymentStage.test.tsx | 2h | - |
 
 #### Phase 3: 서비스 테스트 복구
 
@@ -233,3 +234,4 @@ it('should handle network error', async () => {
 | 날짜 | 작성자 | 내용 |
 |------|--------|------|
 | 2026-01-24 | Claude | 초기 문서 작성, Skip 테스트 정리 |
+| 2026-01-24 | Claude | 단기 계획 완료 (ShootingPage, PaymentStage, GuidelineCard 테스트 수정) |

@@ -19,8 +19,6 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/e2e/**',
-      // TODO: Fix import error - See docs/testing-strategy.md
-      '**/ShootingPage.test.tsx',
     ],
     coverage: {
       provider: 'v8',
