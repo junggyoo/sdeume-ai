@@ -405,6 +405,9 @@ export const triggerModalGeneration = async (
     return failure(500, generationServiceErrorCodes.databaseError, 'Failed to update final generation status');
   }
 
+  // 7. Update project status to 'completed'
+  await supabase.from('projects').update({ status: 'completed' }).eq('id', projectId);
+
   return success({
     status: 'completed' as GenerationStatus,
     images: generatedImages,
