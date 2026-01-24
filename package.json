@@ -18,7 +18,13 @@
     "test:e2e:headed": "playwright test --headed",
     "test:all": "run-p test test:e2e",
     "typecheck": "tsc --noEmit",
-    "env:check": "dotenv -e .env.local -- tsx scripts/check-env.ts"
+    "env:check": "dotenv -e .env.local -- tsx scripts/check-env.ts",
+    "modal:setup": "./scripts/modal-setup.sh",
+    "modal:deploy": "./scripts/modal-deploy.sh",
+    "modal:deploy:dry": "./scripts/modal-deploy.sh --dry-run",
+    "modal:models:download": "./scripts/modal-models.sh download",
+    "modal:models:list": "./scripts/modal-models.sh list",
+    "qstash:dev": "npx @upstash/qstash-cli@latest dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^4",
@@ -36,6 +42,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.58.0",
     "@tanstack/react-query": "^5",
+    "@upstash/qstash": "^2.8.4",
     "axios": "^1.7.9",
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.0",

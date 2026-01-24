@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "memory": 2048,
+      "maxDuration": 300
+    },
+    "src/app/api/jobs/**/*.ts": {
+      "memory": 2048,
+      "maxDuration": 300
+    }
+  }
+}

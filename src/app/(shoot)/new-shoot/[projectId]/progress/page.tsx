@@ -35,7 +35,9 @@ function determinePhase(
   if (status) {
     switch (status) {
       case 'queued':
+      case 'preparing_training':
       case 'training':
+        // All three statuses show as 'training' phase for UI continuity
         return 'training';
       case 'generating':
         return 'generating';

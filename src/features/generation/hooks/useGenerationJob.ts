@@ -25,6 +25,7 @@ export const generationKeys = {
 
 const POLLING_INTERVALS: Record<GenerationStatus, number | false> = {
   queued: 5000, // 5s for initial waiting
+  preparing_training: 5000, // 5s during training preparation (ZIP creation)
   training: 5000, // 5s during training
   generating: 2000, // 2s during active generation (real-time feel)
   completed: false, // Stop polling

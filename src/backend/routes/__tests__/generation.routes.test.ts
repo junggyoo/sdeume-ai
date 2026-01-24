@@ -359,9 +359,10 @@ describe('POST /generate with existing LoRA', () => {
       }),
     });
 
-    // When no existing LoRA and no uploads, training will fail
-    // This is expected behavior - the route should try to start training
-    expect([201, 500]).toContain(res.status);
+    // When no existing LoRA, job is enqueued via QStash (202) or fails (500)
+    // 202: Job enqueued for async processing
+    // 500: Failed to enqueue (e.g., QStash unavailable)
+    expect([202, 500]).toContain(res.status);
   });
 
   it('should start training when user has only groom face model (incomplete)', async () => {
@@ -429,9 +430,10 @@ describe('POST /generate with existing LoRA', () => {
       }),
     });
 
-    // Should try to start training (and fail due to no uploads)
-    // The important thing is it doesn't skip training with incomplete LoRA
-    expect([201, 500]).toContain(res.status);
+    // Should try to enqueue training job (and might fail due to no uploads)
+    // 202: Job enqueued for async processing
+    // 500: Failed to enqueue
+    expect([202, 500]).toContain(res.status);
   });
 });
 
