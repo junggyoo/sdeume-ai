@@ -137,12 +137,24 @@ export default function ProgressPage() {
       return;
     }
 
-    if (
-      projectGeneration.status === 'completed' &&
-      projectGeneration.groomLoraUrl &&
-      projectGeneration.brideLoraUrl &&
-      !isRegenerateMode
-    ) {
+    // Check if both LoRA URLs exist (training completed)
+    const hasLoraUrls = Boolean(
+      projectGeneration.groomLoraUrl && projectGeneration.brideLoraUrl
+    );
+
+    // Trigger regenerate if:
+    // 1. Status is 'completed' with LoRA URLs (user returned to progress page)
+    // 2. Status is 'failed' with LoRA URLs (image generation failed, retry automatically)
+    const shouldRegenerate =
+      hasLoraUrls &&
+      (projectGeneration.status === 'completed' ||
+        projectGeneration.status === 'failed') &&
+      !isRegenerateMode;
+
+    if (shouldRegenerate) {
+      console.log(
+        `[Progress] Triggering regenerate for status: ${projectGeneration.status}`
+      );
       setIsRegenerateMode(true);
       regenerate().catch((err) => {
         console.error('[Progress] Failed to regenerate:', err);

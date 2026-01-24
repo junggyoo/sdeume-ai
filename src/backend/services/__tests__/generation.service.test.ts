@@ -623,6 +623,71 @@ describe('Generation Service', () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
+    it('should update project status to completed when generation completes', async () => {
+      const { generateImages } = await import('../modal-client');
+      const { uploadGeneratedImage } = await import('../storage.service');
+
+      (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: { images: [{ base64: 'data:image/png;base64,test' }] },
+      });
+
+      (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        data: {
+          originalUrl: 'https://storage.example.com/0_original.webp',
+          thumbnailUrl: 'https://storage.example.com/0_thumbnail.webp',
+          blurHash: 'blur1',
+        },
+      });
+
+      // Track all update calls to verify project status update
+      const updateCalls: { table: string; data: Record<string, unknown> }[] = [];
+      const mockFrom = vi.fn((table: string) => ({
+        select: mockSelect,
+        eq: mockEq,
+        single: mockSingle,
+        update: vi.fn((data: Record<string, unknown>) => {
+          updateCalls.push({ table, data });
+          return {
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'gen123', status: 'completed', images: [] },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }),
+      }));
+      (mockSupabase.from as ReturnType<typeof vi.fn>) = mockFrom;
+
+      mockSingle.mockResolvedValue({
+        data: { id: 'gen123', status: 'completed', images: [] },
+        error: null,
+      });
+
+      const result = await triggerModalGeneration(
+        mockSupabase,
+        'gen123',
+        'project123',
+        'https://fal.ai/lora/groom.safetensors',
+        'https://fal.ai/lora/bride.safetensors',
+        'theme123',
+        { endpoint: 'http://modal.test' }
+      );
+
+      expect(result.ok).toBe(true);
+
+      // Verify that project status was updated to 'completed'
+      const projectUpdate = updateCalls.find(
+        (call) => call.table === 'projects' && call.data.status === 'completed'
+      );
+      expect(projectUpdate).toBeDefined();
+      expect(projectUpdate?.data.status).toBe('completed');
+    });
+
     it('should preserve existing images when regenerating', async () => {
       const { generateImages } = await import('../modal-client');
       const { uploadGeneratedImage } = await import('../storage.service');

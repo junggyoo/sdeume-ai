@@ -237,3 +237,117 @@ describe('Progress Page Phase Logic', () => {
     });
   });
 });
+
+/**
+ * Tests for Failed Generation Retry Logic
+ * When status is 'failed' but LoRA URLs exist, regenerate should be triggered
+ */
+describe('Failed Generation Retry Logic', () => {
+  describe('shouldTriggerRegenerate', () => {
+    interface GenerationData {
+      status: GenerationStatus;
+      groomLoraUrl: string | null;
+      brideLoraUrl: string | null;
+    }
+
+    /**
+     * Determines if regenerate should be triggered based on generation state
+     * Bug fix: When status is 'failed' but LoRA training completed,
+     * we should retry image generation automatically
+     */
+    function shouldTriggerRegenerate(
+      generation: GenerationData | null,
+      isRegenerateMode: boolean
+    ): boolean {
+      if (!generation || isRegenerateMode) return false;
+
+      const hasLoraUrls = Boolean(
+        generation.groomLoraUrl && generation.brideLoraUrl
+      );
+
+      // Case 1: completed with LoRA URLs (existing behavior)
+      if (generation.status === 'completed' && hasLoraUrls) {
+        return true;
+      }
+
+      // Case 2: failed with LoRA URLs (bug fix - retry image generation)
+      if (generation.status === 'failed' && hasLoraUrls) {
+        return true;
+      }
+
+      return false;
+    }
+
+    it('should trigger regenerate when status is completed with LoRA URLs', () => {
+      const generation: GenerationData = {
+        status: 'completed',
+        groomLoraUrl: 'https://example.com/groom.safetensors',
+        brideLoraUrl: 'https://example.com/bride.safetensors',
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(true);
+    });
+
+    it('should trigger regenerate when status is failed with LoRA URLs', () => {
+      // Bug reproduction: LoRA training succeeded but image generation failed
+      const generation: GenerationData = {
+        status: 'failed',
+        groomLoraUrl: 'https://example.com/groom.safetensors',
+        brideLoraUrl: 'https://example.com/bride.safetensors',
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(true);
+    });
+
+    it('should not trigger regenerate when status is failed without LoRA URLs', () => {
+      // Training failed before LoRA was created
+      const generation: GenerationData = {
+        status: 'failed',
+        groomLoraUrl: null,
+        brideLoraUrl: null,
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(false);
+    });
+
+    it('should not trigger regenerate when status is training', () => {
+      const generation: GenerationData = {
+        status: 'training',
+        groomLoraUrl: null,
+        brideLoraUrl: null,
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(false);
+    });
+
+    it('should not trigger regenerate when already in regenerate mode', () => {
+      const generation: GenerationData = {
+        status: 'failed',
+        groomLoraUrl: 'https://example.com/groom.safetensors',
+        brideLoraUrl: 'https://example.com/bride.safetensors',
+      };
+
+      expect(shouldTriggerRegenerate(generation, true)).toBe(false);
+    });
+
+    it('should not trigger regenerate when only groom LoRA exists', () => {
+      const generation: GenerationData = {
+        status: 'failed',
+        groomLoraUrl: 'https://example.com/groom.safetensors',
+        brideLoraUrl: null,
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(false);
+    });
+
+    it('should not trigger regenerate when only bride LoRA exists', () => {
+      const generation: GenerationData = {
+        status: 'failed',
+        groomLoraUrl: null,
+        brideLoraUrl: 'https://example.com/bride.safetensors',
+      };
+
+      expect(shouldTriggerRegenerate(generation, false)).toBe(false);
+    });
+  });
+});

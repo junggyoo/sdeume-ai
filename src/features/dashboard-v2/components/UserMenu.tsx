@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import type { UserMenuProps } from '../types';
 import { ATELIER_ROUTES } from '../constants';
 
@@ -90,6 +91,7 @@ export function UserMenu({
   className,
 }: UserMenuProps) {
   const router = useRouter();
+  const { refresh: refreshAuthState } = useCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,13 +104,15 @@ export function UserMenu({
     try {
       const supabase = getSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.push('/login');
+      // 클라이언트 인증 상태 동기화 (redirect loop 방지)
+      await refreshAuthState();
+      router.push('/');
       router.refresh();
     } catch (error) {
       console.error('로그아웃 실패:', error);
       setIsLoggingOut(false);
     }
-  }, [router]);
+  }, [router, refreshAuthState]);
 
   // 외부 클릭 감지
   useEffect(() => {
