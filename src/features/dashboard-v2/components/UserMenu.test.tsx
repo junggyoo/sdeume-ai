@@ -43,10 +43,11 @@ vi.mock('framer-motion', () => ({
 }));
 
 // Mock Supabase client
+const mockSignOut = vi.fn().mockResolvedValue({});
 vi.mock('@/lib/supabase/browser-client', () => ({
   getSupabaseBrowserClient: () => ({
     auth: {
-      signOut: vi.fn().mockResolvedValue({}),
+      signOut: mockSignOut,
     },
   }),
 }));
@@ -61,6 +62,7 @@ describe('UserMenu', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSignOut.mockResolvedValue({});
   });
 
   describe('Avatar Rendering', () => {
@@ -318,6 +320,63 @@ describe('UserMenu', () => {
 
       const avatarButton = screen.getByRole('button', { name: /사용자 메뉴/i });
       expect(avatarButton).toHaveClass('bg-white/10');
+    });
+  });
+
+  describe('Logout Behavior', () => {
+    it('should call supabase signOut when logout is clicked', async () => {
+      const user = userEvent.setup();
+      render(<UserMenu {...defaultProps} />);
+
+      // 메뉴 열기
+      await user.click(screen.getByRole('button', { name: /사용자 메뉴/i }));
+
+      // 로그아웃 버튼 클릭
+      const logoutButton = screen.getByRole('menuitem', { name: /Log Out/i });
+      await user.click(logoutButton);
+
+      // signOut이 호출되어야 함
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalled();
+      });
+    });
+
+    it('should redirect to home page after logout', async () => {
+      const user = userEvent.setup();
+      render(<UserMenu {...defaultProps} />);
+
+      await user.click(screen.getByRole('button', { name: /사용자 메뉴/i }));
+      await user.click(screen.getByRole('menuitem', { name: /Log Out/i }));
+
+      // 메인 페이지('/')로 리다이렉트되어야 함 ('/login'이 아님)
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/');
+      });
+    });
+
+    it('should call router.refresh after logout', async () => {
+      const user = userEvent.setup();
+      render(<UserMenu {...defaultProps} />);
+
+      await user.click(screen.getByRole('button', { name: /사용자 메뉴/i }));
+      await user.click(screen.getByRole('menuitem', { name: /Log Out/i }));
+
+      // router.refresh가 호출되어야 함
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalled();
+      });
+    });
+
+    it('should not redirect to /login on logout', async () => {
+      const user = userEvent.setup();
+      render(<UserMenu {...defaultProps} />);
+
+      await user.click(screen.getByRole('button', { name: /사용자 메뉴/i }));
+      await user.click(screen.getByRole('menuitem', { name: /Log Out/i }));
+
+      await waitFor(() => {
+        expect(mockPush).not.toHaveBeenCalledWith('/login');
+      });
     });
   });
 });
