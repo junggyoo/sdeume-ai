@@ -58,7 +58,8 @@ export const generateImages = async (
         // Theme parameters
         theme: request.theme ?? 'white_studio',
         shotType: request.shotType ?? 'full_body',
-        extraStyleTags: request.extraStyleTags,
+        // Legacy: prompt maps to extraStyleTags if extraStyleTags not provided
+        extraStyleTags: request.extraStyleTags ?? request.prompt,
 
         // LoRA triggers
         groomTrigger: request.groomTrigger ?? 'GROOM_SDME',

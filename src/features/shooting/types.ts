@@ -198,6 +198,9 @@ export interface ModalGenerateRequest {
   shotType?: ShotType;
   extraStyleTags?: string;
 
+  /** @deprecated Use theme + extraStyleTags instead */
+  prompt?: string;
+
   // LoRA trigger words
   groomTrigger?: string;
   brideTrigger?: string;
