@@ -196,7 +196,7 @@ def apply_generation_settings(
     workflow: dict,
     width: int = 896,
     height: int = 1152,
-    cfg: float = 7,
+    cfg: float = 1,  # FLUX model requires cfg=1 (guidance-free)
     steps: int = 25,
     seed: Optional[int] = None,
 ) -> dict:

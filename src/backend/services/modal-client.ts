@@ -69,7 +69,7 @@ export const generateImages = async (
         // Generation settings
         width: request.width ?? 896,
         height: request.height ?? 1152,
-        cfg: request.cfg ?? 7,
+        cfg: request.cfg ?? 1,  // FLUX model requires cfg=1 (guidance-free)
         steps: request.steps ?? 25,
         seed: request.seed,
       }),

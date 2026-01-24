@@ -12,6 +12,7 @@ import { createLoraModel, getLoraModelByFalJobId, updateLoraModelStatus } from '
 import { upsertUserFaceModel } from './user-face-model.service';
 import type { GenerationImage, GenerationStatus } from '@/features/generation/types';
 import type { FaceRole } from '@/features/face/types';
+import type { ThemeSlug } from '@/features/shooting/types';
 
 // =============================================================================
 // Types
@@ -318,17 +319,17 @@ export const triggerModalGeneration = async (
     .update({ status: 'generating' })
     .eq('id', generationId);
 
-  // 3. Get theme prompt if available
-  let prompt = 'Generate a beautiful wedding photo with the couple';
+  // 3. Get theme slug if available (for new prompt system)
+  let themeSlug: ThemeSlug | undefined;
   if (themeId) {
     const { data: theme } = await supabase
       .from('themes')
-      .select('prompt')
+      .select('name')
       .eq('id', themeId)
       .single();
 
-    if (theme?.prompt) {
-      prompt = theme.prompt;
+    if (theme?.name) {
+      themeSlug = theme.name as ThemeSlug;
     }
   }
 
@@ -341,7 +342,7 @@ export const triggerModalGeneration = async (
   const modalResult = await generateImages(modalClientConfig, {
     groomLoraUrl,
     brideLoraUrl,
-    prompt,
+    theme: themeSlug,  // Pass theme slug to Modal API
   });
 
   if (!modalResult.ok) {
