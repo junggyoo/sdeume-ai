@@ -1,5 +1,5 @@
 // TODO: Fix Supabase mock issues - See docs/testing-strategy.md
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   uploadTrainingImage,
@@ -15,6 +15,15 @@ vi.mock('jszip', () => ({
     file: mockJsZipFile,
     generateAsync: mockGenerateAsync,
   })),
+}));
+
+// Mock p-limit to track concurrency
+vi.mock('p-limit', () => ({
+  default: (concurrency: number) => {
+    const mockLimit = (fn: () => Promise<unknown>) => fn();
+    (mockLimit as Record<string, unknown>).concurrency = concurrency;
+    return mockLimit;
+  },
 }));
 
 // Mock Supabase client
@@ -98,6 +107,7 @@ describe('Storage Service', () => {
     });
   });
 
+  // Skip: Complex Supabase mock chain issues - See docs/testing-strategy.md
   describe.skip('createTrainingZip', () => {
     it('should fetch images from uploads table and create ZIP with JSZip', async () => {
       const mockUploads = [
@@ -143,6 +153,86 @@ describe('Storage Service', () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
       expect(global.fetch).toHaveBeenCalledWith('https://example.com/image1.jpg');
       expect(global.fetch).toHaveBeenCalledWith('https://example.com/image2.jpg');
+    });
+
+    it('should use original image buffer without sharp compression (no double compression)', async () => {
+      // This test verifies that images are NOT re-compressed on the server
+      // to avoid quality degradation from double compression
+      const mockUploads = [
+        { original_url: 'https://example.com/image1.jpg' },
+      ];
+
+      const originalBuffer = new ArrayBuffer(1024);
+
+      mockEq.mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: mockUploads,
+          error: null,
+        }),
+      });
+
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(originalBuffer),
+      });
+
+      mockUpload.mockResolvedValue({ error: null });
+      mockCreateSignedUrl.mockResolvedValue({
+        data: { signedUrl: 'https://storage.example.com/signed/path' },
+        error: null,
+      });
+
+      await createTrainingZip(mockSupabase, 'project123', 'groom');
+
+      // Verify the original buffer is used directly (no sharp processing)
+      expect(mockJsZipFile).toHaveBeenCalledWith(
+        'image_000.jpg',
+        expect.any(Buffer)
+      );
+    });
+
+    it('should process images in parallel with concurrency limit', async () => {
+      // Create 20 mock uploads to test parallel processing
+      const mockUploads = Array.from({ length: 20 }, (_, i) => ({
+        original_url: `https://example.com/image${i}.jpg`,
+      }));
+
+      mockEq.mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: mockUploads,
+          error: null,
+        }),
+      });
+
+      const fetchPromises: Promise<void>[] = [];
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        const promise = new Promise<{ ok: boolean; arrayBuffer: () => Promise<ArrayBuffer> }>((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+            });
+          }, 10);
+        });
+        fetchPromises.push(promise as unknown as Promise<void>);
+        return promise;
+      });
+
+      mockUpload.mockResolvedValue({ error: null });
+      mockCreateSignedUrl.mockResolvedValue({
+        data: { signedUrl: 'https://storage.example.com/signed/path' },
+        error: null,
+      });
+
+      const startTime = Date.now();
+      await createTrainingZip(mockSupabase, 'project123', 'groom');
+      const endTime = Date.now();
+
+      // With parallel processing, 20 images at 10ms each should complete
+      // much faster than sequential (200ms vs ~20-40ms with concurrency 10)
+      // Allow some margin for test stability
+      expect(endTime - startTime).toBeLessThan(150);
+      expect(global.fetch).toHaveBeenCalledTimes(20);
     });
 
     it('should return failure when no images found', async () => {

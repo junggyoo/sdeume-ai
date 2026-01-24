@@ -11,3 +11,4 @@ export const DELETE = handle(app);
 export const OPTIONS = handle(app);
 
 export const runtime = 'nodejs';
+export const maxDuration = 300; // Vercel Pro: 5 minutes

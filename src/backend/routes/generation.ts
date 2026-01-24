@@ -15,6 +15,7 @@ import {
   triggerModalGeneration,
 } from '@/backend/services/generation.service';
 import { getUserActiveFaceModels } from '@/backend/services/user-face-model.service';
+import { enqueueTrainingJob } from '@/backend/services/qstash.service';
 import { verifyFalWebhookSignature, parseFalWebhookPayload, getTrainingStatus } from '@/backend/services/fal-client';
 import type {
   Generation,
@@ -297,47 +298,41 @@ export const generationRoutes = new Hono<AppEnv>()
       }
     }
 
-    // 3. No existing LoRA - Start LoRA training
-    const falConfig = {
-      apiKey: config.fal?.apiKey || process.env.FAL_KEY || '',
-      webhookSecret: config.fal?.webhookSecret || process.env.FAL_WEBHOOK_SECRET || '',
-      webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/generate/webhooks/fal`,
-    };
+    // 3. No existing LoRA - Enqueue training job via QStash
+    // In production: QStash handles the job asynchronously with retries
+    // In development: Job runs synchronously for easier debugging
+    try {
+      const enqueueResult = await enqueueTrainingJob({
+        generationId: generation.id,
+        projectId: parsedBody.data.projectId,
+        userId: user.id,
+      });
 
-    const trainingResult = await startLoraTrainingForGeneration(
-      supabase,
-      generation.id,
-      parsedBody.data.projectId,
-      falConfig
-    );
+      logger.info('Training job enqueued', {
+        generationId: generation.id,
+        messageId: enqueueResult.messageId,
+      });
 
-    if (!trainingResult.ok) {
-      const trainingError = trainingResult as ErrorResult<string, unknown>;
-      logger.error('Failed to start LoRA training', trainingError.error.message);
+      // Return 202 Accepted - job is queued for processing
+      return respond(c, success({
+        ...generation,
+        status: 'queued' as GenerationStatus,
+      }, 202));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to enqueue training job';
+      logger.error('Failed to enqueue training job', errorMessage);
+
       // Update generation status to failed
       await supabase
         .from('generations')
         .update({
           status: 'failed',
-          error_message: trainingError.error.message,
+          error_message: errorMessage,
         })
         .eq('id', generation.id);
 
-      return respond(c, failure(500, generationErrorCodes.trainingError, trainingError.error.message));
+      return respond(c, failure(500, generationErrorCodes.trainingError, errorMessage));
     }
-
-    logger.info('Generation created and training started', {
-      generationId: generation.id,
-      groomFalJobId: trainingResult.data.groomFalJobId,
-      brideFalJobId: trainingResult.data.brideFalJobId,
-    });
-
-    return respond(c, success({
-      ...generation,
-      status: 'training' as GenerationStatus,
-      groomFalJobId: trainingResult.data.groomFalJobId,
-      brideFalJobId: trainingResult.data.brideFalJobId,
-    }, 201));
   })
 
   // POST /generate/webhooks/fal - Fal.ai webhook handler

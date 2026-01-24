@@ -1,5 +1,6 @@
 export type GenerationStatus =
   | 'queued'
+  | 'preparing_training'
   | 'training'
   | 'generating'
   | 'completed'

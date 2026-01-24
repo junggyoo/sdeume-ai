@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import JSZip from 'jszip';
 import sharp from 'sharp';
+import pLimit from 'p-limit';
 import {
   success,
   failure,
@@ -11,11 +12,10 @@ import type { UploadRole } from '@/features/upload/types';
 import { STORAGE_BUCKET, SIGNED_URL_EXPIRY } from '@/backend/config/storage';
 
 // =============================================================================
-// Training Image Constants
+// Training ZIP Constants
 // =============================================================================
 
-const TRAINING_IMAGE_MAX_SIZE = 1024; // Max dimension for training images
-const TRAINING_IMAGE_QUALITY = 85; // JPEG quality (0-100)
+const CONCURRENT_DOWNLOADS = 10; // Max concurrent image downloads for ZIP creation
 
 // =============================================================================
 // Types
@@ -101,30 +101,38 @@ export const createTrainingZip = async (
     return failure(400, storageErrorCodes.noImagesFound, 'No images found for training');
   }
 
-  // 2. Download images, compress, and add to ZIP
+  // 2. Download images in parallel and add to ZIP
+  // No re-compression: images are already optimized on client-side upload
   const zip = new JSZip();
+  const limit = pLimit(CONCURRENT_DOWNLOADS);
 
-  for (let i = 0; i < uploads.length; i++) {
-    const imageUrl = uploads[i].original_url;
+  // Track errors during parallel processing
+  let fetchError: { url: string } | null = null;
 
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      return failure(500, storageErrorCodes.imageFetchError, `Failed to fetch image: ${imageUrl}`);
-    }
+  const processPromises = uploads.map((upload, index) =>
+    limit(async () => {
+      // Skip if a previous fetch already failed
+      if (fetchError) return;
 
-    const arrayBuffer = await response.arrayBuffer();
+      const response = await fetch(upload.original_url);
+      if (!response.ok) {
+        fetchError = { url: upload.original_url };
+        return;
+      }
 
-    // Compress image using Sharp for smaller ZIP size
-    const compressedBuffer = await sharp(Buffer.from(arrayBuffer))
-      .resize(TRAINING_IMAGE_MAX_SIZE, TRAINING_IMAGE_MAX_SIZE, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: TRAINING_IMAGE_QUALITY })
-      .toBuffer();
+      const arrayBuffer = await response.arrayBuffer();
+      const fileName = `image_${index.toString().padStart(3, '0')}.jpg`;
 
-    const fileName = `image_${i.toString().padStart(3, '0')}.jpg`;
-    zip.file(fileName, compressedBuffer);
+      // Use original buffer directly - no double compression
+      zip.file(fileName, Buffer.from(arrayBuffer));
+    })
+  );
+
+  await Promise.all(processPromises);
+
+  // Check if any fetch failed
+  if (fetchError) {
+    return failure(500, storageErrorCodes.imageFetchError, `Failed to fetch image: ${fetchError.url}`);
   }
 
   // 3. Generate ZIP blob

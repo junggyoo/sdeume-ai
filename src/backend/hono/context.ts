@@ -15,6 +15,9 @@ export type AppConfig = {
   modal?: {
     endpointUrl: string;
   };
+  qstash?: {
+    token: string;
+  };
 };
 
 export type AppVariables = {
