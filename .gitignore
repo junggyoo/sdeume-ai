@@ -57,3 +57,6 @@ next-env.d.ts
 /AGENTS.md.bak
 # END Ruler Generated Files
 .mcp.json
+
+# Modal Python virtual environment
+modal/.venv/
