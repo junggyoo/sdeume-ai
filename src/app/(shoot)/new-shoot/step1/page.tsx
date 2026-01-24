@@ -188,6 +188,7 @@ export default function Step1Page() {
               existingUploads={activeRole === 'groom' ? existingGroomUploads : existingBrideUploads}
               onRemove={currentUpload.removeFile}
               onAddMore={(files) => currentUpload.addFiles(files)}
+              onRotate={currentUpload.rotateImage}
               maxPhotos={RECOMMENDED_PHOTOS_PER_ROLE}
             />
           </div>

@@ -25,6 +25,7 @@ interface UseBulkUploadReturn {
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeFile: (id: string) => void;
   clearQueue: () => void;
+  rotateImage: (id: string, degrees: 90 | -90) => Promise<void>;
 
   // Validation
   canProceed: boolean;
@@ -167,7 +168,7 @@ export function useBulkUpload({
         });
       }
     },
-    [role, updateQueueItem, onUploadComplete, yieldToMain]
+    [role, getQueue, updateQueueItem, onUploadComplete, yieldToMain]
   );
 
   // Add files to queue and process
@@ -213,6 +214,61 @@ export function useBulkUpload({
     clearStoreQueue(role);
   }, [role, clearStoreQueue]);
 
+  // Rotate image and re-analyze
+  const rotateImage = useCallback(
+    async (id: string, degrees: 90 | -90) => {
+      const item = getQueue(role).find((q) => q.id === id);
+      // Skip if item doesn't exist, is analyzing, or is still pending initial processing
+      if (!item || item.status === 'analyzing' || item.status === 'pending') return;
+
+      try {
+        // 1. Set status to analyzing (UI feedback)
+        updateQueueItem(id, role, { status: 'analyzing', progress: 30 });
+        await yieldToMain();
+
+        // 2. Rotate image
+        const rotatedFile = await rotateImage90(item.file, degrees);
+
+        // 3. Update preview URL with rotated image
+        const newPreviewUrl = URL.createObjectURL(rotatedFile);
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+        updateQueueItem(id, role, { previewUrl: newPreviewUrl, progress: 50 });
+        await yieldToMain();
+
+        // 4. Process image (compress and normalize)
+        const processed = await processImage(rotatedFile);
+        updateQueueItem(id, role, { previewUrl: processed.previewUrl, progress: 70 });
+        await yieldToMain();
+
+        // 5. Re-analyze face
+        const analysis = await analyzeFaceFromFile(processed.file);
+
+        // 6. Add manual rotation info to analysis
+        const enrichedAnalysis = {
+          ...analysis,
+          wasRotated: true,
+          rotationApplied: degrees,
+        };
+
+        // 7. Final update with new file and analysis
+        updateQueueItem(id, role, {
+          file: processed.file,
+          status: 'completed',
+          progress: 100,
+          analysis: enrichedAnalysis,
+        });
+      } catch (error) {
+        updateQueueItem(id, role, {
+          status: 'error',
+          error: '회전 처리에 실패했습니다',
+        });
+      }
+    },
+    [role, getQueue, updateQueueItem, yieldToMain]
+  );
+
   return {
     isProcessing,
     processingCount,
@@ -221,6 +277,7 @@ export function useBulkUpload({
     addFiles,
     removeFile,
     clearQueue,
+    rotateImage,
     canProceed,
     needsMoreFrontal,
     needsMoreSide,
