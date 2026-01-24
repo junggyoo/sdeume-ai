@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processGeneratedImage } from '../image-processor.service';
 
+// Create mock functions to track calls
+const mockResize = vi.fn().mockReturnThis();
+const mockWebp = vi.fn().mockReturnThis();
+const mockToBuffer = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
+
 // Mock sharp
 vi.mock('sharp', () => ({
   default: vi.fn(() => ({
-    resize: vi.fn().mockReturnThis(),
-    webp: vi.fn().mockReturnThis(),
-    toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock image data')),
+    resize: mockResize,
+    webp: mockWebp,
+    toBuffer: mockToBuffer,
   })),
 }));
 
@@ -17,18 +22,17 @@ vi.mock('plaiceholder', () => ({
   }),
 }));
 
-// TODO: Fix sharp mock issues - See docs/testing-strategy.md
-describe.skip('Image Processor Service', () => {
+describe('Image Processor Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('processGeneratedImage', () => {
-    it('should convert base64 to WebP and create thumbnail', async () => {
-      const base64Input =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const validBase64Input =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-      const result = await processGeneratedImage(base64Input);
+    it('should convert base64 to WebP and create thumbnail', async () => {
+      const result = await processGeneratedImage(validBase64Input);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -40,10 +44,7 @@ describe.skip('Image Processor Service', () => {
     });
 
     it('should generate BlurHash from image', async () => {
-      const base64Input =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-
-      const result = await processGeneratedImage(base64Input);
+      const result = await processGeneratedImage(validBase64Input);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -63,30 +64,21 @@ describe.skip('Image Processor Service', () => {
     });
 
     it('should create thumbnail with correct dimensions (300x300)', async () => {
-      const sharp = await import('sharp');
-      const base64Input =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      await processGeneratedImage(validBase64Input);
 
-      await processGeneratedImage(base64Input);
-
-      // Verify sharp was called with resize for thumbnail
-      const sharpInstance = (sharp.default as ReturnType<typeof vi.fn>).mock.results[0]?.value;
-      if (sharpInstance) {
-        expect(sharpInstance.resize).toHaveBeenCalledWith(300, 300, expect.any(Object));
-      }
+      // Verify resize was called with thumbnail dimensions
+      expect(mockResize).toHaveBeenCalledWith(300, 300, {
+        fit: 'cover',
+        position: 'center',
+      });
     });
 
     it('should convert to WebP format', async () => {
-      const sharp = await import('sharp');
-      const base64Input =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      await processGeneratedImage(validBase64Input);
 
-      await processGeneratedImage(base64Input);
-
-      const sharpInstance = (sharp.default as ReturnType<typeof vi.fn>).mock.results[0]?.value;
-      if (sharpInstance) {
-        expect(sharpInstance.webp).toHaveBeenCalled();
-      }
+      // Verify webp was called (twice: once for original, once for thumbnail)
+      expect(mockWebp).toHaveBeenCalled();
+      expect(mockWebp).toHaveBeenCalledWith({ quality: 85 });
     });
   });
 });

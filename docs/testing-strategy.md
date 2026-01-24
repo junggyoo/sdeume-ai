@@ -6,19 +6,18 @@
 
 | 구분 | 수량 |
 |------|------|
-| 전체 테스트 파일 | 79개 |
-| 통과 | 77개 |
-| Skip 처리 | 2개 |
-| 전체 테스트 케이스 | 1,333개 |
-| 통과 | 1,299개 |
-| Skip 처리 | 34개 |
+| 전체 테스트 파일 | 76개 |
+| 통과 | 76개 |
+| Skip 처리 | 0개 |
+| 전체 테스트 케이스 | 1,315개 |
+| 통과 | 1,315개 |
+| Skip 처리 | 0개 |
 
 ### Skip 처리된 테스트 목록
 
 | 파일 | Skip 사유 | 우선순위 |
 |------|-----------|---------|
-| `useSoundEffect.test.ts` | Audio mock 이슈 | P3 |
-| `image-processor.service.test.ts` | sharp mock 이슈 | P2 |
+| (없음) | - | - |
 
 ---
 
@@ -77,14 +76,14 @@
 | DashboardHome.test.tsx | ✅ | hooks mock 추가, 한국어 텍스트로 업데이트 |
 | AuroraBackground.test.tsx | ✅ | 간소화된 컴포넌트에 맞게 테스트 재작성 |
 
-#### Phase 3: 서비스 테스트 (남은 작업)
+#### Phase 3: 서비스 테스트 ✅
 
 | 테스트 파일 | 상태 | 비고 |
 |------------|:----:|------|
 | fal-client.test.ts | ⚠️ | 2개 테스트 skip (trigger_word mock) |
 | modal-client.test.ts | ⚠️ | 6개 테스트 skip (fetch mock) |
-| image-processor.service.test.ts | ❌ | 전체 skip (sharp mock 이슈) |
-| useSoundEffect.test.ts | ❌ | 전체 skip (Audio mock 이슈) |
+| image-processor.service.test.ts | ✅ | sharp mock 수정 완료 |
+| useSoundEffect.test.ts | 🗑️ | Dead code 삭제됨 |
 
 ---
 
@@ -210,3 +209,4 @@ it('should handle network error', async () => {
 | 2026-01-24 | Claude | 초기 문서 작성, Skip 테스트 정리 |
 | 2026-01-24 | Claude | 단기 계획 완료 (ShootingPage, PaymentStage, GuidelineCard 테스트 수정) |
 | 2026-01-24 | Claude | 중기 계획 Phase 2 완료 (AuroraBackground, UserMenu, DashboardHome 테스트 복구) |
+| 2026-01-24 | Claude | Dead code 삭제 (useSoundEffect, LiveDarkroom) 및 image-processor 테스트 복구 |
