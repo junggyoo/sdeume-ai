@@ -6,8 +6,12 @@ import { handlePrepareTraining } from './handler';
  * QStash background job handler for preparing training data.
  * This endpoint is called by QStash with automatic retries.
  *
- * Security: In production, requests are verified using QStash signature verification.
- * In development/CI, signature verification is skipped.
+ * Security modes:
+ * 1. Production: Signature verification with Upstash keys
+ * 2. Local Mode: Signature verification with qstash-cli dev keys
+ * 3. CI/Test: Signature verification skipped (no keys configured)
+ *
+ * @see https://upstash.com/docs/qstash/howto/local-development
  */
 async function handler(req: Request): Promise<Response> {
   try {
@@ -43,15 +47,20 @@ async function handler(req: Request): Promise<Response> {
 }
 
 /**
+ * Check if QStash signature verification should be enabled.
+ * Enabled when QSTASH_CURRENT_SIGNING_KEY is set (production or local mode).
+ */
+function shouldVerifySignature(): boolean {
+  return Boolean(process.env.QSTASH_CURRENT_SIGNING_KEY);
+}
+
+/**
  * Conditionally wrap handler with QStash signature verification.
- * Only in production with proper signing keys configured.
+ * Enabled in both production and local mode when signing keys are configured.
  */
 async function createHandler(): Promise<typeof handler> {
-  // Skip signature verification in non-production or when keys are missing
-  if (
-    process.env.NODE_ENV !== 'production' ||
-    !process.env.QSTASH_CURRENT_SIGNING_KEY
-  ) {
+  if (!shouldVerifySignature()) {
+    console.log('[Job Route] Signature verification disabled (no signing key)');
     return handler;
   }
 
@@ -60,7 +69,7 @@ async function createHandler(): Promise<typeof handler> {
   return verifySignatureAppRouter(handler);
 }
 
-// Export POST handler - uses signature verification only in production with keys
+// Export POST handler - uses signature verification when keys are configured
 export const POST = async (req: Request): Promise<Response> => {
   const wrappedHandler = await createHandler();
   return wrappedHandler(req);
