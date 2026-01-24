@@ -7,26 +7,18 @@
 | 구분 | 수량 |
 |------|------|
 | 전체 테스트 파일 | 79개 |
-| 통과 | 74개 |
-| Skip 처리 | 5개 |
-| 전체 테스트 케이스 | 1,348개 |
-| 통과 | 1,235개 |
-| Skip 처리 | 113개 |
+| 통과 | 77개 |
+| Skip 처리 | 2개 |
+| 전체 테스트 케이스 | 1,333개 |
+| 통과 | 1,299개 |
+| Skip 처리 | 34개 |
 
 ### Skip 처리된 테스트 목록
 
 | 파일 | Skip 사유 | 우선순위 |
 |------|-----------|---------|
-| `fal-client.test.ts` | trigger_word mock 불일치 | P2 |
 | `useSoundEffect.test.ts` | Audio mock 이슈 | P3 |
 | `image-processor.service.test.ts` | sharp mock 이슈 | P2 |
-| `modal-client.test.ts` | fetch mock 이슈 | P2 |
-| `AuroraBackground.test.tsx` | 컴포넌트 props 타입 불일치 | P2 |
-| `storage.service.test.ts` | Supabase mock 이슈 | P2 |
-| `DashboardSidebar.test.tsx` | class name 검증 실패 | P3 |
-| `roll-angle.test.ts` | 테스트 기대값 오류 | P2 |
-| `UserMenu.test.tsx` | Next.js App Router mock 필요 | P1 |
-| `DashboardHome.test.tsx` | Next.js App Router mock 필요 | P1 |
 
 ---
 
@@ -57,60 +49,42 @@
 
 ---
 
-## 중기 계획 (1-2개월)
+## 중기 계획 (1-2개월) - Phase 2 완료
 
 ### 목표
-- Skip된 테스트 50% 복구
+- Skip된 테스트 50% 복구 ✅ (5개 → 2개, 60% 감소)
 - 테스트 작성 가이드라인 수립
 
-### 작업 항목
+### 완료된 작업 항목
 
-#### Phase 1: Mock 인프라 개선
+#### Phase 1: Mock 인프라 개선 ✅
 
-1. **Next.js App Router Mock 표준화**
-   ```typescript
-   // vitest.setup.ts에 추가
-   vi.mock('next/navigation', () => ({
-     useRouter: () => ({
-       push: vi.fn(),
-       replace: vi.fn(),
-       prefetch: vi.fn(),
-     }),
-     usePathname: () => '/dashboard',
-     useParams: () => ({}),
-     useSearchParams: () => new URLSearchParams(),
-   }));
-   ```
+1. **Next.js App Router Mock 표준화** ✅
+   - 각 테스트 파일에 필요한 mock 추가
+   - `useRouter`, `useParams` 등 필요 시 개별 mock
 
-2. **Supabase Client Mock 모듈화**
-   ```
-   src/
-   └── __mocks__/
-       └── supabase/
-           ├── client.ts
-           └── storage.ts
-   ```
+2. **Supabase Client Mock** ✅
+   - UserMenu 테스트에 `getSupabaseBrowserClient` mock 추가
 
-3. **환경 변수 테스트 설정**
+3. **환경 변수 테스트 설정** ✅
    - vitest.config.ts에 이미 추가됨
-   - 추가 환경 변수 필요시 확장
 
-#### Phase 2: 컴포넌트 테스트 복구
+#### Phase 2: 컴포넌트 테스트 복구 ✅
 
-| 테스트 파일 | 예상 작업량 | 담당 |
-|------------|-----------|------|
-| UserMenu.test.tsx | 2h | - |
-| DashboardHome.test.tsx | 3h | - |
-| AuroraBackground.test.tsx | 1h | - |
+| 테스트 파일 | 상태 | 변경 내용 |
+|------------|:----:|----------|
+| UserMenu.test.tsx | ✅ | Next.js/Supabase mock 추가, 영어 텍스트로 업데이트 |
+| DashboardHome.test.tsx | ✅ | hooks mock 추가, 한국어 텍스트로 업데이트 |
+| AuroraBackground.test.tsx | ✅ | 간소화된 컴포넌트에 맞게 테스트 재작성 |
 
-#### Phase 3: 서비스 테스트 복구
+#### Phase 3: 서비스 테스트 (남은 작업)
 
-| 테스트 파일 | 예상 작업량 | 담당 |
-|------------|-----------|------|
-| fal-client.test.ts | 1h | - |
-| modal-client.test.ts | 1h | - |
-| storage.service.test.ts | 2h | - |
-| image-processor.service.test.ts | 1h | - |
+| 테스트 파일 | 상태 | 비고 |
+|------------|:----:|------|
+| fal-client.test.ts | ⚠️ | 2개 테스트 skip (trigger_word mock) |
+| modal-client.test.ts | ⚠️ | 6개 테스트 skip (fetch mock) |
+| image-processor.service.test.ts | ❌ | 전체 skip (sharp mock 이슈) |
+| useSoundEffect.test.ts | ❌ | 전체 skip (Audio mock 이슈) |
 
 ---
 
@@ -235,3 +209,4 @@ it('should handle network error', async () => {
 |------|--------|------|
 | 2026-01-24 | Claude | 초기 문서 작성, Skip 테스트 정리 |
 | 2026-01-24 | Claude | 단기 계획 완료 (ShootingPage, PaymentStage, GuidelineCard 테스트 수정) |
+| 2026-01-24 | Claude | 중기 계획 Phase 2 완료 (AuroraBackground, UserMenu, DashboardHome 테스트 복구) |
