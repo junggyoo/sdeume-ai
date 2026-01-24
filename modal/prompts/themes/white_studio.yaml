@@ -1,0 +1,69 @@
+# White Studio Theme
+# Minimal, clean, elegant studio wedding photography
+
+meta:
+  slug: white_studio
+  name_ko: 화이트 스튜디오
+  name_en: White Studio
+  description: Minimal and clean studio photography with elegant white background
+
+main:
+  full_body:
+    camera: A front-facing full body portrait of a Korean couple standing together, looking directly at the camera
+    composition: Wide angle shot capturing both figures from head to toe with balanced framing
+
+  closeup:
+    camera: An upper body portrait shot of the Korean couple facing the camera
+    composition: Medium close-up focusing on the upper body and faces
+
+  scene:
+    background: A luxurious minimal studio with clean white walls, subtle classic molding details, and soft diffused shadows on a pure white horizon
+    atmosphere: Elegant, sophisticated, and modern editorial aesthetic
+
+  lighting:
+    description: Professional softbox studio lighting creating high-key illumination with soft, even light wrapping around the subjects and gentle shadows
+
+  groom_style:
+    attire: Wearing a perfectly tailored black tuxedo with a black bow tie and crisp white dress shirt
+    hair: A neat, modern Korean hairstyle
+    pose: Standing tall with confident posture and a gentle smile
+
+  bride_style:
+    attire: Wearing an elegant wedding dress with a graceful silhouette
+    hair: A sophisticated bridal hairstyle
+    accessories: Adorned with a flowing veil and delicate jewelry
+    pose: Standing gracefully with a soft, natural smile
+
+  quality:
+    technical: 8k resolution, highly detailed fabric textures, sharp focus, professional photography with Canon R5 and 85mm lens
+
+  negative:
+    style: illustration, painting, anime, cartoon, 3d render
+    quality: text, watermark, low quality, worst quality, blurry
+    mood: dark, gloomy, casual clothes
+
+# Face prompts (NO BACKGROUND KEYWORDS!)
+groom_face:
+  positive:
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, a gentle smile with natural expression, soft lighting on the face
+  negative:
+    core: woman, girl, female, low quality
+
+bride_face:
+  positive:
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural bridal makeup with dewy skin and subtle lip tint, soft lighting on the face
+  negative:
+    core: man, boy, male, low quality
+
+hand:
+  positive: Detailed, natural-looking hands with proper anatomy
+  negative: ""
+
+generation:
+  cfg: 7
+  steps: 25
+  width: 896
+  height: 1152
+
+options:
+  include_main_triggers: false

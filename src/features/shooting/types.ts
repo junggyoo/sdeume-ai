@@ -185,10 +185,30 @@ export interface FalWebhookPayload {
 // Modal Types
 // =============================================================================
 
+export type ThemeSlug = 'white_studio' | 'garden_studio' | 'classic_studio';
+export type ShotType = 'full_body' | 'closeup';
+
 export interface ModalGenerateRequest {
-  prompt?: string;
+  // LoRA URLs (required)
   groomLoraUrl: string;
   brideLoraUrl: string;
+
+  // Theme parameters
+  theme?: ThemeSlug;
+  shotType?: ShotType;
+  extraStyleTags?: string;
+
+  // LoRA trigger words
+  groomTrigger?: string;
+  brideTrigger?: string;
+  includeMainTriggers?: boolean;
+
+  // Generation settings
+  width?: number;
+  height?: number;
+  cfg?: number;
+  steps?: number;
+  seed?: number;
 }
 
 export interface ModalGeneratedImage {

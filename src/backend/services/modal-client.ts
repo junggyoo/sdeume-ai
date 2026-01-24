@@ -51,9 +51,26 @@ export const generateImages = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        // LoRA URLs
         groomLoraUrl: request.groomLoraUrl,
         brideLoraUrl: request.brideLoraUrl,
-        prompt: request.prompt,
+
+        // Theme parameters
+        theme: request.theme ?? 'white_studio',
+        shotType: request.shotType ?? 'full_body',
+        extraStyleTags: request.extraStyleTags,
+
+        // LoRA triggers
+        groomTrigger: request.groomTrigger ?? 'GROOM_SDME',
+        brideTrigger: request.brideTrigger ?? 'BRIDE_SDME',
+        includeMainTriggers: request.includeMainTriggers ?? false,
+
+        // Generation settings
+        width: request.width ?? 896,
+        height: request.height ?? 1152,
+        cfg: request.cfg ?? 7,
+        steps: request.steps ?? 25,
+        seed: request.seed,
       }),
       signal: controller.signal,
     });

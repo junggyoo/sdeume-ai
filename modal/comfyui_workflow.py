@@ -52,7 +52,10 @@ image = (
         "segment-anything",
         "nvidia-ml-py3",  # GPU 프로파일링용 추가
         "safetensors",  # LoRA 형식 변환용
+        "pyyaml",  # 프롬프트 YAML 로딩용
     )
+    # 프롬프트 디렉토리 복사 (Modal 배포 환경용)
+    .copy_local_dir("modal/prompts", "/app/prompts")
     .run_commands(
         # ComfyUI 설치
         "comfy --skip-prompt install --nvidia",
@@ -819,17 +822,35 @@ class ComfyUIServer:
     def generate(self, request: dict):
         """이미지 생성 API 엔드포인트 (프로파일링 포함)"""
         import requests
-        import random
+        import sys
+
+        # 프롬프트 모듈 로드 (Modal 배포 환경)
+        sys.path.insert(0, "/app")
+        from prompts import apply_theme_prompts, apply_generation_settings
 
         comfyui_dir = "/root/comfy/ComfyUI"
         models_dir = "/models"
 
-        # 요청 파라미터 추출
-        prompt = request.get("prompt")
+        # 요청 파라미터 추출 (v2.2 API)
         groom_lora_url = request.get("groomLoraUrl")
         bride_lora_url = request.get("brideLoraUrl")
 
-        print(f"🎨 Generation request - prompt: {prompt[:50] if prompt else 'None'}...")
+        # 테마 파라미터 (신규)
+        theme_slug = request.get("theme", "white_studio")
+        shot_type = request.get("shotType", "full_body")
+        extra_style_tags = request.get("extraStyleTags")
+        groom_trigger = request.get("groomTrigger", "GROOM_SDME")
+        bride_trigger = request.get("brideTrigger", "BRIDE_SDME")
+        include_main_triggers = request.get("includeMainTriggers", False)
+
+        # 생성 파라미터 (신규)
+        width = request.get("width", 896)
+        height = request.get("height", 1152)
+        cfg = request.get("cfg", 7)
+        steps = request.get("steps", 25)
+        seed = request.get("seed")  # None이면 랜덤
+
+        print(f"🎨 Generation request - theme: {theme_slug}, shot: {shot_type}, size: {width}x{height}")
 
         self.profiler.record("Before LoRA Download")
 
@@ -900,16 +921,26 @@ class ComfyUIServer:
         # 워크플로우 로드
         workflow = json.loads(WORKFLOW_JSON)
 
-        # 워크플로우 동적 수정
-        if prompt:
-            if "6" in workflow and "inputs" in workflow["6"]:
-                base_prompt = workflow["6"]["inputs"]["text"]
-                workflow["6"]["inputs"]["text"] = f"{prompt}, {base_prompt}"
+        # 프롬프트 시스템으로 8개 노드 완전 교체
+        workflow = apply_theme_prompts(
+            workflow,
+            theme_slug=theme_slug,
+            shot_type=shot_type,
+            extra_style_tags=extra_style_tags,
+            groom_trigger=groom_trigger,
+            bride_trigger=bride_trigger,
+            include_main_triggers=include_main_triggers,
+        )
 
-        # 랜덤 시드 적용
-        random_seed = random.randint(0, 2**53)
-        if "3" in workflow and "inputs" in workflow["3"]:
-            workflow["3"]["inputs"]["seed"] = random_seed
+        # 생성 설정 적용 (width, height, cfg, steps, seed)
+        workflow = apply_generation_settings(
+            workflow,
+            width=width,
+            height=height,
+            cfg=cfg,
+            steps=steps,
+            seed=seed,
+        )
 
         self.profiler.record("Before Workflow Queue")
 
@@ -962,8 +993,8 @@ class ComfyUIServer:
                                         output_images.append({
                                             "base64": img_base64,
                                             "content_type": "image/png",
-                                            "width": 1024,
-                                            "height": 1024,
+                                            "width": width,
+                                            "height": height,
                                         })
 
                     if output_images:
