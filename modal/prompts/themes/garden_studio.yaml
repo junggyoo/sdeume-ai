@@ -1,0 +1,69 @@
+# Garden Studio Theme
+# Romantic garden setting with natural elements
+
+meta:
+  slug: garden_studio
+  name_ko: 가든 스튜디오
+  name_en: Garden Studio
+  description: Romantic garden setting with lush greenery and natural light
+
+main:
+  full_body:
+    camera: A front-facing full body portrait of a Korean couple standing together in a romantic garden, looking directly at the camera
+    composition: Wide angle shot capturing both figures from head to toe surrounded by natural elements
+
+  closeup:
+    camera: An upper body portrait shot of the Korean couple in a garden setting, facing the camera
+    composition: Medium close-up focusing on the upper body and faces with soft bokeh background
+
+  scene:
+    background: A romantic garden setting with lush green foliage, blooming pink and white flowers, natural stone pathways, and climbing ivy on a vintage trellis
+    atmosphere: Romantic, warm, dreamy, and naturally enchanting
+
+  lighting:
+    description: Golden hour sunlight filtering through leaves, creating warm backlighting with beautiful lens flares and dappled shadows
+
+  groom_style:
+    attire: Wearing an elegant light gray three-piece suit with a subtle pattern, paired with a pastel tie
+    hair: A natural, soft Korean hairstyle
+    pose: Standing relaxed with one hand in pocket, gentle smile facing the camera
+
+  bride_style:
+    attire: Wearing a flowing romantic wedding gown with delicate lace details and a soft tulle skirt
+    hair: An elegant loose updo with natural waves and flower accessories
+    accessories: A delicate flower crown and minimal jewelry
+    pose: Standing gracefully with a dreamy, romantic expression
+
+  quality:
+    technical: 8k resolution, beautiful bokeh, sharp focus on subjects, natural color grading, professional photography with Sony A7R IV and 85mm lens
+
+  negative:
+    style: illustration, painting, anime, cartoon, 3d render
+    quality: text, watermark, low quality, worst quality, blurry
+    mood: dark, gloomy, harsh lighting
+
+# Face prompts (NO BACKGROUND KEYWORDS!)
+groom_face:
+  positive:
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural warm skin tones, a gentle romantic smile, soft golden lighting on the face
+  negative:
+    core: woman, girl, female, low quality
+
+bride_face:
+  positive:
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup with rosy cheeks and soft pink lips, dewy glowing skin, soft golden lighting
+  negative:
+    core: man, boy, male, low quality
+
+hand:
+  positive: Detailed, natural-looking hands with proper anatomy
+  negative: ""
+
+generation:
+  cfg: 7
+  steps: 25
+  width: 896
+  height: 1152
+
+options:
+  include_main_triggers: false

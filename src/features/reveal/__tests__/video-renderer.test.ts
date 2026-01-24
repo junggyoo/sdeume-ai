@@ -272,7 +272,7 @@ describe('video-renderer', () => {
       const scenes = generateKenBurnsScenes(5);
 
       // Spy on globalAlpha setter
-      let alphaValues: number[] = [];
+      const alphaValues: number[] = [];
       Object.defineProperty(mockCtx, 'globalAlpha', {
         set: (value: number) => alphaValues.push(value),
         get: () => alphaValues[alphaValues.length - 1] ?? 1,
