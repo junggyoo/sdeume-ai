@@ -1,5 +1,3 @@
-// TODO: Fix these tests - trigger_word mock issues
-// See: docs/testing-strategy.md
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
   startLoraTraining,
@@ -88,7 +86,7 @@ describe('startLoraTraining', () => {
     );
   });
 
-  it.skip('should include correct trigger_word for groom role', async () => {
+  it('should include correct trigger_phrase for groom role', async () => {
     // Arrange
     const params = {
       imagesZipUrl: 'https://storage.example.com/images.zip',
@@ -107,10 +105,10 @@ describe('startLoraTraining', () => {
     // Assert
     const fetchCall = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchCall[1].body);
-    expect(body.trigger_word).toContain('GROOM');
+    expect(body.trigger_phrase).toBe('GROOM_SDME');
   });
 
-  it.skip('should include correct trigger_word for bride role', async () => {
+  it('should include correct trigger_phrase for bride role', async () => {
     // Arrange
     const params = {
       imagesZipUrl: 'https://storage.example.com/images.zip',
@@ -129,7 +127,7 @@ describe('startLoraTraining', () => {
     // Assert
     const fetchCall = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchCall[1].body);
-    expect(body.trigger_word).toContain('BRIDE');
+    expect(body.trigger_phrase).toBe('BRIDE_SDME');
   });
 
   it('should include webhook_url in request', async () => {

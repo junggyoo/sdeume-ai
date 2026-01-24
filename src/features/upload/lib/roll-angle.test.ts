@@ -24,19 +24,19 @@ describe('ROLL_THRESHOLDS', () => {
   });
 });
 
-// TODO: Fix test expectations vs actual implementation - See docs/testing-strategy.md
-describe.skip('calculateRollAngle', () => {
+describe('calculateRollAngle', () => {
   /**
-   * Helper function to create mock 68-point face landmarks with roll angle
+   * Helper function to create mock MediaPipe 478-point face landmarks with roll angle
    * Roll angle is simulated by rotating the eye positions around the face center
+   * MediaPipe uses indices 33 (left eye outer) and 263 (right eye outer)
    */
   function createMockLandmarksWithRoll(
     rollDegrees: number
   ): Array<{ x: number; y: number }> {
     const landmarks: Array<{ x: number; y: number }> = [];
 
-    // Fill with default positions
-    for (let i = 0; i < 68; i++) {
+    // Fill with default positions (MediaPipe has 478 points)
+    for (let i = 0; i < 478; i++) {
       landmarks.push({ x: 100 + i, y: 100 + i });
     }
 
@@ -49,16 +49,17 @@ describe.skip('calculateRollAngle', () => {
     const rollRadians = (rollDegrees * Math.PI) / 180;
 
     // Calculate rotated eye positions
-    // Left eye outer (index 36): 40 pixels left of center
+    // Left eye outer (MediaPipe index 33): 40 pixels left of center
     const leftEyeX = centerX - eyeDistance * Math.cos(rollRadians);
     const leftEyeY = centerY - eyeDistance * Math.sin(rollRadians);
 
-    // Right eye outer (index 45): 40 pixels right of center
+    // Right eye outer (MediaPipe index 263): 40 pixels right of center
     const rightEyeX = centerX + eyeDistance * Math.cos(rollRadians);
     const rightEyeY = centerY + eyeDistance * Math.sin(rollRadians);
 
-    landmarks[36] = { x: leftEyeX, y: leftEyeY };
-    landmarks[45] = { x: rightEyeX, y: rightEyeY };
+    // MediaPipe landmark indices
+    landmarks[33] = { x: leftEyeX, y: leftEyeY };
+    landmarks[263] = { x: rightEyeX, y: rightEyeY };
 
     return landmarks;
   }
@@ -234,20 +235,21 @@ describe('determineRotationCorrection', () => {
 describe('calculateRollAngle error handling', () => {
   it('should handle landmarks array with insufficient points gracefully', () => {
     // When landmarks array has fewer than required indices
-    const landmarks = Array(46).fill({ x: 0, y: 0 });
-    // Should not throw, but return a value based on available data
-    // The function uses indices 36 and 45, so with 46 points it should work
+    // MediaPipe uses index 263, so we need at least 264 points
+    const landmarks = Array(264).fill({ x: 0, y: 0 });
+    // Should not throw
     expect(() => calculateRollAngle(landmarks)).not.toThrow();
   });
 
   it('should return 0 when eye positions are identical', () => {
     const landmarks: Array<{ x: number; y: number }> = [];
-    for (let i = 0; i < 68; i++) {
+    for (let i = 0; i < 478; i++) {
       landmarks.push({ x: 100, y: 100 });
     }
     // Both eyes at same position - undefined angle
-    landmarks[36] = { x: 100, y: 100 };
-    landmarks[45] = { x: 100, y: 100 };
+    // MediaPipe indices: 33 (left eye outer), 263 (right eye outer)
+    landmarks[33] = { x: 100, y: 100 };
+    landmarks[263] = { x: 100, y: 100 };
 
     const roll = calculateRollAngle(landmarks);
     // When eyes are at same point, atan2(0, 0) returns 0

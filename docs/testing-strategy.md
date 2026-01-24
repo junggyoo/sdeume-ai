@@ -6,18 +6,29 @@
 
 | 구분 | 수량 |
 |------|------|
-| 전체 테스트 파일 | 76개 |
-| 통과 | 76개 |
-| Skip 처리 | 0개 |
-| 전체 테스트 케이스 | 1,315개 |
-| 통과 | 1,315개 |
-| Skip 처리 | 0개 |
+| 전체 테스트 파일 | 79개 |
+| 통과 | 79개 |
+| Skip 처리 | 0개 (파일 레벨) |
+| 전체 테스트 케이스 | 1,327개 |
+| 통과 | 1,324개 |
+| Skip 처리 | 3개 |
 
 ### Skip 처리된 테스트 목록
 
-| 파일 | Skip 사유 | 우선순위 |
-|------|-----------|---------|
-| (없음) | - | - |
+| 파일 | Skip 수 | Skip 사유 | 비고 |
+|------|:-------:|-----------|------|
+| image-processor.test.ts | 3 | happy-dom에서 Image.onload 미작동 | E2E 테스트로 커버 필요 |
+
+### 삭제된 Dead Code
+
+| 파일 | 삭제 사유 |
+|------|----------|
+| DashboardSidebar.tsx | 어디서도 import되지 않음 |
+| DashboardSidebar.test.tsx | dead code 컴포넌트 테스트 |
+| useSoundEffect.ts | 비활성화된 기능, LiveDarkroom만 사용 |
+| useSoundEffect.test.ts | dead code hook 테스트 |
+| LiveDarkroom.tsx | 어디서도 import되지 않음 |
+| LiveDarkroom.test.tsx | dead code 컴포넌트 테스트 |
 
 ---
 
@@ -48,7 +59,7 @@
 
 ---
 
-## 중기 계획 (1-2개월) - Phase 2 완료
+## 중기 계획 (1-2개월) - Phase 3 완료
 
 ### 목표
 - Skip된 테스트 50% 복구 ✅ (5개 → 2개, 60% 감소)
@@ -80,10 +91,15 @@
 
 | 테스트 파일 | 상태 | 비고 |
 |------------|:----:|------|
-| fal-client.test.ts | ⚠️ | 2개 테스트 skip (trigger_word mock) |
-| modal-client.test.ts | ⚠️ | 6개 테스트 skip (fetch mock) |
 | image-processor.service.test.ts | ✅ | sharp mock 수정 완료 |
+| fal-client.test.ts | ✅ | trigger_phrase 필드명 수정 (19개 테스트 통과) |
+| modal-client.test.ts | ✅ | endpointUrl 및 extraStyleTags 수정 (12개 테스트 통과) |
+| storage.service.test.ts | ✅ | Supabase query mock 재구성 (13개 테스트 통과) |
+| roll-angle.test.ts | ✅ | MediaPipe 478점 인덱스(33, 263) 적용 (31개 테스트 통과) |
+| image-processor.test.ts | ⚠️ | 3개 테스트 skip (happy-dom Image.onload 미지원) |
 | useSoundEffect.test.ts | 🗑️ | Dead code 삭제됨 |
+| LiveDarkroom.test.tsx | 🗑️ | Dead code 삭제됨 |
+| DashboardSidebar.test.tsx | 🗑️ | Dead code 삭제됨 |
 
 ---
 
@@ -210,3 +226,5 @@ it('should handle network error', async () => {
 | 2026-01-24 | Claude | 단기 계획 완료 (ShootingPage, PaymentStage, GuidelineCard 테스트 수정) |
 | 2026-01-24 | Claude | 중기 계획 Phase 2 완료 (AuroraBackground, UserMenu, DashboardHome 테스트 복구) |
 | 2026-01-24 | Claude | Dead code 삭제 (useSoundEffect, LiveDarkroom) 및 image-processor 테스트 복구 |
+| 2026-01-24 | Claude | 남은 Skip 테스트 분석 완료, DashboardSidebar dead code 발견 |
+| 2026-01-24 | Claude | 중기 계획 Phase 3 완료: skip 25개 → 3개 (88% 감소), dead code 4개 삭제 |

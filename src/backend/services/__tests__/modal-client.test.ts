@@ -22,8 +22,7 @@ const defaultConfig: ModalClientConfig = {
 // Tests: generateImages
 // =============================================================================
 
-// TODO: Fix fetch mock issues - See docs/testing-strategy.md
-describe.skip('generateImages', () => {
+describe('generateImages', () => {
   beforeEach(() => {
     mockFetch.mockReset();
   });
@@ -72,8 +71,9 @@ describe.skip('generateImages', () => {
       expect(result.data.images[0].base64).toBeDefined();
     }
 
+    // Modal's endpointUrl is used directly (no /generate suffix)
     expect(mockFetch).toHaveBeenCalledWith(
-      `${defaultConfig.endpointUrl}/generate`,
+      defaultConfig.endpointUrl,
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -84,7 +84,7 @@ describe.skip('generateImages', () => {
     );
   });
 
-  it('should include optional prompt in request', async () => {
+  it('should include optional prompt as extraStyleTags in request', async () => {
     // Arrange
     const request: ModalGenerateRequest = {
       groomLoraUrl: 'https://storage.fal.ai/lora/groom.safetensors',
@@ -103,7 +103,8 @@ describe.skip('generateImages', () => {
     // Assert
     const fetchCall = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchCall[1].body);
-    expect(body.prompt).toBe('elegant wedding photo with chandelier');
+    // Legacy: prompt maps to extraStyleTags
+    expect(body.extraStyleTags).toBe('elegant wedding photo with chandelier');
   });
 
   it('should work without optional prompt', async () => {
@@ -174,13 +175,10 @@ describe.skip('generateImages', () => {
       brideLoraUrl: 'https://storage.fal.ai/lora/bride.safetensors',
     };
 
-    // Simulate timeout by never resolving
-    mockFetch.mockImplementationOnce(
-      () =>
-        new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('AbortError')), 100);
-        })
-    );
+    // Simulate AbortError (what happens when AbortController.abort() is called)
+    const abortError = new Error('The operation was aborted');
+    abortError.name = 'AbortError';
+    mockFetch.mockRejectedValueOnce(abortError);
 
     // Act
     const result = await generateImages(
@@ -190,6 +188,9 @@ describe.skip('generateImages', () => {
 
     // Assert
     expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('MODAL_GENERATION_ERROR');
+    }
   });
 });
 
