@@ -15,6 +15,8 @@ export interface FaceAnalysisResult {
   rejectionReason?: string; // Reason for D bucket classification
   wasRotated?: boolean; // True if automatic rotation was applied
   rotationApplied?: 0 | 90 | -90 | 180; // Rotation angle applied to correct image
+  /** Rotation applied during analyzeFace fallback (0, 90, -90, 180). UI should apply CSS transform. */
+  appliedRotation?: 0 | 90 | -90 | 180;
   faceBox?: {
     x: number;
     y: number;

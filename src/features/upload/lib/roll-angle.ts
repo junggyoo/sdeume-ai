@@ -7,11 +7,13 @@ export interface RotationCorrection {
   needsRotation: boolean;
   correctionDegrees: 0 | 90 | -90 | 180;
   detectedRoll: number;
+  /** Best confidence score from face detection (used by trial rotation) */
+  bestConfidence?: number;
 }
 
 /**
- * Calculate roll angle from 68 face landmarks
- * Uses left eye outer corner (36) and right eye outer corner (45)
+ * Calculate roll angle from MediaPipe 478-point face landmarks
+ * Uses left eye outer corner (33) and right eye outer corner (263)
  * Returns angle in degrees (-180 to 180)
  *
  * Roll angle indicates how much the face/image is rotated:
@@ -23,9 +25,9 @@ export interface RotationCorrection {
 export function calculateRollAngle(
   landmarks: Array<{ x: number; y: number }>
 ): number {
-  // Get eye outer corner positions
-  const leftEyeOuter = landmarks[36];
-  const rightEyeOuter = landmarks[45];
+  // Get eye outer corner positions (MediaPipe indices: 33, 263)
+  const leftEyeOuter = landmarks[33];
+  const rightEyeOuter = landmarks[263];
 
   // Handle edge case where eyes are at the same position
   if (!leftEyeOuter || !rightEyeOuter) {

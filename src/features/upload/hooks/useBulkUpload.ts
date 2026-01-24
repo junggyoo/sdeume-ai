@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useUploadStore } from '../store/upload-store';
 import { processImage } from '../lib/image-processor';
-import { analyzeFaceFromFile, analyzeForRotationFromFile } from '../lib/face-mesh';
+import { analyzeFaceFromFile, detectRotationFromFile } from '../lib/face-mesh';
 import { rotateImage90 } from '../lib/rotate-image';
 import type { UploadRole, QueuedFile, BucketSummary } from '../types';
 import { MIN_IMAGES_TO_PROCEED, BUCKET_TARGETS } from '../types';
@@ -98,12 +98,14 @@ export function useBulkUpload({
         // Yield before heavy operations
         await yieldToMain();
 
-        // Step 1: Preliminary rotation check (20%)
+        // Step 1: Preliminary rotation check using trial rotation (20%)
+        // This tries 0°, 90°, 180°, 270° rotations to find where face is detected
         let fileToProcess = item.file;
         let wasRotated = false;
         let rotationApplied: 0 | 90 | -90 | 180 = 0;
 
-        const rotationCheck = await analyzeForRotationFromFile(item.file);
+        const rotationCheck = await detectRotationFromFile(item.file);
+        console.log(`[useBulkUpload] Rotation check for ${item.file.name}:`, rotationCheck);
         updateQueueItem(item.id, role, { progress: 20 });
 
         // Step 2: Apply rotation if needed (30%)
@@ -114,6 +116,14 @@ export function useBulkUpload({
           wasRotated = true;
           rotationApplied = rotationDegrees;
           console.log(`[useBulkUpload] Applied ${rotationDegrees}° rotation to ${item.file.name}`);
+
+          // Update preview URL with rotated image
+          const newPreviewUrl = URL.createObjectURL(fileToProcess);
+          // Revoke old preview URL to prevent memory leak
+          if (item.previewUrl) {
+            URL.revokeObjectURL(item.previewUrl);
+          }
+          updateQueueItem(item.id, role, { previewUrl: newPreviewUrl });
         }
         updateQueueItem(item.id, role, { progress: 30 });
 
@@ -122,7 +132,13 @@ export function useBulkUpload({
 
         // Step 3: Compress image (60%)
         const processed = await processImage(fileToProcess);
-        updateQueueItem(item.id, role, { progress: 60 });
+
+        // Update preview URL with final processed image
+        const currentItem = getQueue(role).find(q => q.id === item.id);
+        if (currentItem?.previewUrl && currentItem.previewUrl !== processed.previewUrl) {
+          URL.revokeObjectURL(currentItem.previewUrl);
+        }
+        updateQueueItem(item.id, role, { previewUrl: processed.previewUrl, progress: 60 });
 
         // Yield between compression and analysis
         await yieldToMain();
