@@ -7,13 +7,8 @@ import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2';
 import Bell from 'lucide-react/dist/esm/icons/bell';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
-
-const TIPS = [
-  'Calculating the perfect lighting angles...',
-  'Enhancing skin textures and details...',
-  'Applying professional color grading...',
-  'Rendering the final composition...',
-];
+import { PHASES } from '@/features/shooting/constants';
+import { MagneticButton } from '@/features/dashboard-v2/interactions/MagneticButton';
 
 export type GeneratingPhase = 'training' | 'generating' | 'complete';
 
@@ -22,9 +17,9 @@ interface GeneratingStageProps {
   onFinish: () => void;
   // Controlled mode props (optional)
   controlledPhase?: GeneratingPhase;
-  controlledProgress?: number; // 0-100 overall progress
-  completedPhotos?: number; // Number of completed photos (0-12)
-  totalPhotos?: number; // Total photos to generate
+  controlledProgress?: number;
+  completedPhotos?: number;
+  totalPhotos?: number;
 }
 
 export default function GeneratingStage({
@@ -41,93 +36,82 @@ export default function GeneratingStage({
   const [internalPhase, setInternalPhase] = useState<GeneratingPhase>('training');
   const phase = isControlled ? controlledPhase : internalPhase;
 
-  // Phase 1 State - animated progress for visual effect
-  const [animatedTrainingProgress, setAnimatedTrainingProgress] = useState(0);
+  // Phase 1 State
+  const [trainingProgress, setTrainingProgress] = useState(0);
 
   // Phase 2 State
   const TOTAL_PHOTOS = totalPhotos;
   const [internalCompletedCount, setInternalCompletedCount] = useState(0);
-  const [animatedGenProgress, setAnimatedGenProgress] = useState(0);
+  const [genProgress, setGenProgress] = useState(0);
 
   // Controlled mode: use external completedPhotos
   const completedCount = isControlled ? (completedPhotos ?? 0) : internalCompletedCount;
 
-  // Tips State
+  // Tips State - use PHASES messages from constants
+  const learningMessages = PHASES.learning.messages;
+  const generatingMessages = PHASES.generating.messages;
+  const currentMessages = phase === 'generating' ? generatingMessages : learningMessages;
+
   const [tipIndex, setTipIndex] = useState(0);
   const [notify, setNotify] = useState(false);
 
   // --- LOGIC: Rotating Tips ---
   useEffect(() => {
-    const interval = setInterval(() => setTipIndex((i) => (i + 1) % TIPS.length), 4000);
+    const interval = setInterval(
+      () => setTipIndex((i) => (i + 1) % currentMessages.length),
+      4000
+    );
     return () => clearInterval(interval);
-  }, []);
+  }, [currentMessages.length]);
 
-  // --- LOGIC: Phase 1 (Training) Animation ---
+  // --- LOGIC: Phase 1 (Training) ---
   useEffect(() => {
-    if (phase !== 'training') {
-      // When leaving training phase, set to 100%
-      setAnimatedTrainingProgress(100);
-      return;
-    }
+    if (phase !== 'training') return;
 
-    // Reset to 0 when entering training phase
-    setAnimatedTrainingProgress(0);
-
-    // Animate training progress
+    // Simulate Training (Slower)
     const interval = setInterval(() => {
-      setAnimatedTrainingProgress((p) => {
-        // In controlled mode, keep cycling 0-99% until phase changes externally
-        // In uncontrolled mode, transition to generating when reaching 100%
+      setTrainingProgress((p) => {
         if (p >= 100) {
           if (!isControlled) {
             setInternalPhase('generating');
-            return 100;
           }
-          return 0; // Reset for continuous animation in controlled mode
+          return 100;
         }
-        return p + 0.5; // Smooth increment
+        return p + 0.5; // Slow increment
       });
     }, 30);
     return () => clearInterval(interval);
   }, [phase, isControlled]);
 
-  // --- LOGIC: Phase 2 (Generation) Animation ---
-  // Reset genProgress when completedPhotos changes
+  // --- LOGIC: Phase 2 (Generation) ---
   useEffect(() => {
-    if (phase === 'generating' && isControlled) {
-      setAnimatedGenProgress(0);
-    }
-  }, [phase, isControlled, completedPhotos]);
-
-  useEffect(() => {
-    if (phase !== 'generating') {
-      return;
-    }
-
-    // In uncontrolled mode, check if all photos are done
+    if (phase !== 'generating') return;
     if (!isControlled && internalCompletedCount >= TOTAL_PHOTOS) {
       setInternalPhase('complete');
       return;
     }
 
-    // Animate generation progress for de-blur effect
+    // Simulate Generation (Per Photo)
     const interval = setInterval(() => {
-      setAnimatedGenProgress((p) => {
+      setGenProgress((p) => {
         if (p >= 100) {
           if (!isControlled) {
             setInternalCompletedCount((c) => c + 1);
           }
-          return 0; // Reset for next photo
+          return 0;
         }
-        return p + 2; // Fast increment for de-blur
+        return p + 2; // Faster increment
       });
     }, 20);
     return () => clearInterval(interval);
   }, [phase, isControlled, internalCompletedCount, TOTAL_PHOTOS]);
 
-  // Use animated values for display
-  const trainingProgress = animatedTrainingProgress;
-  const genProgress = animatedGenProgress;
+  // Reset genProgress when completedPhotos changes in controlled mode
+  useEffect(() => {
+    if (phase === 'generating' && isControlled) {
+      setGenProgress(0);
+    }
+  }, [phase, isControlled, completedPhotos]);
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-between py-8 relative overflow-hidden bg-[#FAFAFA]">
@@ -139,36 +123,42 @@ export default function GeneratingStage({
         >
           {phase === 'training' && (
             <>
-              <ScanFace size={12} className="animate-pulse" /> Face Learning
+              <ScanFace size={12} className="animate-pulse" /> 얼굴 분석 중
             </>
           )}
           {phase === 'generating' && (
             <>
-              <Loader2 size={12} className="animate-spin" /> Developing Photo {completedCount + 1}
+              <Loader2 size={12} className="animate-spin" /> 화보 현상 중 {completedCount + 1}
             </>
           )}
-          {phase === 'complete' && <CheckCircle2 size={12} />}
+          {phase === 'complete' && (
+            <>
+              <CheckCircle2 size={12} /> 촬영 완료
+            </>
+          )}
         </motion.div>
 
         <h2 className="text-4xl md:text-5xl font-serif text-gray-900 leading-tight">
           {phase === 'training'
-            ? 'Studying your features...'
+            ? '얼굴을 학습하고 있어요...'
             : phase === 'generating'
-              ? 'Developing your masterpiece...'
-              : 'Collection Ready.'}
+              ? `${completedCount + 1}번째 화보를 현상하고 있어요...`
+              : '컬렉션 완성!'}
         </h2>
 
         {/* Animated Subtitle */}
         <div className="h-6 overflow-hidden relative">
           <AnimatePresence mode="wait">
             <motion.p
-              key={tipIndex}
+              key={phase === 'complete' ? 'complete' : tipIndex}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="text-gray-400 text-sm font-medium"
             >
-              {phase === 'complete' ? '12 Masterpieces developed.' : TIPS[tipIndex]}
+              {phase === 'complete'
+                ? `${TOTAL_PHOTOS}장의 아름다운 화보가 완성되었어요`
+                : currentMessages[tipIndex]}
             </motion.p>
           </AnimatePresence>
         </div>
@@ -187,6 +177,7 @@ export default function GeneratingStage({
               className="relative w-64 aspect-[3/4] md:w-80 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white z-20 bg-black"
             >
               <img src={themeImage} alt="Theme" className="w-full h-full object-cover opacity-60 grayscale" />
+              {/* Scanning Line */}
               <motion.div
                 animate={{ top: ['0%', '100%', '0%'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
@@ -220,7 +211,7 @@ export default function GeneratingStage({
                   {Math.floor(genProgress)}%
                 </span>
                 <span className="text-white/60 text-xs font-bold uppercase tracking-widest mt-2 bg-black/30 px-3 py-1 rounded-full">
-                  Approx. 10 Mins
+                  약 10분 소요
                 </span>
               </div>
             </motion.div>
@@ -228,16 +219,12 @@ export default function GeneratingStage({
 
           {/* C. Reveal Button */}
           {phase === 'complete' && (
-            <motion.button
-              key="reveal"
+            <MagneticButton
               onClick={onFinish}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.05 }}
               className="px-12 py-5 bg-black text-white rounded-full font-bold text-lg shadow-2xl flex items-center gap-3 z-30"
             >
-              <CheckCircle2 size={20} /> Reveal Album ({TOTAL_PHOTOS}) <Sparkles size={16} />
-            </motion.button>
+              <CheckCircle2 size={20} /> 앨범 열기 ({TOTAL_PHOTOS}장) <Sparkles size={16} />
+            </MagneticButton>
           )}
         </AnimatePresence>
       </div>
@@ -256,8 +243,8 @@ export default function GeneratingStage({
               <Bell size={20} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-gray-900">Get notified when ready</p>
-              <p className="text-xs text-gray-500">We&apos;ll send a push notification.</p>
+              <p className="text-sm font-bold text-gray-900">완료 시 알림 받기</p>
+              <p className="text-xs text-gray-500">푸시 알림을 보내드릴게요.</p>
             </div>
             <div className={`w-11 h-6 rounded-full p-1 transition-colors ${notify ? 'bg-purple-600' : 'bg-gray-300'}`}>
               <div
@@ -279,6 +266,7 @@ export default function GeneratingStage({
                   width: completedCount === 0 ? '0px' : 'auto',
                   maxWidth: '100%',
                   scrollbarWidth: 'none',
+                  opacity: completedCount === 0 ? 0 : 1,
                 }}
               >
                 <AnimatePresence mode="popLayout">
@@ -301,7 +289,7 @@ export default function GeneratingStage({
             {/* Reel Counter */}
             {completedCount > 0 && (
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-3">
-                Developed Reel • {completedCount} / {TOTAL_PHOTOS}
+                현상된 필름 • {completedCount} / {TOTAL_PHOTOS}
               </p>
             )}
           </div>

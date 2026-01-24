@@ -21,7 +21,7 @@
     "env:check": "dotenv -e .env.local -- tsx scripts/check-env.ts",
     "modal:setup": "./scripts/modal-setup.sh",
     "modal:deploy": "./scripts/modal-deploy.sh",
-    "modal:deploy:dry": "./scripts/modal-deploy.sh --dry-run",
+    "modal:validate": "./scripts/modal-deploy.sh --validate",
     "modal:models:download": "./scripts/modal-models.sh download",
     "modal:models:list": "./scripts/modal-models.sh list",
     "qstash:dev": "npx @upstash/qstash-cli@latest dev"

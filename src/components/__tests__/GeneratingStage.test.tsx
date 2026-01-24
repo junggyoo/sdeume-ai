@@ -42,6 +42,8 @@ vi.mock('framer-motion', () => ({
     ),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useMotionValue: () => ({ set: vi.fn() }),
+  useSpring: (value: unknown) => value,
 }));
 
 describe('GeneratingStage', () => {
@@ -52,18 +54,18 @@ describe('GeneratingStage', () => {
     vi.clearAllMocks();
   });
 
-  describe('Phase 1: Face Training', () => {
-    it('should render training phase initially', () => {
+  describe('Phase 1: Face Training (얼굴 학습)', () => {
+    it('should render training phase initially with Korean text', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.getByText('Face Learning')).toBeInTheDocument();
-      expect(screen.getByText('Studying your features...')).toBeInTheDocument();
+      expect(screen.getByText('얼굴 분석 중')).toBeInTheDocument();
+      expect(screen.getByText('얼굴을 학습하고 있어요...')).toBeInTheDocument();
     });
 
-    it('should display scanning badge with Face Learning text', () => {
+    it('should display scanning badge with Korean text', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.getByText('Face Learning')).toBeInTheDocument();
+      expect(screen.getByText('얼굴 분석 중')).toBeInTheDocument();
     });
 
     it('should show progress percentage starting at 0%', () => {
@@ -87,18 +89,24 @@ describe('GeneratingStage', () => {
       expect(scanningLine).toBeInTheDocument();
     });
 
-    it('should display notification toggle during training phase', () => {
+    it('should display notification toggle during training phase with Korean text', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.getByText('Get notified when ready')).toBeInTheDocument();
-      expect(screen.getByText(/We.ll send a push notification/)).toBeInTheDocument();
+      // Both desktop and mobile toggles exist
+      const notifyTexts = screen.getAllByText('완료 시 알림 받기');
+      expect(notifyTexts.length).toBeGreaterThan(0);
+      expect(screen.getByText(/푸시 알림을 보내드릴게요/)).toBeInTheDocument();
     });
 
     it('should toggle notification when clicked', async () => {
       const user = userEvent.setup();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      const notifyToggle = screen.getByText('Get notified when ready').closest('div[class*="cursor-pointer"]');
+      // Use getAllByText since both desktop and mobile have the same text
+      const notifyTexts = screen.getAllByText('완료 시 알림 받기');
+      // Find the mobile toggle (the one with cursor-pointer parent that has text-sm)
+      const mobileToggle = notifyTexts.find((el) => el.classList.contains('text-sm'));
+      const notifyToggle = mobileToggle?.closest('div[class*="cursor-pointer"]');
       expect(notifyToggle).toBeInTheDocument();
 
       await user.click(notifyToggle!);
@@ -126,6 +134,13 @@ describe('GeneratingStage', () => {
 
       vi.useRealTimers();
     });
+
+    it('should not display estimated time during training phase', () => {
+      render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
+
+      // Training phase doesn't show time estimate - only generating phase does
+      expect(screen.queryByText(/약.*분/)).not.toBeInTheDocument();
+    });
   });
 
   describe('Phase Transition', () => {
@@ -145,11 +160,11 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(8000);
       });
 
-      expect(screen.getByText('Developing Photo 1')).toBeInTheDocument();
+      expect(screen.getByText('화보 현상 중 1')).toBeInTheDocument();
     });
   });
 
-  describe('Phase 2: Image Generation', () => {
+  describe('Phase 2: Image Generation (화보 현상)', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -164,25 +179,26 @@ describe('GeneratingStage', () => {
       });
     }
 
-    it('should display generating phase UI after training', async () => {
+    it('should display generating phase UI with Korean text after training', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToGeneratingPhase();
 
-      expect(screen.getByText('Developing your masterpiece...')).toBeInTheDocument();
+      expect(screen.getByText('1번째 화보를 현상하고 있어요...')).toBeInTheDocument();
     });
 
-    it('should show current photo number being generated', async () => {
+    it('should show current photo number being generated in Korean', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToGeneratingPhase();
 
-      expect(screen.getByText('Developing Photo 1')).toBeInTheDocument();
+      expect(screen.getByText('화보 현상 중 1')).toBeInTheDocument();
     });
 
-    it('should display approximate time remaining', async () => {
+    it('should display estimated time during generating phase', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToGeneratingPhase();
 
-      expect(screen.getByText('Approx. 10 Mins')).toBeInTheDocument();
+      // Should show static time estimate during generating phase
+      expect(screen.getByText('약 10분 소요')).toBeInTheDocument();
     });
 
     it('should show generation progress percentage', async () => {
@@ -193,7 +209,7 @@ describe('GeneratingStage', () => {
       expect(progressText).toBeInTheDocument();
     });
 
-    it('should show film strip after first photo completes', async () => {
+    it('should show film strip with Korean counter after first photo completes', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToGeneratingPhase();
 
@@ -202,7 +218,7 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(1200);
       });
 
-      expect(screen.getByText('Developed Reel • 1 / 12')).toBeInTheDocument();
+      expect(screen.getByText('현상된 필름 • 1 / 12')).toBeInTheDocument();
     });
 
     it('should increment photo count in film strip as photos complete', async () => {
@@ -214,7 +230,7 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(3600);
       });
 
-      expect(screen.getByText(/Developed Reel • [3-4] \/ 12/)).toBeInTheDocument();
+      expect(screen.getByText(/[3-4] \/ 12/)).toBeInTheDocument();
     });
 
     it('should update photo number badge as generation progresses', async () => {
@@ -226,11 +242,11 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(1200);
       });
 
-      expect(screen.getByText('Developing Photo 2')).toBeInTheDocument();
+      expect(screen.getByText('화보 현상 중 2')).toBeInTheDocument();
     });
   });
 
-  describe('Phase 3: Complete', () => {
+  describe('Phase 3: Complete (완료)', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -252,32 +268,32 @@ describe('GeneratingStage', () => {
       }
     }
 
-    it('should display complete state after all photos generated', async () => {
+    it('should display complete state with Korean text after all photos generated', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByText('Collection Ready.')).toBeInTheDocument();
+      expect(screen.getByText('컬렉션 완성!')).toBeInTheDocument();
     });
 
-    it('should show reveal button in complete phase', async () => {
+    it('should show reveal button with Korean text in complete phase', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByRole('button', { name: /Reveal Album/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /앨범 열기/ })).toBeInTheDocument();
     });
 
-    it('should display photo count on reveal button', async () => {
+    it('should display photo count on reveal button in Korean format', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByText(/Reveal Album \(12\)/)).toBeInTheDocument();
+      expect(screen.getByText(/앨범 열기 \(12장\)/)).toBeInTheDocument();
     });
 
     it('should call onFinish when reveal button is clicked', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      const revealButton = screen.getByRole('button', { name: /Reveal Album/ });
+      const revealButton = screen.getByRole('button', { name: /앨범 열기/ });
 
       // Use fireEvent instead of userEvent to avoid fake timer conflicts
       await act(async () => {
@@ -287,67 +303,70 @@ describe('GeneratingStage', () => {
       expect(mockOnFinish).toHaveBeenCalledTimes(1);
     });
 
-    it('should show completion message in subtitle', async () => {
+    it('should show completion message in Korean in subtitle', async () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByText('12 Masterpieces developed.')).toBeInTheDocument();
+      expect(screen.getByText('12장의 아름다운 화보가 완성되었어요')).toBeInTheDocument();
+    });
+
+    it('should show complete badge with Korean text', async () => {
+      render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
+      await advanceToCompletePhase();
+
+      expect(screen.getByText('촬영 완료')).toBeInTheDocument();
     });
   });
 
-  describe('Rotating Tips', () => {
-    it('should display initial tip', () => {
+  describe('Rotating Tips (롤링 메시지)', () => {
+    it('should display initial Korean tip', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.getByText('Calculating the perfect lighting angles...')).toBeInTheDocument();
+      expect(screen.getByText('얼굴 특징을 분석하고 있어요...')).toBeInTheDocument();
     });
 
     it('should rotate tips every 4 seconds', async () => {
       vi.useFakeTimers();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.getByText('Calculating the perfect lighting angles...')).toBeInTheDocument();
+      expect(screen.getByText('얼굴 특징을 분석하고 있어요...')).toBeInTheDocument();
 
       await act(async () => {
         vi.advanceTimersByTime(4000);
       });
 
-      expect(screen.getByText('Enhancing skin textures and details...')).toBeInTheDocument();
+      expect(screen.getByText('빛의 각도를 연구하고 있어요...')).toBeInTheDocument();
       vi.useRealTimers();
     });
 
-    it('should cycle through all tips', async () => {
+    it('should cycle through multiple Korean tips during training', async () => {
       vi.useFakeTimers();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      const tips = [
-        'Calculating the perfect lighting angles...',
-        'Enhancing skin textures and details...',
-        'Applying professional color grading...',
-        'Rendering the final composition...',
-      ];
+      // First tip should be visible
+      expect(screen.getByText('얼굴 특징을 분석하고 있어요...')).toBeInTheDocument();
 
-      for (let i = 0; i < tips.length; i++) {
-        expect(screen.getByText(tips[i])).toBeInTheDocument();
-        await act(async () => {
-          vi.advanceTimersByTime(4000);
-        });
-      }
+      // After 4 seconds (within training phase), second tip should show
+      await act(async () => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(screen.getByText('빛의 각도를 연구하고 있어요...')).toBeInTheDocument();
 
-      // Should cycle back to first tip
-      expect(screen.getByText(tips[0])).toBeInTheDocument();
+      // Verify we're still in training phase
+      expect(screen.getByText('얼굴 분석 중')).toBeInTheDocument();
+
       vi.useRealTimers();
     });
   });
 
-  describe('Film Strip', () => {
-    it('should not show film strip during training phase', () => {
+  describe('Film Strip (현상된 필름)', () => {
+    it('should not show film strip counter during training phase', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      expect(screen.queryByText(/Developed Reel/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/현상된 필름/)).not.toBeInTheDocument();
     });
 
-    it('should show film strip only after photos start completing', async () => {
+    it('should show film strip counter only after photos start completing', async () => {
       vi.useFakeTimers();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
@@ -356,15 +375,15 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(8000);
       });
 
-      // Before any photo completes
-      expect(screen.queryByText(/Developed Reel/)).not.toBeInTheDocument();
+      // Before any photo completes - counter not visible
+      expect(screen.queryByText(/현상된 필름/)).not.toBeInTheDocument();
 
       // After first photo completes
       await act(async () => {
         vi.advanceTimersByTime(1200);
       });
 
-      expect(screen.getByText(/Developed Reel/)).toBeInTheDocument();
+      expect(screen.getByText(/현상된 필름 • 1 \/ 12/)).toBeInTheDocument();
       vi.useRealTimers();
     });
 
@@ -429,6 +448,14 @@ describe('GeneratingStage', () => {
       expect(card).toBeInTheDocument();
       expect(card).toHaveClass('shadow-2xl');
     });
+
+    it('should have purple badge styling', () => {
+      render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
+
+      const badge = screen.getByText('얼굴 분석 중').closest('div');
+      expect(badge).toHaveClass('bg-purple-50');
+      expect(badge).toHaveClass('text-purple-600');
+    });
   });
 
   describe('Accessibility', () => {
@@ -453,7 +480,7 @@ describe('GeneratingStage', () => {
         });
       }
 
-      const button = screen.getByRole('button', { name: /Reveal Album/ });
+      const button = screen.getByRole('button', { name: /앨범 열기/ });
       expect(button).toBeInTheDocument();
       vi.useRealTimers();
     });
@@ -486,6 +513,24 @@ describe('GeneratingStage', () => {
       // onFinish should not be called automatically
       expect(mockOnFinish).not.toHaveBeenCalled();
       vi.useRealTimers();
+    });
+  });
+
+  describe('Visual Enhancements', () => {
+    it('should have pulsing scan icon on training card', () => {
+      render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
+
+      // Check for pulsing scan face icon
+      const pulsingIcon = document.querySelector('.animate-pulse');
+      expect(pulsingIcon).toBeInTheDocument();
+    });
+
+    it('should have scanning line on training card', () => {
+      render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
+
+      // Check for purple scanning line
+      const scanningLine = document.querySelector('.bg-purple-500');
+      expect(scanningLine).toBeInTheDocument();
     });
   });
 });

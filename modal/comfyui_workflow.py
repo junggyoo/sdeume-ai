@@ -55,7 +55,7 @@ image = (
         "pyyaml",  # 프롬프트 YAML 로딩용
     )
     # 프롬프트 디렉토리 복사 (Modal 배포 환경용)
-    .add_local_dir("modal/prompts", "/app/prompts")
+    .add_local_dir("modal/prompts", "/app/prompts", copy=True)
     .run_commands(
         # ComfyUI 설치
         "comfy --skip-prompt install --nvidia",

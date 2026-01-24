@@ -124,7 +124,8 @@ export default function ProgressPage() {
     return themes.find((t) => t.id === project.selectedThemeId) || null;
   }, [project?.selectedThemeId, themes]);
 
-  const themeImage = selectedTheme?.thumbnailUrl || selectedTheme?.sampleImages?.[0] || '/images/default-theme.jpg';
+  // Use a placeholder image service as fallback when no theme image is available
+  const themeImage = selectedTheme?.thumbnailUrl || selectedTheme?.sampleImages?.[0] || 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=400&h=600&fit=crop';
 
   useEffect(() => {
     if (isLoadingGeneration || isCreating || isRegenerating || !project) return;
