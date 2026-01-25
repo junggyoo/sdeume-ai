@@ -18,14 +18,14 @@ main:
 
   scene:
     background: A grand hotel ballroom interior with ornate crystal chandeliers, tall marble columns with gold accents, rich burgundy velvet drapes, and intricate ceiling moldings
-    atmosphere: Luxurious, grand, timeless, and regally elegant
+    atmosphere: Modern luxury, high-end editorial, sophisticated, grand
 
   lighting:
-    description: Warm ambient chandelier lighting creating dramatic yet flattering illumination with elegant shadows and golden highlights
+    description: Professional studio lighting focused on subjects with warm ambient background lights, creating a luxurious and clean look
 
   groom_style:
-    attire: Wearing a classic black tuxedo with satin lapels, a crisp white shirt, and an elegant black bow tie
-    hair: A sleek, sophisticated Korean hairstyle
+    attire: Wearing a high-end tailored black tuxedo with satin lapels, a crisp white shirt, and an elegant black bow tie
+    hair: A neat, modern Korean hairstyle, trendy styling
     pose: Standing tall with distinguished posture and a confident, warm smile
 
   bride_style:
@@ -45,15 +45,15 @@ main:
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, warm undertones, a distinguished confident smile, warm ambient lighting on the face
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, modern trendy hairstyle, natural skin texture, soft studio lighting on the face, neutral color tone
   negative:
-    core: woman, girl, female, low quality
+    core: woman, girl, female, low quality, oil painting, old photos, yellow skin tone
 
 bride_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, glamorous bridal makeup with defined features and red lips, radiant glowing skin, warm ambient lighting
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, modern bridal makeup, dewy clean skin, soft studio lighting on the face
   negative:
-    core: man, boy, male, low quality
+    core: man, boy, male, low quality, heavy makeup, old style
 
 hand:
   positive: Detailed, natural-looking hands with proper anatomy

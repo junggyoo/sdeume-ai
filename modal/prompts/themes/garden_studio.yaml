@@ -17,15 +17,15 @@ main:
     composition: Medium close-up focusing on the upper body and faces with soft bokeh background
 
   scene:
-    background: A romantic garden setting with lush green foliage, blooming pink and white flowers, natural stone pathways, and climbing ivy on a vintage trellis
-    atmosphere: Romantic, warm, dreamy, and naturally enchanting
+    background: A romantic garden setting with lush green foliage, blooming pink and white flowers, natural stone pathways, and climbing ivy on a wooden trellis
+    atmosphere: Romantic, fresh, airy, dreamlike modern aesthetic
 
   lighting:
     description: Golden hour sunlight filtering through leaves, creating warm backlighting with beautiful lens flares and dappled shadows
 
   groom_style:
     attire: Wearing an elegant light gray three-piece suit with a subtle pattern, paired with a pastel tie
-    hair: A natural, soft Korean hairstyle
+    hair: A neat, modern Korean hairstyle with texture
     pose: Standing relaxed with one hand in pocket, gentle smile facing the camera
 
   bride_style:
@@ -45,7 +45,7 @@ main:
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural warm skin tones, a gentle romantic smile, soft golden lighting on the face
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural warm skin tones, a gentle romantic smile, soft natural lighting on the face, high fidelity
   negative:
     core: woman, girl, female, low quality
 
