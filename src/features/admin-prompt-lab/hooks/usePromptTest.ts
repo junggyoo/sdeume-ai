@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type {
   PromptOverrides,
   NodeOverrides,
@@ -55,13 +56,23 @@ export const usePromptTest = ({
     setError(null);
 
     try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        const errorMessage = 'Not authenticated';
+        setError(errorMessage);
+        onError?.(errorMessage);
+        return;
+      }
+
       const response = await fetch('/api/admin/prompt-test/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(params),
-        credentials: 'include',
       });
 
       const data = await response.json();

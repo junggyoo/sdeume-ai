@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type {
   AdminPromptTest,
   PromptTestHistoryQuery,
@@ -9,6 +10,23 @@ import type {
   QualityIssueId,
 } from '../types';
 import type { ThemeSlug } from '@/features/shooting/types';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+const getAuthHeaders = async (): Promise<Record<string, string> | null> => {
+  const supabase = getSupabaseBrowserClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return null;
+  }
+
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+};
 
 // =============================================================================
 // Types
@@ -54,6 +72,12 @@ export const useTestHistory = ({
     setError(null);
 
     try {
+      const authHeaders = await getAuthHeaders();
+      if (!authHeaders) {
+        setError('Not authenticated');
+        return;
+      }
+
       const params = new URLSearchParams();
       if (query.themeSlug) params.set('themeSlug', query.themeSlug);
       if (query.qualityIssue) params.set('qualityIssue', query.qualityIssue);
@@ -62,7 +86,7 @@ export const useTestHistory = ({
       if (query.offset) params.set('offset', String(query.offset));
 
       const response = await fetch(`/api/admin/prompt-test/history?${params.toString()}`, {
-        credentials: 'include',
+        headers: authHeaders,
       });
 
       const data = await response.json();
@@ -110,56 +134,65 @@ export const useTestHistory = ({
   }, [hasMore, isLoading]);
 
   const updateTest = useCallback(async (testId: string, updates: PromptTestUpdateRequest) => {
-    try {
-      const response = await fetch(`/api/admin/prompt-test/history/${testId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (!data.ok) {
-        throw new Error(data.error?.message || 'Failed to update test');
-      }
-
-      // Update local state
-      setTests(prev =>
-        prev.map(test =>
-          test.id === testId ? { ...test, ...data.data } : test
-        )
-      );
-    } catch (err) {
-      throw err;
+    const authHeaders = await getAuthHeaders();
+    if (!authHeaders) {
+      throw new Error('Not authenticated');
     }
+
+    const response = await fetch(`/api/admin/prompt-test/history/${testId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+      },
+      body: JSON.stringify(updates),
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error?.message || 'Failed to update test');
+    }
+
+    // Update local state
+    setTests(prev =>
+      prev.map(test =>
+        test.id === testId ? { ...test, ...data.data } : test
+      )
+    );
   }, []);
 
   const deleteTest = useCallback(async (testId: string) => {
-    try {
-      const response = await fetch(`/api/admin/prompt-test/history/${testId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (!data.ok) {
-        throw new Error(data.error?.message || 'Failed to delete test');
-      }
-
-      // Remove from local state
-      setTests(prev => prev.filter(test => test.id !== testId));
-      setTotal(prev => prev - 1);
-    } catch (err) {
-      throw err;
+    const authHeaders = await getAuthHeaders();
+    if (!authHeaders) {
+      throw new Error('Not authenticated');
     }
+
+    const response = await fetch(`/api/admin/prompt-test/history/${testId}`, {
+      method: 'DELETE',
+      headers: authHeaders,
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error?.message || 'Failed to delete test');
+    }
+
+    // Remove from local state
+    setTests(prev => prev.filter(test => test.id !== testId));
+    setTotal(prev => prev - 1);
   }, []);
 
   const getTestById = useCallback(async (testId: string): Promise<AdminPromptTest | null> => {
     try {
+      const authHeaders = await getAuthHeaders();
+      if (!authHeaders) {
+        return null;
+      }
+
       const response = await fetch(`/api/admin/prompt-test/history/${testId}`, {
-        credentials: 'include',
+        headers: authHeaders,
       });
 
       const data = await response.json();

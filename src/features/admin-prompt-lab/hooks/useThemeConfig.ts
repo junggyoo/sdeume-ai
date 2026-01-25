@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { ThemeConfig } from '../types';
 import type { ThemeSlug } from '@/features/shooting/types';
 
@@ -36,8 +37,18 @@ export const useThemeConfig = (): UseThemeConfigReturn => {
     setError(null);
 
     try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setError('Not authenticated');
+        return;
+      }
+
       const response = await fetch('/api/admin/prompt-test/themes', {
-        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       const data = await response.json();
