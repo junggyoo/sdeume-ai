@@ -1,29 +1,37 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  NodeCard,
-  NodeCardLeft,
-  NodeCardRight,
-} from '@/features/admin-prompt-lab/components/NodeCard';
-import { PromptInput } from '@/features/admin-prompt-lab/components/PromptInput';
-import { SliderSetting } from '@/features/admin-prompt-lab/components/SliderSetting';
-import { PreviewPanel } from '@/features/admin-prompt-lab/components/PreviewPanel';
-import { ConsoleOutput } from '@/features/admin-prompt-lab/components/ConsoleOutput';
+  Settings,
+  Layers,
+  Lock,
+  Unlock,
+  Zap,
+  Copy,
+  Eye,
+  Code,
+  Star,
+  Save,
+  History,
+  ExternalLink,
+  Loader2,
+  Wand2,
+  X,
+  User,
+  Hand,
+  Palette,
+  Maximize2,
+  Sparkles,
+  Heart,
+  Check,
+  Terminal,
+  ChevronDown,
+} from 'lucide-react';
+
 import { usePromptTest } from '@/features/admin-prompt-lab/hooks/usePromptTest';
 import { useThemeConfig } from '@/features/admin-prompt-lab/hooks/useThemeConfig';
+import { useTestHistory } from '@/features/admin-prompt-lab/hooks/useTestHistory';
 import {
   DEFAULT_NODE_SETTINGS,
   SAMPLER_OPTIONS,
@@ -39,94 +47,215 @@ import type {
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 
 // =============================================================================
-// Icons
+// Types
 // =============================================================================
 
-const PaletteIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="13.5" cy="6.5" r=".5"/>
-    <circle cx="17.5" cy="10.5" r=".5"/>
-    <circle cx="8.5" cy="7.5" r=".5"/>
-    <circle cx="6.5" cy="12.5" r=".5"/>
-    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/>
-  </svg>
-);
+interface PipelineStage {
+  id: 'base' | 'groom' | 'bride' | 'hand';
+  title: string;
+  icon: React.ElementType;
+  positiveKey: keyof PromptOverrides;
+  negativeKey: keyof PromptOverrides;
+  nodeIds: string;
+}
 
-const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
-);
+// =============================================================================
+// Constants
+// =============================================================================
 
-const HeartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-  </svg>
-);
+const PIPELINE_STAGES: PipelineStage[] = [
+  {
+    id: 'base',
+    title: 'Base Generation',
+    icon: Palette,
+    positiveKey: 'mainPositive',
+    negativeKey: 'mainNegative',
+    nodeIds: 'Node 3, 6, 7',
+  },
+  {
+    id: 'groom',
+    title: 'Groom Face Detailer',
+    icon: User,
+    positiveKey: 'groomFacePositive',
+    negativeKey: 'groomFaceNegative',
+    nodeIds: 'Node 21, 26, 32',
+  },
+  {
+    id: 'bride',
+    title: 'Bride Face Detailer',
+    icon: Heart,
+    positiveKey: 'brideFacePositive',
+    negativeKey: 'brideFaceNegative',
+    nodeIds: 'Node 23, 27, 33',
+  },
+  {
+    id: 'hand',
+    title: 'Hand Detailer',
+    icon: Hand,
+    positiveKey: 'handPositive',
+    negativeKey: 'handNegative',
+    nodeIds: 'Node 38, 39, 37',
+  },
+];
 
-const HandIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
-    <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
-    <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
-    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
-  </svg>
-);
+const ARTIFACT_CHIPS = [
+  { id: 'finger_broken', label: 'Broken Hands' },
+  { id: 'face_distorted', label: 'Distorted Face' },
+  { id: 'lighting_off', label: 'Bad Lighting' },
+  { id: 'background_leak', label: 'Artifacts' },
+  { id: 'skin_plastic', label: 'Lost Likeness' },
+] as const;
 
-const DiceIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="12" height="12" x="2" y="10" rx="2" ry="2"/>
-    <path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/>
-    <path d="M6 18h.01"/>
-    <path d="M10 14h.01"/>
-    <path d="M15 6h.01"/>
-    <path d="M18 9h.01"/>
-  </svg>
-);
+// =============================================================================
+// Sub-Components
+// =============================================================================
 
-const SparklesIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-    <path d="M5 3v4"/>
-    <path d="M19 17v4"/>
-    <path d="M3 5h4"/>
-    <path d="M17 19h4"/>
-  </svg>
+interface NodeCardProps {
+  stage: PipelineStage;
+  positiveValue: string;
+  negativeValue: string;
+  onPositiveChange: (value: string) => void;
+  onNegativeChange: (value: string) => void;
+  settingsContent: React.ReactNode;
+}
+
+const NodeCard: React.FC<NodeCardProps> = ({
+  stage,
+  positiveValue,
+  negativeValue,
+  onPositiveChange,
+  onNegativeChange,
+  settingsContent,
+}) => {
+  const Icon = stage.icon;
+  const tokenCount = (positiveValue?.length || 0) + (negativeValue?.length || 0);
+
+  return (
+    <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="text-zinc-500" />
+          <span className="text-xs font-bold text-zinc-300 uppercase tracking-tight">
+            {stage.title}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-mono text-zinc-600">{stage.nodeIds}</span>
+          <button className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors">
+            <Maximize2 size={12} />
+          </button>
+        </div>
+      </div>
+
+      {/* Content Layout */}
+      <div className="flex flex-col lg:flex-row min-h-[180px]">
+        {/* Left: Prompts */}
+        <div className="flex-1 p-3 space-y-3 border-r border-zinc-800/50">
+          <div className="space-y-1">
+            <div className="flex justify-between items-center px-1">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Positive
+              </label>
+              <span className="text-[9px] font-mono text-zinc-700">
+                Tokens: {Math.floor(tokenCount / 4)}
+              </span>
+            </div>
+            <textarea
+              value={positiveValue}
+              onChange={(e) => onPositiveChange(e.target.value)}
+              className="w-full h-20 bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 resize-none leading-relaxed text-zinc-300 placeholder:text-zinc-700"
+              placeholder="Positive prompt data..."
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+              Negative
+            </label>
+            <textarea
+              value={negativeValue}
+              onChange={(e) => onNegativeChange(e.target.value)}
+              className="w-full h-14 bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-red-900/30 resize-none leading-relaxed text-zinc-600 placeholder:text-zinc-800"
+              placeholder="Negative constraints..."
+            />
+          </div>
+        </div>
+
+        {/* Right: Settings */}
+        <div className="w-full lg:w-[240px] bg-zinc-900/60 p-3 space-y-4">
+          {settingsContent}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface SliderControlProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  accentColor?: string;
+}
+
+const SliderControl: React.FC<SliderControlProps> = ({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  accentColor = 'purple',
+}) => (
+  <div className="space-y-2">
+    <div className="flex justify-between items-center text-[10px] font-mono">
+      <span className="text-zinc-500">{label}</span>
+      <span className={`text-${accentColor}-400`}>{value}</span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(parseFloat(e.target.value))}
+      className={`w-full h-1 bg-zinc-800 accent-${accentColor}-500 rounded-full appearance-none cursor-pointer`}
+      style={{ accentColor: accentColor === 'purple' ? '#a855f7' : '#3b82f6' }}
+    />
+  </div>
 );
 
 // =============================================================================
-// Page Component
+// Main Page Component
 // =============================================================================
 
 export default function PromptLabPage() {
-  // Theme config
+  // === Hooks ===
   const { themes, selectedTheme, selectTheme } = useThemeConfig();
+  const { isGenerating, error, result, generate } = usePromptTest();
+  const { tests: historyTests, updateTest } = useTestHistory({ autoFetch: true });
 
-  // Generation state
+  // === State ===
   const [shotType, setShotType] = useState<ShotType>('full_body');
   const [extraStyleTags, setExtraStyleTags] = useState('');
   const [seed, setSeed] = useState<number | undefined>(undefined);
-
-  // LoRA URLs (for testing)
+  const [isFixedSeed, setIsFixedSeed] = useState(false);
   const [groomLoraUrl, setGroomLoraUrl] = useState('');
   const [brideLoraUrl, setBrideLoraUrl] = useState('');
-
-  // Prompt overrides
   const [promptOverrides, setPromptOverrides] = useState<PromptOverrides>({});
-
-  // Node overrides
   const [nodeOverrides, setNodeOverrides] = useState<NodeOverrides>({
     ...DEFAULT_NODE_SETTINGS,
   });
+  const [activeIssues, setActiveIssues] = useState<QualityIssueId[]>([]);
+  const [rating, setRating] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'json'>('dashboard');
+  const [copied, setCopied] = useState(false);
+  const [isConsoleExpanded, setIsConsoleExpanded] = useState(true);
 
-  // Quality issues
-  const [selectedIssues, setSelectedIssues] = useState<QualityIssueId[]>([]);
-
-  // Prompt test hook
-  const { isGenerating, error, result, generate } = usePromptTest();
-
-  // Format theme prompts for display
+  // === Derived State ===
   const themePrompts = useMemo(() => {
     if (!selectedTheme) return null;
     return {
@@ -141,10 +270,10 @@ export default function PromptLabPage() {
     };
   }, [selectedTheme]);
 
-  // Update node overrides when theme changes (apply theme defaults)
+  // === Effects ===
   useEffect(() => {
     if (selectedTheme?.defaultSettings) {
-      setNodeOverrides(prev => ({
+      setNodeOverrides((prev) => ({
         ...prev,
         cfg: selectedTheme.defaultSettings.cfg,
         steps: selectedTheme.defaultSettings.steps,
@@ -154,11 +283,9 @@ export default function PromptLabPage() {
     }
   }, [selectedTheme]);
 
-  // Handle generate
+  // === Handlers ===
   const handleGenerate = useCallback(() => {
-    if (!selectedTheme || !groomLoraUrl || !brideLoraUrl) {
-      return;
-    }
+    if (!selectedTheme || !groomLoraUrl || !brideLoraUrl) return;
 
     generate({
       themeSlug: selectedTheme.slug as ThemeSlug,
@@ -167,7 +294,7 @@ export default function PromptLabPage() {
       brideLoraUrl,
       promptOverrides,
       nodeOverrides,
-      seed,
+      seed: isFixedSeed ? seed : undefined,
       extraStyleTags: extraStyleTags || undefined,
     });
   }, [
@@ -178,450 +305,672 @@ export default function PromptLabPage() {
     promptOverrides,
     nodeOverrides,
     seed,
+    isFixedSeed,
     extraStyleTags,
     generate,
   ]);
 
-  // Handle random seed
-  const handleRandomSeed = () => {
-    setSeed(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+  const toggleSeedLock = () => {
+    if (!isFixedSeed) {
+      setSeed(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+    }
+    setIsFixedSeed(!isFixedSeed);
   };
 
-  // Update prompt override helper
   const updatePromptOverride = (key: keyof PromptOverrides, value: string) => {
-    setPromptOverrides(prev => ({ ...prev, [key]: value }));
+    setPromptOverrides((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Update node override helper
   const updateNodeOverride = (key: keyof NodeOverrides, value: number | string) => {
-    setNodeOverrides(prev => ({ ...prev, [key]: value }));
+    setNodeOverrides((prev) => ({ ...prev, [key]: value }));
   };
 
+  const toggleIssue = (issueId: QualityIssueId) => {
+    setActiveIssues((prev) =>
+      prev.includes(issueId) ? prev.filter((i) => i !== issueId) : [...prev, issueId]
+    );
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!result?.assembledPrompts) return;
+    const text = Object.entries(result.assembledPrompts)
+      .map(([key, value]) => `[${key}]: ${value}`)
+      .join('\n');
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCommitToDatabase = async () => {
+    if (!result?.testId) return;
+    try {
+      await updateTest(result.testId, {
+        qualityIssues: activeIssues,
+        notes: notes || undefined,
+      });
+    } catch (err) {
+      console.error('Failed to commit:', err);
+    }
+  };
+
+  const getPromptValue = (key: keyof PromptOverrides): string => {
+    return promptOverrides[key] ?? (themePrompts?.[key as keyof typeof themePrompts] as string) ?? '';
+  };
+
+  // === Render ===
   return (
-    <div className="flex min-h-screen">
-      {/* Main Content (Left 70%) */}
-      <div className="flex-1 p-6 overflow-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Admin Prompt Lab</h1>
-          <Badge variant="outline" className="text-xs">
-            Desktop Only
-          </Badge>
+    <div
+      data-testid="prompt-lab-container"
+      className="fixed inset-0 z-[60] bg-zinc-950 text-zinc-300 flex overflow-hidden font-sans text-sm select-none"
+    >
+      {/* === COLUMN 1: WORKFLOW CONFIG (260px) === */}
+      <aside className="w-[260px] border-r border-zinc-800 flex flex-col bg-zinc-900 shadow-xl z-20">
+        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-zinc-100 font-bold">
+            <Settings size={16} className="text-purple-400" />
+            <span className="tracking-tighter">Workflow Config</span>
+          </div>
+          <button className="p-1 hover:bg-zinc-800 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
+            <X size={14} />
+          </button>
         </div>
 
-        {/* Settings Bar */}
-        <div className="flex flex-wrap items-end gap-4 p-4 bg-muted/30 rounded-lg mb-6">
-          <div className="space-y-1">
-            <Label className="text-xs">Theme</Label>
-            <Select
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
+          {/* Theme Preset */}
+          <div className="space-y-2">
+            <label
+              id="theme-preset-label"
+              className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest"
+            >
+              Theme Preset
+            </label>
+            <select
+              aria-labelledby="theme-preset-label"
               value={selectedTheme?.slug || ''}
-              onValueChange={(v) => selectTheme(v as ThemeSlug)}
+              onChange={(e) => selectTheme(e.target.value as ThemeSlug)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-purple-500/50 transition-colors text-zinc-300"
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                {themes.map((theme) => (
-                  <SelectItem key={theme.slug} value={theme.slug}>
-                    {theme.nameEn}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {themes.map((theme) => (
+                <option key={theme.slug} value={theme.slug}>
+                  {theme.nameEn}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Shot Type</Label>
-            <Select
+          {/* Shot Type */}
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">
+              Shot Type
+            </label>
+            <select
               value={shotType}
-              onValueChange={(v) => setShotType(v as ShotType)}
+              onChange={(e) => setShotType(e.target.value as ShotType)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-purple-500/50 transition-colors text-zinc-300"
             >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="full_body">Full Body</SelectItem>
-                <SelectItem value="closeup">Closeup</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="full_body">Full Body</option>
+              <option value="closeup">Closeup</option>
+            </select>
           </div>
 
-          <div className="space-y-1 flex-1 min-w-[200px]">
-            <Label className="text-xs">Extra Tags</Label>
-            <Input
-              value={extraStyleTags}
-              onChange={(e) => setExtraStyleTags(e.target.value)}
-              placeholder="cinematic lighting, bokeh..."
-              className="h-9"
+          {/* Global Geometry */}
+          <div className="space-y-4">
+            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">
+              Global Geometry
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label htmlFor="width-input" className="text-[10px] text-zinc-600">Width</label>
+                <input
+                  id="width-input"
+                  type="number"
+                  value={nodeOverrides.width ?? DEFAULT_NODE_SETTINGS.width}
+                  onChange={(e) => updateNodeOverride('width', Number(e.target.value))}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-300"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="height-input" className="text-[10px] text-zinc-600">Height</label>
+                <input
+                  id="height-input"
+                  type="number"
+                  value={nodeOverrides.height ?? DEFAULT_NODE_SETTINGS.height}
+                  onChange={(e) => updateNodeOverride('height', Number(e.target.value))}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-300"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Seed Control */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">
+                Seed Control
+              </label>
+              <button
+                onClick={toggleSeedLock}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold transition-all ${
+                  isFixedSeed
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-zinc-800 text-zinc-500'
+                }`}
+                aria-label={isFixedSeed ? 'Locked seed' : 'Random seed'}
+              >
+                {isFixedSeed ? <Lock size={10} /> : <Unlock size={10} />}
+                {isFixedSeed ? 'LOCKED' : 'RANDOM'}
+              </button>
+            </div>
+            <input
+              disabled={!isFixedSeed}
+              type="text"
+              value={isFixedSeed ? seed : '-1'}
+              onChange={(e) => setSeed(Number(e.target.value))}
+              placeholder={isFixedSeed ? 'Enter seed' : '-1'}
+              className={`w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none font-mono transition-opacity ${
+                !isFixedSeed && 'opacity-20 pointer-events-none'
+              }`}
             />
           </div>
 
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating || !groomLoraUrl || !brideLoraUrl}
-            className="gap-2"
-          >
-            <SparklesIcon />
-            {isGenerating ? 'Generating...' : 'Generate'}
-          </Button>
+          {/* External Assets */}
+          <div className="space-y-3">
+            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest flex items-center gap-2">
+              <Layers size={12} /> External Assets
+            </label>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <label htmlFor="groom-lora" className="text-[9px] text-zinc-600 px-1">Groom LoRA</label>
+                <input
+                  id="groom-lora"
+                  type="text"
+                  value={groomLoraUrl}
+                  onChange={(e) => setGroomLoraUrl(e.target.value)}
+                  placeholder="path/to/groom_lora.safetensors"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="bride-lora" className="text-[9px] text-zinc-600 px-1">Bride LoRA</label>
+                <input
+                  id="bride-lora"
+                  type="text"
+                  value={brideLoraUrl}
+                  onChange={(e) => setBrideLoraUrl(e.target.value)}
+                  placeholder="path/to/bride_lora.safetensors"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* LoRA URLs */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="space-y-1">
-            <Label className="text-xs">Groom LoRA URL</Label>
-            <Input
-              value={groomLoraUrl}
-              onChange={(e) => setGroomLoraUrl(e.target.value)}
-              placeholder="https://..."
-              className="font-mono text-sm"
-            />
+        {/* Generate Button */}
+        <div className="p-4 border-t border-zinc-800">
+          <button
+            disabled={isGenerating || !groomLoraUrl || !brideLoraUrl}
+            onClick={handleGenerate}
+            className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-950/20 transition-all active:scale-[0.98] group"
+          >
+            {isGenerating ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Wand2 size={18} className="group-hover:rotate-12 transition-transform" />
+            )}
+            <span>{isGenerating ? 'GENERATING...' : 'GENERATE TEST'}</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* === COLUMN 2: PIPELINE EDITOR (Flexible) === */}
+      <main className="flex-1 flex flex-col min-w-0 bg-zinc-950 overflow-hidden">
+        {/* Header Toolbar */}
+        <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-10">
+          <div className="flex items-center gap-6">
+            <h2 className="text-zinc-200 font-bold flex items-center gap-2">
+              <Zap size={16} className="text-purple-500" /> Pipeline Editor
+            </h2>
+            <div className="h-4 w-[1px] bg-zinc-800" />
+            <div className="flex bg-zinc-900 p-0.5 rounded-lg border border-zinc-800">
+              <button
+                onClick={() => setViewMode('dashboard')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold flex items-center gap-2 transition-colors ${
+                  viewMode === 'dashboard'
+                    ? 'bg-zinc-800 text-zinc-200'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Eye size={12} /> Dashboard
+              </button>
+              <button
+                onClick={() => setViewMode('json')}
+                className={`px-3 py-1 rounded-md text-[10px] font-bold flex items-center gap-2 transition-colors ${
+                  viewMode === 'json'
+                    ? 'bg-zinc-800 text-zinc-200'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Code size={12} /> Raw JSON
+              </button>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Bride LoRA URL</Label>
-            <Input
-              value={brideLoraUrl}
-              onChange={(e) => setBrideLoraUrl(e.target.value)}
-              placeholder="https://..."
-              className="font-mono text-sm"
-            />
-          </div>
+          <button
+            onClick={handleCopyPrompt}
+            disabled={!result?.assembledPrompts}
+            className="flex items-center gap-2 text-zinc-500 hover:text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors py-1.5 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span className="text-[10px] uppercase font-bold tracking-widest">
+              {copied ? 'Copied!' : 'Copy Compiled Prompt'}
+            </span>
+          </button>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="p-4 mb-6 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          <div className="mx-6 mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs">
             {error}
           </div>
         )}
 
-        {/* Node Cards */}
-        <div className="space-y-4">
-          {/* Base Generation */}
-          <NodeCard
-            title="Base Generation"
-            icon={<PaletteIcon />}
-            nodeIds="Node 3, 6, 7"
-          >
-            <NodeCardLeft>
-              <PromptInput
-                label="Positive Prompt"
-                nodeId="Node 6"
-                value={promptOverrides.mainPositive ?? themePrompts?.mainPositive ?? ''}
-                onChange={(v) => updatePromptOverride('mainPositive', v)}
-                placeholder="Loading theme..."
-                minHeight="140px"
-              />
-              <PromptInput
-                label="Negative Prompt"
-                nodeId="Node 7"
-                value={promptOverrides.mainNegative ?? themePrompts?.mainNegative ?? ''}
-                onChange={(v) => updatePromptOverride('mainNegative', v)}
-                placeholder="Loading theme..."
-                minHeight="80px"
-              />
-            </NodeCardLeft>
-            <NodeCardRight>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Sampler</Label>
-                  <Select
-                    value={nodeOverrides.samplerName || DEFAULT_NODE_SETTINGS.samplerName}
-                    onValueChange={(v) => updateNodeOverride('samplerName', v)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SAMPLER_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Scheduler</Label>
-                  <Select
-                    value={nodeOverrides.scheduler || DEFAULT_NODE_SETTINGS.scheduler}
-                    onValueChange={(v) => updateNodeOverride('scheduler', v)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SCHEDULER_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <SliderSetting
-                label="CFG Scale"
-                value={nodeOverrides.cfg ?? DEFAULT_NODE_SETTINGS.cfg}
-                onChange={(v) => updateNodeOverride('cfg', v)}
-                min={1}
-                max={20}
-                step={0.5}
-              />
-
-              <SliderSetting
-                label="Steps"
-                value={nodeOverrides.steps ?? DEFAULT_NODE_SETTINGS.steps}
-                onChange={(v) => updateNodeOverride('steps', v)}
-                min={10}
-                max={50}
-              />
-
-              <div className="space-y-1">
-                <Label className="text-xs">Seed</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    value={seed ?? ''}
-                    onChange={(e) => setSeed(e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder="Random"
-                    className="h-8 font-mono"
+        {/* Pipeline Cards */}
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          <div className="max-w-5xl mx-auto space-y-6">
+            {/* Base Generation */}
+            <NodeCard
+              stage={PIPELINE_STAGES[0]}
+              positiveValue={getPromptValue('mainPositive')}
+              negativeValue={getPromptValue('mainNegative')}
+              onPositiveChange={(v) => updatePromptOverride('mainPositive', v)}
+              onNegativeChange={(v) => updatePromptOverride('mainNegative', v)}
+              settingsContent={
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase">Sampler</label>
+                      <select
+                        value={nodeOverrides.samplerName || DEFAULT_NODE_SETTINGS.samplerName}
+                        onChange={(e) => updateNodeOverride('samplerName', e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] outline-none text-zinc-300"
+                      >
+                        {SAMPLER_OPTIONS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase">Scheduler</label>
+                      <select
+                        value={nodeOverrides.scheduler || DEFAULT_NODE_SETTINGS.scheduler}
+                        onChange={(e) => updateNodeOverride('scheduler', e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] outline-none text-zinc-300"
+                      >
+                        {SCHEDULER_OPTIONS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <SliderControl
+                    label="Steps"
+                    value={nodeOverrides.steps ?? DEFAULT_NODE_SETTINGS.steps}
+                    onChange={(v) => updateNodeOverride('steps', v)}
+                    min={10}
+                    max={50}
                   />
-                  <Button variant="outline" size="sm" onClick={handleRandomSeed}>
-                    <DiceIcon />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Width</Label>
-                  <Input
-                    type="number"
-                    value={nodeOverrides.width ?? DEFAULT_NODE_SETTINGS.width}
-                    onChange={(e) => updateNodeOverride('width', Number(e.target.value))}
-                    className="h-8"
+                  <SliderControl
+                    label="CFG Scale"
+                    value={nodeOverrides.cfg ?? DEFAULT_NODE_SETTINGS.cfg}
+                    onChange={(v) => updateNodeOverride('cfg', v)}
+                    min={1}
+                    max={20}
+                    step={0.5}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Height</Label>
-                  <Input
-                    type="number"
-                    value={nodeOverrides.height ?? DEFAULT_NODE_SETTINGS.height}
-                    onChange={(e) => updateNodeOverride('height', Number(e.target.value))}
-                    className="h-8"
+                </>
+              }
+            />
+
+            {/* Groom Face Detailer */}
+            <NodeCard
+              stage={PIPELINE_STAGES[1]}
+              positiveValue={getPromptValue('groomFacePositive')}
+              negativeValue={getPromptValue('groomFaceNegative')}
+              onPositiveChange={(v) => updatePromptOverride('groomFacePositive', v)}
+              onNegativeChange={(v) => updatePromptOverride('groomFaceNegative', v)}
+              settingsContent={
+                <>
+                  <SliderControl
+                    label="Denoise"
+                    value={nodeOverrides.groomDenoise ?? DEFAULT_NODE_SETTINGS.groomDenoise}
+                    onChange={(v) => updateNodeOverride('groomDenoise', v)}
+                    min={0.1}
+                    max={0.9}
+                    step={0.05}
                   />
-                </div>
-              </div>
-            </NodeCardRight>
-          </NodeCard>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Guide Size</label>
+                    <input
+                      type="number"
+                      value={nodeOverrides.groomGuideSize ?? DEFAULT_NODE_SETTINGS.groomGuideSize}
+                      onChange={(e) => updateNodeOverride('groomGuideSize', Number(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[10px] outline-none text-zinc-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Model</label>
+                    <select className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] outline-none text-zinc-300">
+                      <option value="bbox">face_yolov8m.pt</option>
+                      <option value="segm">face_segm.pt</option>
+                    </select>
+                  </div>
+                </>
+              }
+            />
 
-          {/* Groom Face Detailer */}
-          <NodeCard
-            title="Groom Face Detailer"
-            icon={<UserIcon />}
-            nodeIds="Node 21, 26, 32"
-          >
-            <NodeCardLeft>
-              <PromptInput
-                label="Face Positive"
-                nodeId="Node 21"
-                value={promptOverrides.groomFacePositive ?? themePrompts?.groomFacePositive ?? ''}
-                onChange={(v) => updatePromptOverride('groomFacePositive', v)}
-                placeholder="Loading theme..."
-                minHeight="100px"
-                warning="No background keywords"
-              />
-              <PromptInput
-                label="Face Negative"
-                nodeId="Node 26"
-                value={promptOverrides.groomFaceNegative ?? themePrompts?.groomFaceNegative ?? ''}
-                onChange={(v) => updatePromptOverride('groomFaceNegative', v)}
-                placeholder="Loading theme..."
-                minHeight="60px"
-              />
-            </NodeCardLeft>
-            <NodeCardRight>
-              <SliderSetting
-                label="Denoise"
-                value={nodeOverrides.groomDenoise ?? DEFAULT_NODE_SETTINGS.groomDenoise}
-                onChange={(v) => updateNodeOverride('groomDenoise', v)}
-                min={0.1}
-                max={0.9}
-                step={0.05}
-                isKey
-                description="Lower = preserve original | Higher = more change"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <SliderSetting
-                  label="Steps"
-                  value={nodeOverrides.groomSteps ?? DEFAULT_NODE_SETTINGS.groomSteps}
-                  onChange={(v) => updateNodeOverride('groomSteps', v)}
-                  min={5}
-                  max={25}
-                />
-                <SliderSetting
-                  label="CFG"
-                  value={nodeOverrides.groomCfg ?? DEFAULT_NODE_SETTINGS.groomCfg}
-                  onChange={(v) => updateNodeOverride('groomCfg', v)}
-                  min={1}
-                  max={10}
-                  step={0.5}
-                />
-              </div>
-            </NodeCardRight>
-          </NodeCard>
+            {/* Bride Face Detailer */}
+            <NodeCard
+              stage={PIPELINE_STAGES[2]}
+              positiveValue={getPromptValue('brideFacePositive')}
+              negativeValue={getPromptValue('brideFaceNegative')}
+              onPositiveChange={(v) => updatePromptOverride('brideFacePositive', v)}
+              onNegativeChange={(v) => updatePromptOverride('brideFaceNegative', v)}
+              settingsContent={
+                <>
+                  <SliderControl
+                    label="Denoise"
+                    value={nodeOverrides.brideDenoise ?? DEFAULT_NODE_SETTINGS.brideDenoise}
+                    onChange={(v) => updateNodeOverride('brideDenoise', v)}
+                    min={0.1}
+                    max={0.9}
+                    step={0.05}
+                  />
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Guide Size</label>
+                    <input
+                      type="number"
+                      value={nodeOverrides.brideGuideSize ?? DEFAULT_NODE_SETTINGS.brideGuideSize}
+                      onChange={(e) => updateNodeOverride('brideGuideSize', Number(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[10px] outline-none text-zinc-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Model</label>
+                    <select className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] outline-none text-zinc-300">
+                      <option value="bbox">face_yolov8m.pt</option>
+                      <option value="segm">face_segm.pt</option>
+                    </select>
+                  </div>
+                </>
+              }
+            />
 
-          {/* Bride Face Detailer */}
-          <NodeCard
-            title="Bride Face Detailer"
-            icon={<HeartIcon />}
-            nodeIds="Node 23, 27, 33"
-          >
-            <NodeCardLeft>
-              <PromptInput
-                label="Face Positive"
-                nodeId="Node 23"
-                value={promptOverrides.brideFacePositive ?? themePrompts?.brideFacePositive ?? ''}
-                onChange={(v) => updatePromptOverride('brideFacePositive', v)}
-                placeholder="Loading theme..."
-                minHeight="100px"
-                warning="No background keywords"
-              />
-              <PromptInput
-                label="Face Negative"
-                nodeId="Node 27"
-                value={promptOverrides.brideFaceNegative ?? themePrompts?.brideFaceNegative ?? ''}
-                onChange={(v) => updatePromptOverride('brideFaceNegative', v)}
-                placeholder="Loading theme..."
-                minHeight="60px"
-              />
-            </NodeCardLeft>
-            <NodeCardRight>
-              <SliderSetting
-                label="Denoise"
-                value={nodeOverrides.brideDenoise ?? DEFAULT_NODE_SETTINGS.brideDenoise}
-                onChange={(v) => updateNodeOverride('brideDenoise', v)}
-                min={0.1}
-                max={0.9}
-                step={0.05}
-                isKey
-                description="Lower = preserve original | Higher = more change"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <SliderSetting
-                  label="Steps"
-                  value={nodeOverrides.brideSteps ?? DEFAULT_NODE_SETTINGS.brideSteps}
-                  onChange={(v) => updateNodeOverride('brideSteps', v)}
-                  min={5}
-                  max={25}
-                />
-                <SliderSetting
-                  label="CFG"
-                  value={nodeOverrides.brideCfg ?? DEFAULT_NODE_SETTINGS.brideCfg}
-                  onChange={(v) => updateNodeOverride('brideCfg', v)}
-                  min={1}
-                  max={10}
-                  step={0.5}
-                />
-              </div>
-            </NodeCardRight>
-          </NodeCard>
-
-          {/* Hand Detailer */}
-          <NodeCard
-            title="Hand Detailer"
-            icon={<HandIcon />}
-            nodeIds="Node 38, 39, 37"
-          >
-            <NodeCardLeft>
-              <PromptInput
-                label="Hand Positive"
-                nodeId="Node 38"
-                value={promptOverrides.handPositive ?? themePrompts?.handPositive ?? ''}
-                onChange={(v) => updatePromptOverride('handPositive', v)}
-                placeholder="Loading theme..."
-                minHeight="80px"
-              />
-              <PromptInput
-                label="Hand Negative"
-                nodeId="Node 39"
-                value={promptOverrides.handNegative ?? themePrompts?.handNegative ?? ''}
-                onChange={(v) => updatePromptOverride('handNegative', v)}
-                placeholder="Loading theme..."
-                minHeight="60px"
-              />
-            </NodeCardLeft>
-            <NodeCardRight>
-              <SliderSetting
-                label="Denoise"
-                value={nodeOverrides.handDenoise ?? DEFAULT_NODE_SETTINGS.handDenoise}
-                onChange={(v) => updateNodeOverride('handDenoise', v)}
-                min={0.1}
-                max={0.6}
-                step={0.05}
-                isKey
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <SliderSetting
-                  label="Steps"
-                  value={nodeOverrides.handSteps ?? DEFAULT_NODE_SETTINGS.handSteps}
-                  onChange={(v) => updateNodeOverride('handSteps', v)}
-                  min={5}
-                  max={20}
-                />
-                <SliderSetting
-                  label="CFG"
-                  value={nodeOverrides.handCfg ?? DEFAULT_NODE_SETTINGS.handCfg}
-                  onChange={(v) => updateNodeOverride('handCfg', v)}
-                  min={1}
-                  max={15}
-                />
-              </div>
-            </NodeCardRight>
-          </NodeCard>
+            {/* Hand Detailer */}
+            <NodeCard
+              stage={PIPELINE_STAGES[3]}
+              positiveValue={getPromptValue('handPositive')}
+              negativeValue={getPromptValue('handNegative')}
+              onPositiveChange={(v) => updatePromptOverride('handPositive', v)}
+              onNegativeChange={(v) => updatePromptOverride('handNegative', v)}
+              settingsContent={
+                <>
+                  <SliderControl
+                    label="Denoise"
+                    value={nodeOverrides.handDenoise ?? DEFAULT_NODE_SETTINGS.handDenoise}
+                    onChange={(v) => updateNodeOverride('handDenoise', v)}
+                    min={0.1}
+                    max={0.6}
+                    step={0.05}
+                  />
+                  <SliderControl
+                    label="Confidence"
+                    value={nodeOverrides.handThreshold ?? DEFAULT_NODE_SETTINGS.handThreshold}
+                    onChange={(v) => updateNodeOverride('handThreshold', v)}
+                    min={0.5}
+                    max={1.0}
+                    step={0.01}
+                    accentColor="blue"
+                  />
+                </>
+              }
+            />
+          </div>
         </div>
 
-        {/* Console Output */}
-        <div className="mt-6">
-          <ConsoleOutput assembledPrompts={result?.assembledPrompts || null} />
+        {/* Console Output / Terminal */}
+        <div className="border-t border-zinc-800 bg-zinc-900/50">
+          <button
+            onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
+            className="w-full px-6 py-2 flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-zinc-400">
+              <Terminal size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Console Output</span>
+              {result?.assembledPrompts && (
+                <span className="text-[9px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                  {Object.keys(result.assembledPrompts).length} nodes
+                </span>
+              )}
+            </div>
+            <ChevronDown
+              size={14}
+              className={`text-zinc-600 transition-transform ${isConsoleExpanded ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {isConsoleExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="max-h-[200px] overflow-y-auto px-6 pb-4 scrollbar-thin">
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-xs space-y-2">
+                    {result?.assembledPrompts ? (
+                      Object.entries(result.assembledPrompts).map(([nodeKey, prompt]) => (
+                        <div key={nodeKey} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-400 text-[10px]">[{nodeKey}]</span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(prompt)}
+                              className="p-0.5 text-zinc-600 hover:text-zinc-400 transition-colors"
+                              aria-label={`Copy ${nodeKey}`}
+                            >
+                              <Copy size={10} />
+                            </button>
+                          </div>
+                          <p className="text-zinc-500 leading-relaxed pl-2 border-l border-zinc-800 text-[11px]">
+                            {prompt || <span className="text-zinc-700 italic">empty</span>}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-zinc-700 text-center py-4">
+                        <p className="text-[10px] uppercase tracking-widest">Waiting for generation...</p>
+                        <p className="text-[9px] mt-1 text-zinc-800">
+                          Compiled prompts will appear here after running a test
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
+
+      {/* === COLUMN 3: OUTPUT ANALYZER (380px) === */}
+      <aside className="w-[380px] border-l border-zinc-800 flex flex-col bg-zinc-900">
+        <div className="p-4 border-b border-zinc-800 bg-zinc-950/30 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-zinc-100 font-bold">
+            <Sparkles size={16} className="text-blue-400" />
+            <span>Output Analyzer</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-zinc-600 font-mono tracking-tighter">
+              {result?.generationTimeMs
+                ? `Lat: ${(result.generationTimeMs / 1000).toFixed(1)}s`
+                : 'Lat: --'}
+            </span>
+          </div>
         </div>
 
-        {/* Quality Issues Checklist */}
-        {result && (
-          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-            <Label className="text-sm font-medium mb-3 block">Quality Issues</Label>
-            <div className="flex flex-wrap gap-2">
-              {QUALITY_ISSUES.map((issue) => (
-                <label
-                  key={issue.id}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-background rounded-full border cursor-pointer hover:bg-muted/50 transition-colors"
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
+          {/* Preview Image */}
+          <div className="relative aspect-[3/4] bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group ring-1 ring-white/5">
+            <AnimatePresence mode="wait">
+              {isGenerating ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm z-20"
                 >
-                  <Checkbox
-                    checked={selectedIssues.includes(issue.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedIssues(prev => [...prev, issue.id]);
-                      } else {
-                        setSelectedIssues(prev => prev.filter(i => i !== issue.id));
-                      }
-                    }}
-                  />
-                  <span className="text-sm">{issue.label}</span>
-                </label>
+                  <Loader2 size={32} className="animate-spin text-purple-500 mb-4" />
+                  <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-zinc-500 animate-pulse">
+                    Running Tensors...
+                  </span>
+                </motion.div>
+              ) : result?.images?.[0] ? (
+                <motion.img
+                  key={result.seed}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  src={`data:${result.images[0].contentType};base64,${result.images[0].base64}`}
+                  alt="Generated result"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-zinc-700 text-xs">
+                  No preview
+                </div>
+              )}
+            </AnimatePresence>
+            {result?.images?.[0] && (
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <button className="p-2 bg-black/60 backdrop-blur-md rounded-lg text-white hover:bg-black transition-colors border border-white/10">
+                  <ExternalLink size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Model Fidelity Score */}
+          <section className="space-y-3">
+            <label className="text-[10px] uppercase font-bold text-zinc-600 tracking-widest">
+              Model Fidelity Score
+            </label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setRating(s)}
+                  className={`transition-all ${
+                    rating >= s ? 'text-yellow-500 scale-110' : 'text-zinc-800 hover:text-zinc-700'
+                  }`}
+                >
+                  <Star size={20} fill={rating >= s ? 'currentColor' : 'none'} />
+                </button>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          </section>
 
-      {/* Preview Panel (Right 30%) */}
-      <div className="w-[350px] border-l p-6 bg-muted/10">
-        <PreviewPanel
-          images={result?.images || null}
-          isLoading={isGenerating}
-          seed={result?.seed || null}
-          generationTimeMs={result?.generationTimeMs || null}
-          themeSlug={selectedTheme?.slug || null}
-        />
-      </div>
+          {/* Artifact Observations */}
+          <section className="space-y-3">
+            <label className="text-[10px] uppercase font-bold text-zinc-600 tracking-widest">
+              Artifact Observations
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {ARTIFACT_CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => toggleIssue(chip.id as QualityIssueId)}
+                  aria-label={chip.label}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                    activeIssues.includes(chip.id as QualityIssueId)
+                      ? 'bg-red-500/10 border-red-500 text-red-400'
+                      : 'border-zinc-800 bg-zinc-800/50 text-zinc-500 hover:border-zinc-700'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Technical Notes */}
+          <section className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-zinc-600 tracking-widest">
+              Technical Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Log observation data..."
+              className="w-full h-24 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 focus:outline-none focus:border-purple-500/30 font-mono placeholder:text-zinc-700"
+            />
+            <button
+              onClick={handleCommitToDatabase}
+              disabled={!result?.testId}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 border border-zinc-700 transition-all shadow-sm"
+            >
+              <Save size={14} /> COMMIT TO DATABASE
+            </button>
+          </section>
+
+          <div className="h-[1px] bg-zinc-800 w-full" />
+
+          {/* Test History */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-zinc-600 tracking-widest flex items-center gap-2">
+                <History size={12} /> Test History
+              </label>
+              <button className="text-[9px] text-zinc-600 hover:text-zinc-400 font-bold tracking-widest uppercase transition-colors">
+                Clear
+              </button>
+            </div>
+            <div className="space-y-2">
+              {historyTests.slice(0, 5).map((test) => (
+                <div
+                  key={test.id}
+                  className="flex items-center gap-3 p-2 rounded-xl bg-zinc-950/50 border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden border border-zinc-800">
+                    {test.images?.[0] && (
+                      <img
+                        src={`data:${test.images[0].contentType};base64,${test.images[0].base64}`}
+                        alt=""
+                        className="w-full h-full object-cover opacity-30 group-hover:opacity-100 transition-opacity"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-[10px] font-bold text-zinc-400 truncate">
+                      TEST_{test.id.slice(0, 8).toUpperCase()}
+                    </p>
+                    <p className="text-[9px] text-zinc-600 font-mono">
+                      {test.themeSlug} • {test.shotType}
+                    </p>
+                  </div>
+                  {test.isFavorite && (
+                    <div className="flex items-center gap-1 text-yellow-600/80 font-bold text-[10px]">
+                      <Star size={10} fill="currentColor" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {historyTests.length === 0 && (
+                <p className="text-xs text-zinc-600 text-center py-4">No history yet</p>
+              )}
+            </div>
+          </section>
+        </div>
+      </aside>
     </div>
   );
 }
