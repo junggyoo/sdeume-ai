@@ -25,7 +25,7 @@ main:
 
   groom_style:
     attire: Wearing a high-end tailored black tuxedo with satin lapels, a crisp white shirt, and an elegant black bow tie
-    hair: A neat, modern Korean hairstyle, trendy styling
+    hair: modern Korean groom hairstyle, contemporary, clean side texture, no retro slick-back
     pose: Standing tall with distinguished posture and a confident, warm smile
 
   bride_style:
@@ -35,7 +35,7 @@ main:
     pose: Standing regally with a graceful, poised expression
 
   quality:
-    technical: 8k resolution, rich warm tones, highly detailed textures, sharp focus, professional photography with Hasselblad X2D and 80mm lens
+    technical: 8k resolution, rich warm tones, highly detailed textures, sharp focus, professional photography with and 80mm lens
 
   negative:
     style: illustration, painting, anime, cartoon, 3d render
@@ -47,7 +47,7 @@ groom_face:
   positive:
     core: A closeup portrait showing East Asian facial features, brown eyes, black hair, modern trendy hairstyle, natural skin texture, soft studio lighting on the face, neutral color tone
   negative:
-    core: woman, girl, female, low quality, oil painting, old photos, yellow skin tone
+    core: woman, girl, female, low quality, oil painting, old photos, yellow skin tone, slicked back hair, side-parted retro hair, heavy pomade, vintage hairstyle, old-fashioned
 
 bride_face:
   positive:

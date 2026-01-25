@@ -21,7 +21,7 @@ main:
     atmosphere: Romantic, fresh, airy, dreamlike modern aesthetic
 
   lighting:
-    description: Golden hour sunlight filtering through leaves, creating warm backlighting with beautiful lens flares and dappled shadows
+    description: soft natural daylight with controlled fill light, minimal lens flare, gentle warm tone, face evenly lit
 
   groom_style:
     attire: Wearing an elegant light gray three-piece suit with a subtle pattern, paired with a pastel tie
@@ -40,7 +40,7 @@ main:
   negative:
     style: illustration, painting, anime, cartoon, 3d render
     quality: text, watermark, low quality, worst quality, blurry
-    mood: dark, gloomy, harsh lighting
+    mood: dark, gloomy, harsh lighting, excessive lens flare, strong backlight, heavy shadow on face, orange skin tone
 
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
