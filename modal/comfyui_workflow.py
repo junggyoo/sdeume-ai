@@ -198,7 +198,7 @@ WORKFLOW_JSON = r'''
       "target": "area(=w*h)",
       "order": true,
       "take_start": 0,
-      "take_count": 1,
+      "take_count": 2,
       "segs": ["30", 0]
     },
     "class_type": "ImpactSEGSOrderedFilter",

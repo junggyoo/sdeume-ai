@@ -45,15 +45,15 @@ main:
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural warm skin tones, a gentle romantic smile, soft natural lighting on the face, high fidelity
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural skin texture, a gentle romantic smile, soft natural lighting on the face, neutral color tone
   negative:
-    core: woman, girl, female, low quality
+    core: woman, girl, female, low quality, worst quality, oil painting, old photos, yellow skin tone, unnatural skin, distorted face
 
 bride_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup with rosy cheeks and soft pink lips, dewy glowing skin, soft golden lighting
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup, dewy glowing skin, soft natural lighting on the face
   negative:
-    core: man, boy, male, low quality
+    core: man, boy, male, low quality, worst quality, heavy makeup, unnatural skin, distorted face
 
 hand:
   positive: Detailed, natural-looking hands with proper anatomy
