@@ -32,6 +32,7 @@ import {
 import { usePromptTest } from '@/features/admin-prompt-lab/hooks/usePromptTest';
 import { useThemeConfig } from '@/features/admin-prompt-lab/hooks/useThemeConfig';
 import { useTestHistory } from '@/features/admin-prompt-lab/hooks/useTestHistory';
+import { useConsoleLog } from '@/features/admin-prompt-lab/hooks/useConsoleLog';
 import {
   DEFAULT_NODE_SETTINGS,
   SAMPLER_OPTIONS,
@@ -43,6 +44,7 @@ import type {
   PromptOverrides,
   NodeOverrides,
   QualityIssueId,
+  ConsoleLog,
 } from '@/features/admin-prompt-lab/types';
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 
@@ -228,6 +230,62 @@ const SliderControl: React.FC<SliderControlProps> = ({
 );
 
 // =============================================================================
+// LogLine Component
+// =============================================================================
+
+const LOG_LEVEL_STYLES = {
+  info: 'text-zinc-400',
+  success: 'text-green-400',
+  warning: 'text-yellow-400',
+  error: 'text-red-400',
+} as const;
+
+interface LogLineProps {
+  log: ConsoleLog;
+}
+
+const LogLine = React.memo<LogLineProps>(function LogLine({ log }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const time = useMemo(
+    () =>
+      log.timestamp.toLocaleTimeString('ko-KR', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    [log.timestamp]
+  );
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-start gap-2 text-[11px] font-mono">
+        <span className="text-zinc-600 shrink-0">{time}</span>
+        <span className={LOG_LEVEL_STYLES[log.level]}>{log.message}</span>
+      </div>
+
+      {/* Payload viewer (data snapshot) */}
+      {log.payload && (
+        <div className="ml-16">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="cursor-pointer text-[10px] text-blue-400 hover:underline"
+          >
+            [{isExpanded ? 'Hide' : 'View'} Data Snapshot]
+          </button>
+          {isExpanded && (
+            <pre className="mt-1 p-2 bg-black/50 rounded text-[9px] text-zinc-400 overflow-x-auto max-h-[200px]">
+              {JSON.stringify(log.payload, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// =============================================================================
 // Main Page Component
 // =============================================================================
 
@@ -236,6 +294,16 @@ export default function PromptLabPage() {
   const { themes, selectedTheme, selectTheme } = useThemeConfig();
   const { isGenerating, error, result, generate } = usePromptTest();
   const { tests: historyTests, updateTest } = useTestHistory({ autoFetch: true });
+  const {
+    logs,
+    elapsedTime,
+    scrollRef,
+    addLog,
+    startTimer,
+    stopTimer,
+    clearLogs,
+    getLogsByPhase,
+  } = useConsoleLog();
 
   // === State ===
   const [shotType, setShotType] = useState<ShotType>('full_body');
@@ -283,20 +351,84 @@ export default function PromptLabPage() {
     }
   }, [selectedTheme]);
 
+  // === Refs for timer tracking ===
+  const startTimeRef = React.useRef<number>(0);
+
   // === Handlers ===
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (!selectedTheme || !groomLoraUrl || !brideLoraUrl) return;
 
-    generate({
-      themeSlug: selectedTheme.slug as ThemeSlug,
+    // 1. Initialize + start timer
+    clearLogs();
+    startTimer();
+    startTimeRef.current = Date.now();
+
+    // 2. [CONFIG] Log current settings
+    addLog('info', 'config', `Theme: ${selectedTheme.nameEn} (${shotType})`, {
+      theme: selectedTheme.slug,
       shotType,
-      groomLoraUrl,
-      brideLoraUrl,
-      promptOverrides,
-      nodeOverrides,
-      seed: isFixedSeed ? seed : undefined,
-      extraStyleTags: extraStyleTags || undefined,
+      seed: isFixedSeed ? seed : 'random',
     });
+
+    addLog('info', 'config', `Size: ${nodeOverrides.width} × ${nodeOverrides.height}`, {
+      width: nodeOverrides.width,
+      height: nodeOverrides.height,
+      cfg: nodeOverrides.cfg,
+      steps: nodeOverrides.steps,
+      sampler: nodeOverrides.samplerName,
+      scheduler: nodeOverrides.scheduler,
+    });
+
+    // Extract changed overrides only
+    const changedPrompts = Object.entries(promptOverrides).filter(([, v]) => v);
+    const changedNodes = Object.entries(nodeOverrides).filter(
+      ([k, v]) => v !== DEFAULT_NODE_SETTINGS[k as keyof typeof DEFAULT_NODE_SETTINGS]
+    );
+
+    if (changedPrompts.length > 0 || changedNodes.length > 0) {
+      addLog('info', 'config', `Overrides: ${changedPrompts.length} prompts, ${changedNodes.length} nodes`, {
+        promptOverrides: Object.fromEntries(changedPrompts),
+        nodeOverrides: Object.fromEntries(changedNodes),
+      });
+    }
+
+    try {
+      // 3. [PROGRESS] Validation
+      addLog('info', 'progress', 'Validating inputs...');
+
+      // 4. [PROGRESS] Prompt assembly
+      addLog('info', 'progress', 'Assembling prompts...');
+
+      // 5. [PROGRESS] API call - log request body (key for debugging!)
+      const requestBody = {
+        themeSlug: selectedTheme.slug,
+        shotType,
+        groomLoraUrl,
+        brideLoraUrl,
+        promptOverrides,
+        nodeOverrides,
+        seed: isFixedSeed ? seed : undefined,
+        extraStyleTags: extraStyleTags || undefined,
+      };
+
+      addLog('info', 'progress', 'Calling Modal API...', { requestBody });
+
+      // 6. Actual API call
+      await generate(requestBody as Parameters<typeof generate>[0]);
+
+      // 7. [PROGRESS] Response received
+      addLog('success', 'progress', 'Response received');
+
+      // 8. [RESULT] Completion - will be handled in useEffect below
+
+    } catch (err) {
+      stopTimer();
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      addLog('error', 'result', `Generation failed: ${errorMessage}`, {
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
   }, [
     selectedTheme,
     shotType,
@@ -308,7 +440,25 @@ export default function PromptLabPage() {
     isFixedSeed,
     extraStyleTags,
     generate,
+    clearLogs,
+    startTimer,
+    stopTimer,
+    addLog,
   ]);
+
+  // Handle result completion
+  useEffect(() => {
+    if (result && !isGenerating) {
+      stopTimer();
+      const elapsed = ((Date.now() - startTimeRef.current) / 1000).toFixed(1);
+      addLog('success', 'result', `Generation completed (${elapsed}s)`, {
+        testId: result.testId,
+        seed: result.seed,
+        generationTimeMs: result.generationTimeMs,
+        imageSize: result.images[0] ? `${result.images[0].width}×${result.images[0].height}` : null,
+      });
+    }
+  }, [result, isGenerating, stopTimer, addLog]);
 
   const toggleSeedLock = () => {
     if (!isFixedSeed) {
@@ -485,6 +635,7 @@ export default function PromptLabPage() {
                   id="groom-lora"
                   type="text"
                   value={groomLoraUrl}
+                  defaultValue="https://v3b.fal.media/files/b/0a8ba506/9DXzOIu7IbeXuw4gKW-v2_pytorch_lora_weights.safetensors"
                   onChange={(e) => setGroomLoraUrl(e.target.value)}
                   placeholder="path/to/groom_lora.safetensors"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
@@ -496,6 +647,7 @@ export default function PromptLabPage() {
                   id="bride-lora"
                   type="text"
                   value={brideLoraUrl}
+                  defaultValue="https://v3b.fal.media/files/b/0a8ba50f/lJP1PgXPSuu6RotLrb_QY_pytorch_lora_weights.safetensors"
                   onChange={(e) => setBrideLoraUrl(e.target.value)}
                   placeholder="path/to/bride_lora.safetensors"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
@@ -738,24 +890,35 @@ export default function PromptLabPage() {
 
         {/* Console Output / Terminal */}
         <div className="border-t border-zinc-800 bg-zinc-900/50">
-          <button
-            onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
-            className="w-full px-6 py-2 flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
-          >
-            <div className="flex items-center gap-2 text-zinc-400">
+          <div className="w-full px-6 py-2 flex items-center justify-between">
+            <button
+              onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
+              className="flex items-center gap-2 text-zinc-400 hover:bg-zinc-800/30 transition-colors rounded px-2 py-1 -ml-2"
+            >
               <Terminal size={14} />
               <span className="text-[10px] font-bold uppercase tracking-widest">Console Output</span>
+              {elapsedTime > 0 && (
+                <span className="text-[9px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                  {(elapsedTime / 1000).toFixed(1)}s
+                </span>
+              )}
               {result?.assembledPrompts && (
                 <span className="text-[9px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
                   {Object.keys(result.assembledPrompts).length} nodes
                 </span>
               )}
-            </div>
-            <ChevronDown
-              size={14}
-              className={`text-zinc-600 transition-transform ${isConsoleExpanded ? 'rotate-180' : ''}`}
-            />
-          </button>
+              <ChevronDown
+                size={14}
+                className={`text-zinc-600 transition-transform ${isConsoleExpanded ? 'rotate-180' : ''}`}
+              />
+            </button>
+            <button
+              onClick={clearLogs}
+              className="text-[9px] text-zinc-600 hover:text-zinc-400 font-bold tracking-widest uppercase transition-colors px-2 py-1 rounded hover:bg-zinc-800"
+            >
+              Clear
+            </button>
+          </div>
 
           <AnimatePresence initial={false}>
             {isConsoleExpanded && (
@@ -766,32 +929,62 @@ export default function PromptLabPage() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="max-h-[200px] overflow-y-auto px-6 pb-4 scrollbar-thin">
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-xs space-y-2">
-                    {result?.assembledPrompts ? (
-                      Object.entries(result.assembledPrompts).map(([nodeKey, prompt]) => (
-                        <div key={nodeKey} className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-purple-400 text-[10px]">[{nodeKey}]</span>
-                            <button
-                              onClick={() => navigator.clipboard.writeText(prompt)}
-                              className="p-0.5 text-zinc-600 hover:text-zinc-400 transition-colors"
-                              aria-label={`Copy ${nodeKey}`}
-                            >
-                              <Copy size={10} />
-                            </button>
+                <div
+                  ref={scrollRef}
+                  className="max-h-[300px] overflow-y-auto px-6 pb-4 scrollbar-thin"
+                >
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-xs space-y-3">
+                    {/* Phase-based log sections */}
+                    {(['config', 'progress', 'result'] as const).map((phase) => {
+                      const phaseLogs = getLogsByPhase(phase);
+                      if (phaseLogs.length === 0) return null;
+
+                      const phaseColors = {
+                        config: 'text-purple-400/60',
+                        progress: 'text-blue-400/60',
+                        result: 'text-green-400/60',
+                      };
+
+                      return (
+                        <div key={phase} className="space-y-1">
+                          <div className={`text-[9px] ${phaseColors[phase]} uppercase tracking-widest`}>
+                            [{phase}]
                           </div>
-                          <p className="text-zinc-500 leading-relaxed pl-2 border-l border-zinc-800 text-[11px]">
-                            {prompt || <span className="text-zinc-700 italic">empty</span>}
-                          </p>
+                          {phaseLogs.map((log) => (
+                            <LogLine key={log.id} log={log} />
+                          ))}
                         </div>
-                      ))
-                    ) : (
+                      );
+                    })}
+
+                    {/* PROMPTS section (assembled prompts) */}
+                    {result?.assembledPrompts && (
+                      <div className="space-y-1">
+                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest">[PROMPTS]</div>
+                        {Object.entries(result.assembledPrompts).map(([nodeKey, prompt]) => (
+                          <div key={nodeKey} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-purple-400 text-[10px]">[{nodeKey}]</span>
+                              <button
+                                onClick={() => navigator.clipboard.writeText(prompt)}
+                                className="p-0.5 text-zinc-600 hover:text-zinc-400 transition-colors"
+                                aria-label={`Copy ${nodeKey}`}
+                              >
+                                <Copy size={10} />
+                              </button>
+                            </div>
+                            <p className="text-zinc-500 leading-relaxed pl-2 border-l border-zinc-800 text-[11px]">
+                              {prompt || <span className="text-zinc-700 italic">empty</span>}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {logs.length === 0 && !result?.assembledPrompts && (
                       <div className="text-zinc-700 text-center py-4">
-                        <p className="text-[10px] uppercase tracking-widest">Waiting for generation...</p>
-                        <p className="text-[9px] mt-1 text-zinc-800">
-                          Compiled prompts will appear here after running a test
-                        </p>
+                        <p className="text-[10px] uppercase tracking-widest">Click &quot;Generate Test&quot; to see logs</p>
                       </div>
                     )}
                   </div>

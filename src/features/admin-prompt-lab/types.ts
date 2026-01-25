@@ -5,6 +5,22 @@
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 
 // =============================================================================
+// Console Log Types
+// =============================================================================
+
+export type LogLevel = 'info' | 'success' | 'warning' | 'error';
+export type LogPhase = 'config' | 'progress' | 'result';
+
+export interface ConsoleLog {
+  id: string;
+  timestamp: Date;
+  level: LogLevel;
+  phase: LogPhase;
+  message: string;
+  payload?: unknown;
+}
+
+// =============================================================================
 // Prompt Overrides (matches Modal workflow nodes)
 // =============================================================================
 
