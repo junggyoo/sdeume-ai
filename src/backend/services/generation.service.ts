@@ -342,17 +342,26 @@ export const triggerModalGeneration = async (
     timeoutMs: 300000, // 5 minutes timeout for image generation
   };
 
+  console.log(`[triggerModalGeneration] Starting ${IMAGE_COUNT} parallel Modal API calls with baseSeed: ${baseSeed}`);
+
   // Generate 4 images in parallel with different seeds
-  const generatePromises = Array.from({ length: IMAGE_COUNT }, (_, index) =>
-    generateImages(modalClientConfig, {
+  const generatePromises = Array.from({ length: IMAGE_COUNT }, (_, index) => {
+    const seed = baseSeed + index * 1000;
+    console.log(`[triggerModalGeneration] Launching call ${index + 1}/${IMAGE_COUNT} with seed: ${seed}`);
+    return generateImages(modalClientConfig, {
       groomLoraUrl,
       brideLoraUrl,
       theme: themeSlug,
-      seed: baseSeed + index * 1000,
-    })
-  );
+      seed,
+    });
+  });
 
   const results = await Promise.allSettled(generatePromises);
+  console.log(`[triggerModalGeneration] All ${IMAGE_COUNT} calls completed. Results:`, results.map((r, i) => ({
+    index: i,
+    status: r.status,
+    ok: r.status === 'fulfilled' ? r.value.ok : false,
+  })));
 
   // Collect successful images
   const successfulImages: { base64: string }[] = [];
