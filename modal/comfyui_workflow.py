@@ -854,36 +854,56 @@ class ComfyUIServer:
 
         self.profiler.record("Before LoRA Download")
 
+        # 요청별 고유 ID 생성 (병렬 요청 시 파일 충돌 방지)
+        import uuid
+        request_id = str(uuid.uuid4())[:8]
+
+        # 요청별 고유 LoRA 파일 경로
+        groom_lora_name = f"groom_lora_{request_id}.safetensors"
+        bride_lora_name = f"bride_lora_{request_id}.safetensors"
+
         # 동적 LoRA 다운로드 및 형식 변환 (매번 새로 다운로드 - 사용자별 LoRA가 다름)
         if groom_lora_url:
-            groom_lora_temp = f"{models_dir}/loras/groom_lora_temp.safetensors"
-            groom_lora_path = f"{models_dir}/loras/groom_lora.safetensors"
-            # 기존 파일 삭제
+            groom_lora_temp = f"{models_dir}/loras/groom_lora_temp_{request_id}.safetensors"
+            groom_lora_path = f"{models_dir}/loras/{groom_lora_name}"
+            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
             for path in [groom_lora_temp, groom_lora_path]:
-                if os.path.exists(path):
-                    os.remove(path)
-            print(f"Downloading groom LoRA from {groom_lora_url}")
+                try:
+                    if os.path.exists(path):
+                        os.remove(path)
+                except FileNotFoundError:
+                    pass  # 다른 요청이 이미 삭제함
+            print(f"Downloading groom LoRA from {groom_lora_url} -> {groom_lora_name}")
             if download_file(groom_lora_url, groom_lora_temp):
                 # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
                 if convert_diffusers_to_comfyui_flux_lora(groom_lora_temp, groom_lora_path):
-                    os.remove(groom_lora_temp)
+                    try:
+                        os.remove(groom_lora_temp)
+                    except FileNotFoundError:
+                        pass
                 else:
                     # 변환 실패시 원본 사용
                     print("  ℹ️ Conversion failed, using original file")
                     os.rename(groom_lora_temp, groom_lora_path)
 
         if bride_lora_url:
-            bride_lora_temp = f"{models_dir}/loras/bride_lora_temp.safetensors"
-            bride_lora_path = f"{models_dir}/loras/bride_lora.safetensors"
-            # 기존 파일 삭제
+            bride_lora_temp = f"{models_dir}/loras/bride_lora_temp_{request_id}.safetensors"
+            bride_lora_path = f"{models_dir}/loras/{bride_lora_name}"
+            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
             for path in [bride_lora_temp, bride_lora_path]:
-                if os.path.exists(path):
-                    os.remove(path)
-            print(f"Downloading bride LoRA from {bride_lora_url}")
+                try:
+                    if os.path.exists(path):
+                        os.remove(path)
+                except FileNotFoundError:
+                    pass  # 다른 요청이 이미 삭제함
+            print(f"Downloading bride LoRA from {bride_lora_url} -> {bride_lora_name}")
             if download_file(bride_lora_url, bride_lora_temp):
                 # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
                 if convert_diffusers_to_comfyui_flux_lora(bride_lora_temp, bride_lora_path):
-                    os.remove(bride_lora_temp)
+                    try:
+                        os.remove(bride_lora_temp)
+                    except FileNotFoundError:
+                        pass
                 else:
                     # 변환 실패시 원본 사용
                     print("  ℹ️ Conversion failed, using original file")
@@ -920,6 +940,10 @@ class ComfyUIServer:
 
         # 워크플로우 로드
         workflow = json.loads(WORKFLOW_JSON)
+
+        # 동적 LoRA 파일 이름 설정 (요청별 고유 파일 사용)
+        workflow["14"]["inputs"]["lora_name"] = groom_lora_name  # Groom LoRA
+        workflow["15"]["inputs"]["lora_name"] = bride_lora_name  # Bride LoRA
 
         # 프롬프트 시스템으로 8개 노드 완전 교체
         workflow = apply_theme_prompts(
@@ -1039,6 +1063,16 @@ class ComfyUIServer:
                 print(f"Waiting for result... ({i+1}s) - {e}")
 
             time.sleep(1)
+
+        # 임시 LoRA 파일 정리 (볼륨 공간 절약)
+        for lora_file in [groom_lora_name, bride_lora_name]:
+            lora_path = f"{models_dir}/loras/{lora_file}"
+            try:
+                if os.path.exists(lora_path):
+                    os.remove(lora_path)
+                    print(f"🗑️ Cleaned up: {lora_file}")
+            except Exception as e:
+                print(f"⚠️ Failed to clean up {lora_file}: {e}")
 
         if not output_images:
             return {"error": "Image generation timed out or failed"}
