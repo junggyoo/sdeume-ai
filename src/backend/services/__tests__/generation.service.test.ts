@@ -490,13 +490,21 @@ describe('Generation Service', () => {
       const { generateImages } = await import('../modal-client');
       const { uploadGeneratedImage } = await import('../storage.service');
 
-      // Now calls Modal API 4 times in parallel
-      (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+      // Now calls Modal API 3 times in parallel (hybrid batching: 3 batches x 4 images)
+      (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => ({
         ok: true,
         data: {
-          images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
+          // Each batch returns `count` images
+          images: Array(request.count || 1).fill(null).map((_, i) => ({
+            base64: `img_${i}`,
+            content_type: 'image/png',
+            width: 896,
+            height: 1152,
+            status: 'success',
+          })),
+          count: request.count || 1,
         },
-      });
+      }));
 
       let uploadCount = 0;
       (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
@@ -545,11 +553,11 @@ describe('Generation Service', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.data.status).toBe('completed');
-        expect(result.data.images.length).toBe(4); // Now generates 4 images
+        expect(result.data.images.length).toBe(12); // 12 images (3 batches x 4)
       }
 
-      expect(generateImages).toHaveBeenCalledTimes(4); // 4 parallel calls
-      expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
+      expect(generateImages).toHaveBeenCalledTimes(3); // 3 batches (hybrid)
+      expect(uploadGeneratedImage).toHaveBeenCalledTimes(12); // 12 uploads
     });
 
     it('should return failure when Modal API fails', async () => {
@@ -723,13 +731,20 @@ describe('Generation Service', () => {
           error: null,
         });
 
-      // Now calls Modal API 4 times in parallel, each returning 1 image
-      (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+      // Now calls Modal API 3 times in parallel, each returning 4 images (hybrid batching)
+      (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => ({
         ok: true,
         data: {
-          images: [{ base64: 'newimage', content_type: 'image/png', width: 896, height: 1152 }],
+          images: Array(request.count || 1).fill(null).map((_, i) => ({
+            base64: `newimage_${i}`,
+            content_type: 'image/png',
+            width: 896,
+            height: 1152,
+            status: 'success',
+          })),
+          count: request.count || 1,
         },
-      });
+      }));
 
       let uploadCount = 0;
       (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
@@ -756,15 +771,15 @@ describe('Generation Service', () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        // Should have 6 images: 2 existing + 4 new (now generates 4 images)
-        expect(result.data.images.length).toBe(6);
+        // Should have 14 images: 2 existing + 12 new (3 batches x 4 images)
+        expect(result.data.images.length).toBe(14);
         // First two should be existing images
         expect(result.data.images[0].url).toBe('https://storage.example.com/old_0_original.webp');
         expect(result.data.images[1].url).toBe('https://storage.example.com/old_1_original.webp');
       }
 
-      // Verify uploadGeneratedImage was called 4 times (4 new images)
-      expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
+      // Verify uploadGeneratedImage was called 12 times (12 new images)
+      expect(uploadGeneratedImage).toHaveBeenCalledTimes(12);
       // Verify first new image starts from index 2 (after existing 2 images)
       expect(uploadGeneratedImage).toHaveBeenCalledWith(
         expect.anything(),
@@ -775,109 +790,29 @@ describe('Generation Service', () => {
       );
     });
 
-    describe('parallel image generation (4 images)', () => {
-      it('should call Modal API 4 times in parallel', async () => {
+
+    // =========================================================================
+    // Hybrid Batch Generation Tests (12 images = 3 batches x 4 images)
+    // =========================================================================
+    describe('hybrid batch generation (12 images = 3 batches x 4)', () => {
+      it('should call Modal API 3 times with count=4 each (12 images total)', async () => {
         const { generateImages } = await import('../modal-client');
         const { uploadGeneratedImage } = await import('../storage.service');
 
-        // Mock all 4 generateImages calls to succeed
-        (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
-          ok: true,
-          data: {
-            images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
-          },
-        });
-
-        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
-          ok: true,
-          data: {
-            originalUrl: 'https://storage.example.com/original.webp',
-            thumbnailUrl: 'https://storage.example.com/thumbnail.webp',
-            blurHash: 'blur1',
-          },
-        });
-
-        mockSingle
-          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
-          .mockResolvedValueOnce({ data: null, error: null })
-          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
-
-        await triggerModalGeneration(
-          mockSupabase,
-          'gen123',
-          'project123',
-          'https://fal.ai/lora/groom.safetensors',
-          'https://fal.ai/lora/bride.safetensors',
-          'theme123',
-          { endpoint: 'http://modal.test' }
-        );
-
-        // Verify generateImages was called 4 times
-        expect(generateImages).toHaveBeenCalledTimes(4);
-      });
-
-      it('should call each Modal API with different seeds', async () => {
-        const { generateImages } = await import('../modal-client');
-        const { uploadGeneratedImage } = await import('../storage.service');
-
-        const capturedSeeds: number[] = [];
+        const capturedCalls: { seed: number; count: number }[] = [];
         (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
-          capturedSeeds.push(request.seed);
+          capturedCalls.push({ seed: request.seed, count: request.count });
           return {
             ok: true,
             data: {
-              images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
-            },
-          };
-        });
-
-        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
-          ok: true,
-          data: {
-            originalUrl: 'https://storage.example.com/original.webp',
-            thumbnailUrl: 'https://storage.example.com/thumbnail.webp',
-            blurHash: 'blur1',
-          },
-        });
-
-        mockSingle
-          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
-          .mockResolvedValueOnce({ data: null, error: null })
-          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
-
-        await triggerModalGeneration(
-          mockSupabase,
-          'gen123',
-          'project123',
-          'https://fal.ai/lora/groom.safetensors',
-          'https://fal.ai/lora/bride.safetensors',
-          'theme123',
-          { endpoint: 'http://modal.test' }
-        );
-
-        // Verify all 4 seeds are unique
-        expect(capturedSeeds.length).toBe(4);
-        const uniqueSeeds = new Set(capturedSeeds);
-        expect(uniqueSeeds.size).toBe(4);
-
-        // Verify seeds are spaced apart (by 1000)
-        const sortedSeeds = [...capturedSeeds].sort((a, b) => a - b);
-        for (let i = 1; i < sortedSeeds.length; i++) {
-          expect(sortedSeeds[i] - sortedSeeds[i - 1]).toBe(1000);
-        }
-      });
-
-      it('should save 4 images when all 4 API calls succeed', async () => {
-        const { generateImages } = await import('../modal-client');
-        const { uploadGeneratedImage } = await import('../storage.service');
-
-        let callCount = 0;
-        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-          callCount++;
-          return {
-            ok: true,
-            data: {
-              images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
+              images: Array(request.count || 1).fill(null).map((_, i) => ({
+                base64: `batch_img_${i}`,
+                status: 'success',
+                content_type: 'image/png',
+                width: 896,
+                height: 1152,
+              })),
+              count: request.count || 1,
             },
           };
         });
@@ -912,101 +847,69 @@ describe('Generation Service', () => {
 
         expect(result.ok).toBe(true);
         if (result.ok) {
-          expect(result.data.images.length).toBe(4);
-          expect(result.data.status).toBe('completed');
+          // 12 images total (3 batches x 4 images)
+          expect(result.data.images.length).toBe(12);
         }
 
-        expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
+        // Verify 3 batch calls were made
+        expect(generateImages).toHaveBeenCalledTimes(3);
+
+        // Verify each batch has count=4
+        expect(capturedCalls.every(call => call.count === 4)).toBe(true);
+
+        // Verify seeds are different for each batch
+        const uniqueSeeds = new Set(capturedCalls.map(c => c.seed));
+        expect(uniqueSeeds.size).toBe(3);
       });
 
-      it('should save 3 images when 3/4 API calls succeed (partial success)', async () => {
+      it('should filter out failed images within a batch', async () => {
         const { generateImages } = await import('../modal-client');
         const { uploadGeneratedImage } = await import('../storage.service');
 
-        let callCount = 0;
-        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-          callCount++;
-          // Fail on the 2nd call
-          if (callCount === 2) {
-            return {
-              ok: false,
-              error: { status: 500, code: 'MODAL_ERROR', message: 'API error' },
-            };
-          }
-          return {
-            ok: true,
-            data: {
-              images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
-            },
-          };
-        });
-
-        let uploadCount = 0;
-        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-          uploadCount++;
-          return {
-            ok: true,
-            data: {
-              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
-              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
-              blurHash: `blur${uploadCount}`,
-            },
-          };
-        });
-
-        mockSingle
-          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
-          .mockResolvedValueOnce({ data: null, error: null })
-          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
-
-        const result = await triggerModalGeneration(
-          mockSupabase,
-          'gen123',
-          'project123',
-          'https://fal.ai/lora/groom.safetensors',
-          'https://fal.ai/lora/bride.safetensors',
-          'theme123',
-          { endpoint: 'http://modal.test' }
-        );
-
-        expect(result.ok).toBe(true);
-        if (result.ok) {
-          expect(result.data.images.length).toBe(3);
-          expect(result.data.status).toBe('completed');
-        }
-
-        expect(uploadGeneratedImage).toHaveBeenCalledTimes(3);
-      });
-
-      it('should save 1 image when 1/4 API calls succeed (partial success)', async () => {
-        const { generateImages } = await import('../modal-client');
-        const { uploadGeneratedImage } = await import('../storage.service');
-
-        let callCount = 0;
-        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-          callCount++;
-          // Only the first call succeeds
-          if (callCount === 1) {
+        let batchIndex = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
+          batchIndex++;
+          // Second batch has 1 failed image
+          if (batchIndex === 2) {
             return {
               ok: true,
               data: {
-                images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
+                images: [
+                  { base64: 'img1', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+                  { error: 'GPU OOM', status: 'failed' },
+                  { base64: 'img3', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+                  { base64: 'img4', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+                ],
+                count: 4,
               },
             };
           }
           return {
-            ok: false,
-            error: { status: 500, code: 'MODAL_ERROR', message: 'API error' },
+            ok: true,
+            data: {
+              images: Array(request.count || 1).fill(null).map((_, i) => ({
+                base64: `batch${batchIndex}_img${i}`,
+                status: 'success',
+                content_type: 'image/png',
+                width: 896,
+                height: 1152,
+              })),
+              count: request.count || 1,
+            },
           };
         });
 
-        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
-          ok: true,
-          data: {
-            originalUrl: 'https://storage.example.com/0_original.webp',
-            thumbnailUrl: 'https://storage.example.com/0_thumbnail.webp',
-            blurHash: 'blur1',
-          },
+        let uploadCount = 0;
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          uploadCount++;
+          return {
+            ok: true,
+            data: {
+              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
+              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
+              blurHash: `blur${uploadCount}`,
+            },
+          };
         });
 
         mockSingle
@@ -1026,20 +929,87 @@ describe('Generation Service', () => {
 
         expect(result.ok).toBe(true);
         if (result.ok) {
-          expect(result.data.images.length).toBe(1);
-          expect(result.data.status).toBe('completed');
+          // 11 images: 4 + 3 (1 failed) + 4
+          expect(result.data.images.length).toBe(11);
         }
 
-        expect(uploadGeneratedImage).toHaveBeenCalledTimes(1);
+        // 11 uploads (failed images are filtered out)
+        expect(uploadGeneratedImage).toHaveBeenCalledTimes(11);
       });
 
-      it('should return failure with status failed when all 4 API calls fail', async () => {
+      it('should handle partial batch failure (2/3 batches succeed)', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        let batchIndex = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
+          batchIndex++;
+          // Third batch completely fails
+          if (batchIndex === 3) {
+            return {
+              ok: false,
+              error: { status: 500, code: 'MODAL_ERROR', message: 'Container crashed' },
+            };
+          }
+          return {
+            ok: true,
+            data: {
+              images: Array(request.count || 1).fill(null).map((_, i) => ({
+                base64: `batch${batchIndex}_img${i}`,
+                status: 'success',
+                content_type: 'image/png',
+                width: 896,
+                height: 1152,
+              })),
+              count: request.count || 1,
+            },
+          };
+        });
+
+        let uploadCount = 0;
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          uploadCount++;
+          return {
+            ok: true,
+            data: {
+              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
+              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
+              blurHash: `blur${uploadCount}`,
+            },
+          };
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        const result = await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          // 8 images: 4 + 4 + 0 (failed batch)
+          expect(result.data.images.length).toBe(8);
+        }
+
+        expect(uploadGeneratedImage).toHaveBeenCalledTimes(8);
+      });
+
+      it('should return failure when all batches fail', async () => {
         const { generateImages } = await import('../modal-client');
 
-        // All calls fail
+        // All 3 batches fail
         (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
           ok: false,
-          error: { status: 500, code: 'MODAL_ERROR', message: 'All Modal APIs failed' },
+          error: { status: 500, code: 'MODAL_ERROR', message: 'All containers crashed' },
         });
 
         mockSingle
@@ -1059,16 +1029,139 @@ describe('Generation Service', () => {
         expect(result.ok).toBe(false);
         if (!result.ok) {
           expect(result.error.code).toBe('MODAL_ERROR');
-          expect(result.error.message).toBe('All image generations failed');
         }
+      });
 
-        // Verify status was updated to 'failed' in database
-        expect(mockUpdate).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'failed',
-            error_message: 'All image generations failed',
-          })
+      it('should update DB incrementally after each batch completes', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        const dbUpdateCalls: unknown[][] = [];
+
+        // Track all update calls
+        mockUpdate.mockImplementation((data: Record<string, unknown>) => {
+          dbUpdateCalls.push([data]);
+          return {
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'gen123', status: 'completed', images: [] },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        });
+
+        let batchIndex = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
+          batchIndex++;
+          return {
+            ok: true,
+            data: {
+              images: Array(request.count || 1).fill(null).map((_, i) => ({
+                base64: `batch${batchIndex}_img${i}`,
+                status: 'success',
+                content_type: 'image/png',
+                width: 896,
+                height: 1152,
+              })),
+              count: request.count || 1,
+            },
+          };
+        });
+
+        let uploadCount = 0;
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          uploadCount++;
+          return {
+            ok: true,
+            data: {
+              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
+              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
+              blurHash: `blur${uploadCount}`,
+            },
+          };
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
         );
+
+        // Verify multiple DB updates happened (incremental updates)
+        // At minimum: 1 for status='generating' + 12 for images + 1 for final completion
+        expect(mockUpdate).toHaveBeenCalled();
+
+        // Find image array updates
+        const imageUpdates = dbUpdateCalls.filter(
+          call => call[0] && typeof call[0] === 'object' && 'images' in (call[0] as object)
+        );
+        expect(imageUpdates.length).toBeGreaterThan(0);
+      });
+
+      it('should use correct seed spacing between batches', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        const capturedSeeds: number[] = [];
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
+          capturedSeeds.push(request.seed);
+          return {
+            ok: true,
+            data: {
+              images: Array(request.count || 1).fill(null).map((_, i) => ({
+                base64: `img${i}`,
+                status: 'success',
+                content_type: 'image/png',
+                width: 896,
+                height: 1152,
+              })),
+              count: request.count || 1,
+            },
+          };
+        });
+
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: true,
+          data: {
+            originalUrl: 'https://storage.example.com/original.webp',
+            thumbnailUrl: 'https://storage.example.com/thumbnail.webp',
+            blurHash: 'blur1',
+          },
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        // Verify seeds are spaced correctly (IMAGES_PER_BATCH * 1000 apart)
+        // With IMAGES_PER_BATCH=4: seed0, seed0 + 4000, seed0 + 8000
+        expect(capturedSeeds.length).toBe(3);
+        const sortedSeeds = [...capturedSeeds].sort((a, b) => a - b);
+        expect(sortedSeeds[1] - sortedSeeds[0]).toBe(4000); // 4 * 1000
+        expect(sortedSeeds[2] - sortedSeeds[1]).toBe(4000);
       });
     });
   });

@@ -45,34 +45,42 @@ export const generateImages = async (
 
   try {
     // Modal's fastapi_endpoint URL already includes the method name
+    // Build request body
+    const requestBody: Record<string, unknown> = {
+      // LoRA URLs
+      groomLoraUrl: request.groomLoraUrl,
+      brideLoraUrl: request.brideLoraUrl,
+
+      // Theme parameters
+      theme: request.theme ?? 'white_studio',
+      shotType: request.shotType ?? 'full_body',
+      // Legacy: prompt maps to extraStyleTags if extraStyleTags not provided
+      extraStyleTags: request.extraStyleTags ?? request.prompt,
+
+      // LoRA triggers
+      groomTrigger: request.groomTrigger ?? 'GROOM_SDME',
+      brideTrigger: request.brideTrigger ?? 'BRIDE_SDME',
+      includeMainTriggers: request.includeMainTriggers ?? false,
+
+      // Generation settings
+      width: request.width ?? 896,
+      height: request.height ?? 1152,
+      cfg: request.cfg ?? 1,  // FLUX model requires cfg=1 (guidance-free)
+      steps: request.steps ?? 25,
+      seed: request.seed,
+    };
+
+    // Only include count if provided (for backward compatibility)
+    if (request.count !== undefined) {
+      requestBody.count = request.count;
+    }
+
     const response = await fetch(config.endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        // LoRA URLs
-        groomLoraUrl: request.groomLoraUrl,
-        brideLoraUrl: request.brideLoraUrl,
-
-        // Theme parameters
-        theme: request.theme ?? 'white_studio',
-        shotType: request.shotType ?? 'full_body',
-        // Legacy: prompt maps to extraStyleTags if extraStyleTags not provided
-        extraStyleTags: request.extraStyleTags ?? request.prompt,
-
-        // LoRA triggers
-        groomTrigger: request.groomTrigger ?? 'GROOM_SDME',
-        brideTrigger: request.brideTrigger ?? 'BRIDE_SDME',
-        includeMainTriggers: request.includeMainTriggers ?? false,
-
-        // Generation settings
-        width: request.width ?? 896,
-        height: request.height ?? 1152,
-        cfg: request.cfg ?? 1,  // FLUX model requires cfg=1 (guidance-free)
-        steps: request.steps ?? 25,
-        seed: request.seed,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
