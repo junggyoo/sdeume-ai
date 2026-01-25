@@ -54,8 +54,6 @@ image = (
         "safetensors",  # LoRA 형식 변환용
         "pyyaml",  # 프롬프트 YAML 로딩용
     )
-    # 프롬프트 디렉토리 복사 (Modal 배포 환경용)
-    .add_local_dir("modal/prompts", "/app/prompts", copy=True)
     .run_commands(
         # ComfyUI 설치
         "comfy --skip-prompt install --nvidia",
@@ -75,6 +73,9 @@ image = (
         "cd /root/comfy/ComfyUI/custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git",
         "cd /root/comfy/ComfyUI/custom_nodes/ComfyUI-Impact-Subpack && pip install -r requirements.txt || true",
     )
+    # 프롬프트 디렉토리 (런타임 마운트 - copy=False가 기본값)
+    # 이미지 빌드 완료 후 추가하여 프롬프트 변경 시 리빌드 방지
+    .add_local_dir("modal/prompts", "/app/prompts")
 )
 
 # 워크플로우 JSON (원본 기반)
