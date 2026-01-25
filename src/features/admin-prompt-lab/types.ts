@@ -349,3 +349,42 @@ export const SCHEDULER_OPTIONS = [
 
 export type SamplerName = typeof SAMPLER_OPTIONS[number];
 export type SchedulerName = typeof SCHEDULER_OPTIONS[number];
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Convert ThemePromptSection object to a formatted prompt string
+ */
+export const formatMainPositivePrompt = (section: ThemePromptSection): string => {
+  const parts = [
+    section.camera,
+    section.composition,
+    section.background,
+    section.atmosphere,
+    section.lighting,
+    section.groomStyle,
+    section.brideStyle,
+    section.quality,
+  ].filter(Boolean);
+
+  return parts.join(', ');
+};
+
+/**
+ * Get the effective node settings (merge theme defaults with overrides)
+ */
+export const getEffectiveNodeSettings = (
+  themeDefaults: ThemeConfig['defaultSettings'] | undefined,
+  overrides: NodeOverrides
+): NodeOverrides => {
+  return {
+    ...DEFAULT_NODE_SETTINGS,
+    cfg: themeDefaults?.cfg ?? DEFAULT_NODE_SETTINGS.cfg,
+    steps: themeDefaults?.steps ?? DEFAULT_NODE_SETTINGS.steps,
+    width: themeDefaults?.width ?? DEFAULT_NODE_SETTINGS.width,
+    height: themeDefaults?.height ?? DEFAULT_NODE_SETTINGS.height,
+    ...overrides,
+  };
+};

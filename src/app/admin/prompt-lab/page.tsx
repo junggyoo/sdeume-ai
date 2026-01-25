@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ import {
   SAMPLER_OPTIONS,
   SCHEDULER_OPTIONS,
   QUALITY_ISSUES,
+  formatMainPositivePrompt,
 } from '@/features/admin-prompt-lab/types';
 import type {
   PromptOverrides,
@@ -124,6 +125,34 @@ export default function PromptLabPage() {
 
   // Prompt test hook
   const { isGenerating, error, result, generate } = usePromptTest();
+
+  // Format theme prompts for display
+  const themePrompts = useMemo(() => {
+    if (!selectedTheme) return null;
+    return {
+      mainPositive: formatMainPositivePrompt(selectedTheme.mainPositive),
+      mainNegative: selectedTheme.mainNegative,
+      groomFacePositive: selectedTheme.groomFacePositive,
+      groomFaceNegative: selectedTheme.groomFaceNegative,
+      brideFacePositive: selectedTheme.brideFacePositive,
+      brideFaceNegative: selectedTheme.brideFaceNegative,
+      handPositive: selectedTheme.handPositive,
+      handNegative: selectedTheme.handNegative,
+    };
+  }, [selectedTheme]);
+
+  // Update node overrides when theme changes (apply theme defaults)
+  useEffect(() => {
+    if (selectedTheme?.defaultSettings) {
+      setNodeOverrides(prev => ({
+        ...prev,
+        cfg: selectedTheme.defaultSettings.cfg,
+        steps: selectedTheme.defaultSettings.steps,
+        width: selectedTheme.defaultSettings.width,
+        height: selectedTheme.defaultSettings.height,
+      }));
+    }
+  }, [selectedTheme]);
 
   // Handle generate
   const handleGenerate = useCallback(() => {
@@ -278,17 +307,17 @@ export default function PromptLabPage() {
               <PromptInput
                 label="Positive Prompt"
                 nodeId="Node 6"
-                value={promptOverrides.mainPositive || selectedTheme?.mainNegative || ''}
+                value={promptOverrides.mainPositive ?? themePrompts?.mainPositive ?? ''}
                 onChange={(v) => updatePromptOverride('mainPositive', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="140px"
               />
               <PromptInput
                 label="Negative Prompt"
                 nodeId="Node 7"
-                value={promptOverrides.mainNegative || ''}
+                value={promptOverrides.mainNegative ?? themePrompts?.mainNegative ?? ''}
                 onChange={(v) => updatePromptOverride('mainNegative', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="80px"
               />
             </NodeCardLeft>
@@ -394,18 +423,18 @@ export default function PromptLabPage() {
               <PromptInput
                 label="Face Positive"
                 nodeId="Node 21"
-                value={promptOverrides.groomFacePositive || ''}
+                value={promptOverrides.groomFacePositive ?? themePrompts?.groomFacePositive ?? ''}
                 onChange={(v) => updatePromptOverride('groomFacePositive', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="100px"
                 warning="No background keywords"
               />
               <PromptInput
                 label="Face Negative"
                 nodeId="Node 26"
-                value={promptOverrides.groomFaceNegative || ''}
+                value={promptOverrides.groomFaceNegative ?? themePrompts?.groomFaceNegative ?? ''}
                 onChange={(v) => updatePromptOverride('groomFaceNegative', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="60px"
               />
             </NodeCardLeft>
@@ -450,18 +479,18 @@ export default function PromptLabPage() {
               <PromptInput
                 label="Face Positive"
                 nodeId="Node 23"
-                value={promptOverrides.brideFacePositive || ''}
+                value={promptOverrides.brideFacePositive ?? themePrompts?.brideFacePositive ?? ''}
                 onChange={(v) => updatePromptOverride('brideFacePositive', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="100px"
                 warning="No background keywords"
               />
               <PromptInput
                 label="Face Negative"
                 nodeId="Node 27"
-                value={promptOverrides.brideFaceNegative || ''}
+                value={promptOverrides.brideFaceNegative ?? themePrompts?.brideFaceNegative ?? ''}
                 onChange={(v) => updatePromptOverride('brideFaceNegative', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="60px"
               />
             </NodeCardLeft>
@@ -506,17 +535,17 @@ export default function PromptLabPage() {
               <PromptInput
                 label="Hand Positive"
                 nodeId="Node 38"
-                value={promptOverrides.handPositive || ''}
+                value={promptOverrides.handPositive ?? themePrompts?.handPositive ?? ''}
                 onChange={(v) => updatePromptOverride('handPositive', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="80px"
               />
               <PromptInput
                 label="Hand Negative"
                 nodeId="Node 39"
-                value={promptOverrides.handNegative || ''}
+                value={promptOverrides.handNegative ?? themePrompts?.handNegative ?? ''}
                 onChange={(v) => updatePromptOverride('handNegative', v)}
-                placeholder="Leave empty to use theme default..."
+                placeholder="Loading theme..."
                 minHeight="60px"
               />
             </NodeCardLeft>
