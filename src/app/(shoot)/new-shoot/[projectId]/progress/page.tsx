@@ -284,7 +284,7 @@ export default function ProgressPage() {
                 controlledPhase={generatingPhase}
                 controlledProgress={progress}
                 completedPhotos={generation?.images?.length ?? 0}
-                totalPhotos={12}
+                totalPhotos={PROGRESS_CONFIG.totalImages}
               />
             </motion.div>
           )}

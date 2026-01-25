@@ -218,7 +218,7 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(1200);
       });
 
-      expect(screen.getByText('현상된 필름 • 1 / 12')).toBeInTheDocument();
+      expect(screen.getByText('현상된 필름 • 1 / 4')).toBeInTheDocument();
     });
 
     it('should increment photo count in film strip as photos complete', async () => {
@@ -230,7 +230,7 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(3600);
       });
 
-      expect(screen.getByText(/[3-4] \/ 12/)).toBeInTheDocument();
+      expect(screen.getByText(/[3-4] \/ 4/)).toBeInTheDocument();
     });
 
     it('should update photo number badge as generation progresses', async () => {
@@ -260,8 +260,8 @@ describe('GeneratingStage', () => {
       await act(async () => {
         vi.advanceTimersByTime(8000);
       });
-      // Generation: 12 photos * ~1100ms each = ~13200ms (with buffer)
-      for (let i = 0; i < 12; i++) {
+      // Generation: 4 photos * ~1100ms each = ~4400ms (with buffer)
+      for (let i = 0; i < 4; i++) {
         await act(async () => {
           vi.advanceTimersByTime(1100);
         });
@@ -286,7 +286,7 @@ describe('GeneratingStage', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByText(/앨범 열기 \(12장\)/)).toBeInTheDocument();
+      expect(screen.getByText(/앨범 열기 \(4장\)/)).toBeInTheDocument();
     });
 
     it('should call onFinish when reveal button is clicked', async () => {
@@ -307,7 +307,7 @@ describe('GeneratingStage', () => {
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
       await advanceToCompletePhase();
 
-      expect(screen.getByText('12장의 아름다운 화보가 완성되었어요')).toBeInTheDocument();
+      expect(screen.getByText('4장의 아름다운 화보가 완성되었어요')).toBeInTheDocument();
     });
 
     it('should show complete badge with Korean text', async () => {
@@ -383,7 +383,7 @@ describe('GeneratingStage', () => {
         vi.advanceTimersByTime(1200);
       });
 
-      expect(screen.getByText(/현상된 필름 • 1 \/ 12/)).toBeInTheDocument();
+      expect(screen.getByText(/현상된 필름 • 1 \/ 4/)).toBeInTheDocument();
       vi.useRealTimers();
     });
 
@@ -470,11 +470,11 @@ describe('GeneratingStage', () => {
       vi.useFakeTimers();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      // Advance to complete phase: training + all 12 photos
+      // Advance to complete phase: training + all 4 photos
       await act(async () => {
         vi.advanceTimersByTime(8000);
       });
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 4; i++) {
         await act(async () => {
           vi.advanceTimersByTime(1100);
         });
@@ -500,11 +500,11 @@ describe('GeneratingStage', () => {
       vi.useFakeTimers();
       render(<GeneratingStage themeImage={mockThemeImage} onFinish={mockOnFinish} />);
 
-      // Go through entire generation process: training + all 12 photos
+      // Go through entire generation process: training + all 4 photos
       await act(async () => {
         vi.advanceTimersByTime(8000);
       });
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 4; i++) {
         await act(async () => {
           vi.advanceTimersByTime(1100);
         });

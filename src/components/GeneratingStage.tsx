@@ -28,7 +28,7 @@ export default function GeneratingStage({
   controlledPhase,
   controlledProgress,
   completedPhotos,
-  totalPhotos = 12,
+  totalPhotos = 4,
 }: GeneratingStageProps) {
   const isControlled = controlledPhase !== undefined;
 
