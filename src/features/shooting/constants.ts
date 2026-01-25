@@ -129,7 +129,7 @@ export const TIMING = {
 export const PROGRESS_CONFIG = {
   learningDuration: 10 * 60 * 1000, // 10분 = learning 단계 완료
   learningMaxProgress: 50, // learning 단계 최대 진행률
-  totalImages: 12, // 총 생성 이미지 수
+  totalImages: 4, // 총 생성 이미지 수
 } as const;
 
 // Timeout configuration (in ms)

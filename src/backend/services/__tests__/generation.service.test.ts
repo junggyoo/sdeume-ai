@@ -490,33 +490,26 @@ describe('Generation Service', () => {
       const { generateImages } = await import('../modal-client');
       const { uploadGeneratedImage } = await import('../storage.service');
 
+      // Now calls Modal API 4 times in parallel
       (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         data: {
-          images: [
-            { base64: 'data:image/png;base64,abc123' },
-            { base64: 'data:image/png;base64,def456' },
-          ],
+          images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
         },
       });
 
-      (uploadGeneratedImage as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce({
+      let uploadCount = 0;
+      (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+        uploadCount++;
+        return {
           ok: true,
           data: {
-            originalUrl: 'https://storage.example.com/0_original.webp',
-            thumbnailUrl: 'https://storage.example.com/0_thumbnail.webp',
-            blurHash: 'blur1',
+            originalUrl: `https://storage.example.com/${uploadCount - 1}_original.webp`,
+            thumbnailUrl: `https://storage.example.com/${uploadCount - 1}_thumbnail.webp`,
+            blurHash: `blur${uploadCount}`,
           },
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          data: {
-            originalUrl: 'https://storage.example.com/1_original.webp',
-            thumbnailUrl: 'https://storage.example.com/1_thumbnail.webp',
-            blurHash: 'blur2',
-          },
-        });
+        };
+      });
 
       // First call: fetch existing images (empty for first generation)
       // Second call: theme fetch (null)
@@ -530,14 +523,11 @@ describe('Generation Service', () => {
           data: null,
           error: null,
         })
-        .mockResolvedValueOnce({
+        .mockResolvedValue({
           data: {
             id: 'gen123',
             status: 'completed',
-            images: [
-              { url: 'https://storage.example.com/0_original.webp', is_blur: false },
-              { url: 'https://storage.example.com/1_original.webp', is_blur: false },
-            ],
+            images: [],
           },
           error: null,
         });
@@ -555,11 +545,11 @@ describe('Generation Service', () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.data.status).toBe('completed');
-        expect(result.data.images.length).toBe(2);
+        expect(result.data.images.length).toBe(4); // Now generates 4 images
       }
 
-      expect(generateImages).toHaveBeenCalled();
-      expect(uploadGeneratedImage).toHaveBeenCalledTimes(2);
+      expect(generateImages).toHaveBeenCalledTimes(4); // 4 parallel calls
+      expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
     });
 
     it('should return failure when Modal API fails', async () => {
@@ -724,37 +714,34 @@ describe('Generation Service', () => {
           error: null,
         })
         // Mock final update
-        .mockResolvedValueOnce({
+        .mockResolvedValue({
           data: {
             id: 'gen123',
             status: 'completed',
-            images: [
-              ...existingImages,
-              {
-                url: 'https://storage.example.com/2_original.webp',
-                is_blur: false,
-                thumbnail_url: 'https://storage.example.com/2_thumbnail.webp',
-                blur_hash: 'newblur1',
-              },
-            ],
+            images: [],
           },
           error: null,
         });
 
+      // Now calls Modal API 4 times in parallel, each returning 1 image
       (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         data: {
-          images: [{ base64: 'data:image/png;base64,newimage' }],
+          images: [{ base64: 'newimage', content_type: 'image/png', width: 896, height: 1152 }],
         },
       });
 
-      (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        data: {
-          originalUrl: 'https://storage.example.com/2_original.webp',
-          thumbnailUrl: 'https://storage.example.com/2_thumbnail.webp',
-          blurHash: 'newblur1',
-        },
+      let uploadCount = 0;
+      (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+        uploadCount++;
+        return {
+          ok: true,
+          data: {
+            originalUrl: `https://storage.example.com/${uploadCount + 1}_original.webp`,
+            thumbnailUrl: `https://storage.example.com/${uploadCount + 1}_thumbnail.webp`,
+            blurHash: `newblur${uploadCount}`,
+          },
+        };
       });
 
       const result = await triggerModalGeneration(
@@ -769,16 +756,16 @@ describe('Generation Service', () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        // Should have 3 images: 2 existing + 1 new
-        expect(result.data.images.length).toBe(3);
+        // Should have 6 images: 2 existing + 4 new (now generates 4 images)
+        expect(result.data.images.length).toBe(6);
         // First two should be existing images
         expect(result.data.images[0].url).toBe('https://storage.example.com/old_0_original.webp');
         expect(result.data.images[1].url).toBe('https://storage.example.com/old_1_original.webp');
-        // Third should be new image
-        expect(result.data.images[2].url).toBe('https://storage.example.com/2_original.webp');
       }
 
-      // Verify uploadGeneratedImage was called with correct index (startIndex = 2)
+      // Verify uploadGeneratedImage was called 4 times (4 new images)
+      expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
+      // Verify first new image starts from index 2 (after existing 2 images)
       expect(uploadGeneratedImage).toHaveBeenCalledWith(
         expect.anything(),
         'project123',
@@ -786,6 +773,303 @@ describe('Generation Service', () => {
         2, // Should start from index 2 (after existing 2 images)
         expect.any(String)
       );
+    });
+
+    describe('parallel image generation (4 images)', () => {
+      it('should call Modal API 4 times in parallel', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        // Mock all 4 generateImages calls to succeed
+        (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: true,
+          data: {
+            images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
+          },
+        });
+
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: true,
+          data: {
+            originalUrl: 'https://storage.example.com/original.webp',
+            thumbnailUrl: 'https://storage.example.com/thumbnail.webp',
+            blurHash: 'blur1',
+          },
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        // Verify generateImages was called 4 times
+        expect(generateImages).toHaveBeenCalledTimes(4);
+      });
+
+      it('should call each Modal API with different seeds', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        const capturedSeeds: number[] = [];
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async (_config, request) => {
+          capturedSeeds.push(request.seed);
+          return {
+            ok: true,
+            data: {
+              images: [{ base64: 'abc123', content_type: 'image/png', width: 896, height: 1152 }],
+            },
+          };
+        });
+
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: true,
+          data: {
+            originalUrl: 'https://storage.example.com/original.webp',
+            thumbnailUrl: 'https://storage.example.com/thumbnail.webp',
+            blurHash: 'blur1',
+          },
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        // Verify all 4 seeds are unique
+        expect(capturedSeeds.length).toBe(4);
+        const uniqueSeeds = new Set(capturedSeeds);
+        expect(uniqueSeeds.size).toBe(4);
+
+        // Verify seeds are spaced apart (by 1000)
+        const sortedSeeds = [...capturedSeeds].sort((a, b) => a - b);
+        for (let i = 1; i < sortedSeeds.length; i++) {
+          expect(sortedSeeds[i] - sortedSeeds[i - 1]).toBe(1000);
+        }
+      });
+
+      it('should save 4 images when all 4 API calls succeed', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        let callCount = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          callCount++;
+          return {
+            ok: true,
+            data: {
+              images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
+            },
+          };
+        });
+
+        let uploadCount = 0;
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          uploadCount++;
+          return {
+            ok: true,
+            data: {
+              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
+              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
+              blurHash: `blur${uploadCount}`,
+            },
+          };
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        const result = await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.data.images.length).toBe(4);
+          expect(result.data.status).toBe('completed');
+        }
+
+        expect(uploadGeneratedImage).toHaveBeenCalledTimes(4);
+      });
+
+      it('should save 3 images when 3/4 API calls succeed (partial success)', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        let callCount = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          callCount++;
+          // Fail on the 2nd call
+          if (callCount === 2) {
+            return {
+              ok: false,
+              error: { status: 500, code: 'MODAL_ERROR', message: 'API error' },
+            };
+          }
+          return {
+            ok: true,
+            data: {
+              images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
+            },
+          };
+        });
+
+        let uploadCount = 0;
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          uploadCount++;
+          return {
+            ok: true,
+            data: {
+              originalUrl: `https://storage.example.com/${uploadCount}_original.webp`,
+              thumbnailUrl: `https://storage.example.com/${uploadCount}_thumbnail.webp`,
+              blurHash: `blur${uploadCount}`,
+            },
+          };
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        const result = await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.data.images.length).toBe(3);
+          expect(result.data.status).toBe('completed');
+        }
+
+        expect(uploadGeneratedImage).toHaveBeenCalledTimes(3);
+      });
+
+      it('should save 1 image when 1/4 API calls succeed (partial success)', async () => {
+        const { generateImages } = await import('../modal-client');
+        const { uploadGeneratedImage } = await import('../storage.service');
+
+        let callCount = 0;
+        (generateImages as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+          callCount++;
+          // Only the first call succeeds
+          if (callCount === 1) {
+            return {
+              ok: true,
+              data: {
+                images: [{ base64: `image${callCount}`, content_type: 'image/png', width: 896, height: 1152 }],
+              },
+            };
+          }
+          return {
+            ok: false,
+            error: { status: 500, code: 'MODAL_ERROR', message: 'API error' },
+          };
+        });
+
+        (uploadGeneratedImage as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: true,
+          data: {
+            originalUrl: 'https://storage.example.com/0_original.webp',
+            thumbnailUrl: 'https://storage.example.com/0_thumbnail.webp',
+            blurHash: 'blur1',
+          },
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null })
+          .mockResolvedValue({ data: { id: 'gen123', status: 'completed', images: [] }, error: null });
+
+        const result = await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.data.images.length).toBe(1);
+          expect(result.data.status).toBe('completed');
+        }
+
+        expect(uploadGeneratedImage).toHaveBeenCalledTimes(1);
+      });
+
+      it('should return failure with status failed when all 4 API calls fail', async () => {
+        const { generateImages } = await import('../modal-client');
+
+        // All calls fail
+        (generateImages as ReturnType<typeof vi.fn>).mockResolvedValue({
+          ok: false,
+          error: { status: 500, code: 'MODAL_ERROR', message: 'All Modal APIs failed' },
+        });
+
+        mockSingle
+          .mockResolvedValueOnce({ data: { id: 'gen123', images: [] }, error: null })
+          .mockResolvedValueOnce({ data: null, error: null });
+
+        const result = await triggerModalGeneration(
+          mockSupabase,
+          'gen123',
+          'project123',
+          'https://fal.ai/lora/groom.safetensors',
+          'https://fal.ai/lora/bride.safetensors',
+          'theme123',
+          { endpoint: 'http://modal.test' }
+        );
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.error.code).toBe('MODAL_ERROR');
+          expect(result.error.message).toBe('All image generations failed');
+        }
+
+        // Verify status was updated to 'failed' in database
+        expect(mockUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'failed',
+            error_message: 'All image generations failed',
+          })
+        );
+      });
     });
   });
 });

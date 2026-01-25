@@ -333,38 +333,54 @@ export const triggerModalGeneration = async (
     }
   }
 
-  // 4. Call Modal API
+  // 4. Call Modal API 4 times in parallel (batch_size=1 constraint)
+  const IMAGE_COUNT = 4;
+  const baseSeed = Date.now();
+
   const modalClientConfig: ModalClientConfig = {
     endpointUrl: modalConfig.endpoint,
     timeoutMs: 300000, // 5 minutes timeout for image generation
   };
 
-  const modalResult = await generateImages(modalClientConfig, {
-    groomLoraUrl,
-    brideLoraUrl,
-    theme: themeSlug,  // Pass theme slug to Modal API
+  // Generate 4 images in parallel with different seeds
+  const generatePromises = Array.from({ length: IMAGE_COUNT }, (_, index) =>
+    generateImages(modalClientConfig, {
+      groomLoraUrl,
+      brideLoraUrl,
+      theme: themeSlug,
+      seed: baseSeed + index * 1000,
+    })
+  );
+
+  const results = await Promise.allSettled(generatePromises);
+
+  // Collect successful images
+  const successfulImages: { base64: string }[] = [];
+  results.forEach((result) => {
+    if (result.status === 'fulfilled' && result.value.ok) {
+      successfulImages.push(...result.value.data.images);
+    }
   });
 
-  if (!modalResult.ok) {
-    const modalError = modalResult as ErrorResult<string, unknown>;
-    // Update status to failed
+  // All failed - update status to failed
+  if (successfulImages.length === 0) {
     await supabase
       .from('generations')
       .update({
         status: 'failed',
-        error_message: modalError.error.message,
+        error_message: 'All image generations failed',
       })
       .eq('id', generationId);
 
-    return failure(500, generationServiceErrorCodes.modalError, modalError.error.message);
+    return failure(500, generationServiceErrorCodes.modalError, 'All image generations failed');
   }
 
   // 5. Process and upload images (preserve existing images)
   const generatedImages: GenerationImage[] = [...existingImages];
   const startIndex = existingImages.length; // Start from existing image count to avoid overwriting
 
-  for (let i = 0; i < modalResult.data.images.length; i++) {
-    const image = modalResult.data.images[i];
+  for (let i = 0; i < successfulImages.length; i++) {
+    const image = successfulImages[i];
 
     const uploadResult = await uploadGeneratedImage(
       supabase,
