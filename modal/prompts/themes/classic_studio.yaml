@@ -65,5 +65,36 @@ generation:
   width: 896
   height: 1152
 
+# Workflow node overrides for Admin Prompt Lab
+workflow:
+  preset: flux_couple_v1
+  overrides:
+    KSampler:
+      sampler_name: euler
+      scheduler: simple
+      steps: 25
+      cfg: 1
+    GroomFaceDetailer:
+      denoise: 0.6
+      steps: 15
+      cfg: 1
+      guide_size: 1024
+    BrideFaceDetailer:
+      denoise: 0.6
+      steps: 8
+      cfg: 1
+      guide_size: 1024
+    HandDetailer:
+      denoise: 0.35
+      steps: 10
+      cfg: 8
+      guide_size: 512
+    Detector:
+      face_threshold: 0.25
+      face_dilation: 10
+      face_crop_factor: 5
+      hand_threshold: 0.4
+      hand_crop_factor: 3
+
 options:
   include_main_triggers: false

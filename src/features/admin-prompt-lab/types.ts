@@ -266,6 +266,32 @@ export interface ThemePromptSection {
   quality: string;
 }
 
+export interface WorkflowNodeOverride {
+  sampler_name?: string;
+  scheduler?: string;
+  steps?: number;
+  cfg?: number;
+  denoise?: number;
+  guide_size?: number;
+}
+
+export interface DetectorOverride {
+  face_threshold?: number;
+  face_dilation?: number;
+  face_crop_factor?: number;
+  hand_threshold?: number;
+  hand_crop_factor?: number;
+}
+
+export interface WorkflowOverrides {
+  preset?: string;
+  KSampler?: WorkflowNodeOverride;
+  GroomFaceDetailer?: WorkflowNodeOverride;
+  BrideFaceDetailer?: WorkflowNodeOverride;
+  HandDetailer?: WorkflowNodeOverride;
+  Detector?: DetectorOverride;
+}
+
 export interface ThemeConfig {
   slug: ThemeSlug;
   nameKo: string;
@@ -285,6 +311,7 @@ export interface ThemeConfig {
     width: number;
     height: number;
   };
+  workflowOverrides?: WorkflowOverrides;
 }
 
 // =============================================================================

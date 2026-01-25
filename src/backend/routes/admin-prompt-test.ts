@@ -160,7 +160,7 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
       }
 
       // Get theme config
-      const themeConfig = getThemeConfig(body.themeSlug as ThemeSlug);
+      const themeConfig = await getThemeConfig(body.themeSlug as ThemeSlug);
       if (!themeConfig) {
         return c.json(
           { ok: false, error: { code: 'INVALID_INPUT', message: 'Invalid theme slug' } },
@@ -407,7 +407,7 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
       return c.json({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, 401);
     }
 
-    const themes = getAllThemeConfigs();
+    const themes = await getAllThemeConfigs();
     return c.json({ ok: true, data: themes }, 200);
   })
 
@@ -422,7 +422,7 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
     }
 
     const slug = c.req.param('slug') as ThemeSlug;
-    const theme = getThemeConfig(slug);
+    const theme = await getThemeConfig(slug);
 
     if (!theme) {
       return c.json(

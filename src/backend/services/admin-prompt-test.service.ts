@@ -23,6 +23,10 @@ import {
   SCHEDULER_OPTIONS,
 } from '@/features/admin-prompt-lab/types';
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
+import {
+  getThemeConfig as getThemeConfigFromYaml,
+  getAllThemeConfigs as getAllThemeConfigsFromYaml,
+} from './theme-loader.service';
 
 // =============================================================================
 // Error Codes
@@ -53,105 +57,13 @@ const PROHIBITED_WORDS = [
 ];
 
 // =============================================================================
-// Theme Config Loading (Hardcoded for MVP, later from YAML)
+// Theme Config Loading (from YAML files via theme-loader.service)
 // =============================================================================
 
-const THEME_CONFIGS: Record<ThemeSlug, ThemeConfig> = {
-  white_studio: {
-    slug: 'white_studio',
-    nameKo: '화이트 스튜디오',
-    nameEn: 'White Studio',
-    description: 'Minimal and clean studio photography with elegant white background',
-    mainPositive: {
-      camera: 'A front-facing full body portrait of a Korean couple standing together, looking directly at the camera',
-      composition: 'Wide angle shot capturing both figures from head to toe with balanced framing',
-      background: 'A luxurious minimal studio with clean white walls, subtle classic molding details, and soft diffused shadows on a pure white horizon',
-      atmosphere: 'Elegant, sophisticated, and modern editorial aesthetic',
-      lighting: 'Professional softbox studio lighting creating high-key illumination with soft, even light wrapping around the subjects and gentle shadows',
-      groomStyle: 'Wearing a perfectly tailored black tuxedo with a black bow tie and crisp white dress shirt. A neat, modern Korean hairstyle. Standing tall with confident posture and a gentle smile',
-      brideStyle: 'Wearing an elegant wedding dress with a graceful silhouette. A sophisticated bridal hairstyle. Adorned with a flowing veil and delicate jewelry. Standing gracefully with a soft, natural smile',
-      quality: '8k resolution, highly detailed fabric textures, sharp focus, professional photography with Canon R5 and 85mm lens',
-    },
-    mainNegative: 'illustration, painting, anime, cartoon, 3d render, text, watermark, low quality, worst quality, blurry, dark, gloomy, casual clothes',
-    groomFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, a gentle smile with natural expression, soft lighting on the face',
-    groomFaceNegative: 'woman, girl, female, low quality',
-    brideFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, natural bridal makeup with dewy skin and subtle lip tint, soft lighting on the face',
-    brideFaceNegative: 'man, boy, male, low quality',
-    handPositive: 'Detailed, natural-looking hands with proper anatomy',
-    handNegative: '',
-    defaultSettings: {
-      cfg: 1,
-      steps: 25,
-      width: 896,
-      height: 1152,
-    },
-  },
-  garden_studio: {
-    slug: 'garden_studio',
-    nameKo: '가든 스튜디오',
-    nameEn: 'Garden Studio',
-    description: 'Romantic garden setting with natural greenery and soft lighting',
-    mainPositive: {
-      camera: 'A front-facing full body portrait of a Korean couple standing together in a beautiful garden, looking directly at the camera',
-      composition: 'Wide angle shot capturing both figures with lush garden background',
-      background: 'A romantic garden setting with blooming flowers, elegant topiaries, and soft natural greenery',
-      atmosphere: 'Romantic, dreamy, and naturally elegant',
-      lighting: 'Soft golden hour lighting with natural sunlight filtering through leaves',
-      groomStyle: 'Wearing a perfectly tailored black tuxedo with a black bow tie and crisp white dress shirt. A neat, modern Korean hairstyle. Standing tall with confident posture and a gentle smile',
-      brideStyle: 'Wearing an elegant wedding dress with a graceful silhouette. A sophisticated bridal hairstyle. Adorned with a flowing veil and delicate jewelry. Standing gracefully with a soft, natural smile',
-      quality: '8k resolution, highly detailed fabric textures, sharp focus, professional photography with Canon R5 and 85mm lens',
-    },
-    mainNegative: 'illustration, painting, anime, cartoon, 3d render, text, watermark, low quality, worst quality, blurry, dark, gloomy, casual clothes',
-    groomFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, a gentle smile with natural expression, soft lighting on the face',
-    groomFaceNegative: 'woman, girl, female, low quality',
-    brideFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, natural bridal makeup with dewy skin and subtle lip tint, soft lighting on the face',
-    brideFaceNegative: 'man, boy, male, low quality',
-    handPositive: 'Detailed, natural-looking hands with proper anatomy',
-    handNegative: '',
-    defaultSettings: {
-      cfg: 1,
-      steps: 25,
-      width: 896,
-      height: 1152,
-    },
-  },
-  classic_studio: {
-    slug: 'classic_studio',
-    nameKo: '클래식 스튜디오',
-    nameEn: 'Classic Studio',
-    description: 'Timeless classic studio with warm, elegant ambiance',
-    mainPositive: {
-      camera: 'A front-facing full body portrait of a Korean couple standing together in a classic studio, looking directly at the camera',
-      composition: 'Wide angle shot capturing both figures with elegant classic backdrop',
-      background: 'A timeless classic studio with warm wooden panels, vintage chandeliers, and rich velvet drapes',
-      atmosphere: 'Timeless, warm, and classically elegant',
-      lighting: 'Warm studio lighting with soft shadows creating depth and dimension',
-      groomStyle: 'Wearing a perfectly tailored black tuxedo with a black bow tie and crisp white dress shirt. A neat, modern Korean hairstyle. Standing tall with confident posture and a gentle smile',
-      brideStyle: 'Wearing an elegant wedding dress with a graceful silhouette. A sophisticated bridal hairstyle. Adorned with a flowing veil and delicate jewelry. Standing gracefully with a soft, natural smile',
-      quality: '8k resolution, highly detailed fabric textures, sharp focus, professional photography with Canon R5 and 85mm lens',
-    },
-    mainNegative: 'illustration, painting, anime, cartoon, 3d render, text, watermark, low quality, worst quality, blurry, dark, gloomy, casual clothes',
-    groomFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, a gentle smile with natural expression, soft lighting on the face',
-    groomFaceNegative: 'woman, girl, female, low quality',
-    brideFacePositive: 'A closeup portrait showing East Asian facial features, brown eyes, black hair, natural bridal makeup with dewy skin and subtle lip tint, soft lighting on the face',
-    brideFaceNegative: 'man, boy, male, low quality',
-    handPositive: 'Detailed, natural-looking hands with proper anatomy',
-    handNegative: '',
-    defaultSettings: {
-      cfg: 1,
-      steps: 25,
-      width: 896,
-      height: 1152,
-    },
-  },
-};
-
-export const getThemeConfig = (themeSlug: ThemeSlug): ThemeConfig | undefined => {
-  return THEME_CONFIGS[themeSlug];
-};
-
-export const getAllThemeConfigs = (): ThemeConfig[] => {
-  return Object.values(THEME_CONFIGS);
+// Re-export theme loading functions from theme-loader.service
+export {
+  getThemeConfigFromYaml as getThemeConfig,
+  getAllThemeConfigsFromYaml as getAllThemeConfigs,
 };
 
 // =============================================================================
