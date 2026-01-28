@@ -9,6 +9,7 @@ import { generationRoutes } from '@/backend/routes/generation';
 import { shootRoutes } from '@/backend/routes/shoot';
 import { uploadRoutes } from '@/backend/routes/upload';
 import { userFaceModelRoutes } from '@/backend/routes/user-face-model';
+import { adminPromptTestRoutes } from '@/backend/routes/admin-prompt-test';
 import type { AppEnv } from '@/backend/hono/context';
 
 // =============================================================================
@@ -36,7 +37,8 @@ const createTypedRoutes = () => {
     .route('/generate', generationRoutes)
     .route('/shoot', shootRoutes)
     .route('/upload', uploadRoutes)
-    .route('/user-face-models', userFaceModelRoutes);
+    .route('/user-face-models', userFaceModelRoutes)
+    .route('/admin/prompt-test', adminPromptTestRoutes);
 };
 
 // Type export for Hono RPC client

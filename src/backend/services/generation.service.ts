@@ -333,41 +333,59 @@ export const triggerModalGeneration = async (
     }
   }
 
-  // 4. Call Modal API 4 times in parallel (batch_size=1 constraint)
-  const IMAGE_COUNT = 4;
+  // 4. Hybrid Batch Strategy: 12 images = 3 batches x 4 images per batch
+  // This reduces cold starts: 3 containers instead of 12
+  const TOTAL_IMAGES = 12;
+  const IMAGES_PER_BATCH = 4;
   const baseSeed = Date.now();
+
+  // Calculate batch distribution
+  const batches: number[] = [];
+  let remaining = TOTAL_IMAGES;
+  while (remaining > 0) {
+    batches.push(Math.min(remaining, IMAGES_PER_BATCH));
+    remaining -= IMAGES_PER_BATCH;
+  }
 
   const modalClientConfig: ModalClientConfig = {
     endpointUrl: modalConfig.endpoint,
-    timeoutMs: 300000, // 5 minutes timeout for image generation
+    timeoutMs: 300000, // 5 minutes timeout for batch generation
   };
 
-  console.log(`[triggerModalGeneration] Starting ${IMAGE_COUNT} parallel Modal API calls with baseSeed: ${baseSeed}`);
+  console.log(`[triggerModalGeneration] Starting hybrid batch generation: ${batches.length} batches (${batches.join(', ')} images each) with baseSeed: ${baseSeed}`);
 
-  // Generate 4 images in parallel with different seeds
-  const generatePromises = Array.from({ length: IMAGE_COUNT }, (_, index) => {
-    const seed = baseSeed + index * 1000;
-    console.log(`[triggerModalGeneration] Launching call ${index + 1}/${IMAGE_COUNT} with seed: ${seed}`);
+  // Generate batches in parallel (each batch generates multiple images sequentially inside Modal)
+  const batchPromises = batches.map((batchCount, index) => {
+    // Seed spacing: each batch gets a different base seed
+    // Batch 0: baseSeed, Batch 1: baseSeed + 4000, Batch 2: baseSeed + 8000
+    const batchSeed = baseSeed + (index * IMAGES_PER_BATCH * 1000);
+    console.log(`[triggerModalGeneration] Launching batch ${index + 1}/${batches.length} with count: ${batchCount}, seed: ${batchSeed}`);
     return generateImages(modalClientConfig, {
       groomLoraUrl,
       brideLoraUrl,
       theme: themeSlug,
-      seed,
+      seed: batchSeed,
+      count: batchCount,
     });
   });
 
-  const results = await Promise.allSettled(generatePromises);
-  console.log(`[triggerModalGeneration] All ${IMAGE_COUNT} calls completed. Results:`, results.map((r, i) => ({
-    index: i,
+  const results = await Promise.allSettled(batchPromises);
+  console.log(`[triggerModalGeneration] All ${batches.length} batches completed. Results:`, results.map((r, i) => ({
+    batch: i,
     status: r.status,
     ok: r.status === 'fulfilled' ? r.value.ok : false,
+    imageCount: r.status === 'fulfilled' && r.value.ok ? r.value.data.images.length : 0,
   })));
 
-  // Collect successful images
+  // Collect successful images (filter out failed images within batches)
   const successfulImages: { base64: string }[] = [];
   results.forEach((result) => {
     if (result.status === 'fulfilled' && result.value.ok) {
-      successfulImages.push(...result.value.data.images);
+      // Filter out images with status='failed' (error isolation within batch)
+      const batchImages = result.value.data.images.filter(
+        (img) => img.status !== 'failed'
+      );
+      successfulImages.push(...batchImages);
     }
   });
 

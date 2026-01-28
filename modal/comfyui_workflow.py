@@ -198,7 +198,7 @@ WORKFLOW_JSON = r'''
       "target": "area(=w*h)",
       "order": true,
       "take_start": 0,
-      "take_count": 1,
+      "take_count": 2,
       "segs": ["30", 0]
     },
     "class_type": "ImpactSEGSOrderedFilter",
@@ -734,11 +734,11 @@ def convert_diffusers_to_comfyui_flux_lora(input_path: str, output_path: str) ->
     image=image,
     gpu="A100-80GB",
     timeout=600,
-    scaledown_window=120,
+    scaledown_window=300,  # 5분으로 증가 (콜드 스타트 감소)
     volumes={"/models": models_volume},
     enable_memory_snapshot=True,
 )
-@modal.concurrent(max_inputs=4)
+@modal.concurrent(max_inputs=12)  # 12로 증가 (36장 확장 대비)
 class ComfyUIServer:
     """ComfyUI 서버 클래스 (프로파일링 포함)"""
 
@@ -851,7 +851,11 @@ class ComfyUIServer:
         steps = request.get("steps", 25)
         seed = request.get("seed")  # None이면 랜덤
 
-        print(f"🎨 Generation request - theme: {theme_slug}, shot: {shot_type}, size: {width}x{height}")
+        # 배치 생성 파라미터 (하이브리드 배칭 지원)
+        count = request.get("count", 1)  # 배치당 이미지 수 (기본값: 1, 하위 호환성)
+        base_seed = seed or int(time.time())
+
+        print(f"🎨 Generation request - theme: {theme_slug}, shot: {shot_type}, size: {width}x{height}, count: {count}")
 
         self.profiler.record("Before LoRA Download")
 
@@ -942,9 +946,16 @@ class ComfyUIServer:
         # 워크플로우 로드
         workflow = json.loads(WORKFLOW_JSON)
 
-        # 동적 LoRA 파일 이름 설정 (요청별 고유 파일 사용)
+        # 동적 LoRA 파일 이름 및 strength 설정 (요청별 고유 파일 사용)
+        groom_lora_strength = request.get("groomLoraStrength", 1.0)
+        bride_lora_strength = request.get("brideLoraStrength", 1.0)
+
         workflow["14"]["inputs"]["lora_name"] = groom_lora_name  # Groom LoRA
+        workflow["14"]["inputs"]["strength_model"] = groom_lora_strength
+        workflow["14"]["inputs"]["strength_clip"] = groom_lora_strength
         workflow["15"]["inputs"]["lora_name"] = bride_lora_name  # Bride LoRA
+        workflow["15"]["inputs"]["strength_model"] = bride_lora_strength
+        workflow["15"]["inputs"]["strength_clip"] = bride_lora_strength
 
         # 프롬프트 시스템으로 8개 노드 완전 교체
         workflow = apply_theme_prompts(
@@ -1002,68 +1013,96 @@ class ComfyUIServer:
 
         self.profiler.record("Before Workflow Queue")
 
-        # ComfyUI에 워크플로우 전송
-        try:
-            response = requests.post(
-                "http://127.0.0.1:8188/prompt",
-                json={"prompt": workflow},
-                timeout=30,
-            )
-            response.raise_for_status()
-            prompt_id = response.json()["prompt_id"]
-            print(f"Workflow queued: {prompt_id}")
-        except Exception as e:
-            return {"error": f"Failed to queue workflow: {str(e)}"}
+        # =================================================================
+        # 배치 생성: count만큼 이미지 생성 (에러 격리)
+        # =================================================================
+        all_images = []
 
-        self.profiler.record("After Workflow Queue")
+        for img_idx in range(count):
+            current_seed = base_seed + (img_idx * 1000)
+            print(f"\n📸 Generating image {img_idx + 1}/{count} with seed: {current_seed}")
 
-        # 결과 대기
-        output_images = []
-        max_wait = 300
-
-        workflow_started = False
-
-        for i in range(max_wait):
             try:
-                history_response = requests.get(
-                    f"http://127.0.0.1:8188/history/{prompt_id}",
-                    timeout=10,
+                # 각 이미지별로 seed 업데이트
+                current_workflow = json.loads(json.dumps(workflow))  # Deep copy
+                current_workflow["3"]["inputs"]["seed"] = current_seed
+                current_workflow["32"]["inputs"]["seed"] = current_seed
+                current_workflow["33"]["inputs"]["seed"] = current_seed + 100
+                current_workflow["37"]["inputs"]["seed"] = current_seed + 200
+
+                # ComfyUI에 워크플로우 전송
+                response = requests.post(
+                    "http://127.0.0.1:8188/prompt",
+                    json={"prompt": current_workflow},
+                    timeout=30,
                 )
-                history = history_response.json()
+                response.raise_for_status()
+                prompt_id = response.json()["prompt_id"]
+                print(f"  Workflow queued: {prompt_id}")
 
-                if prompt_id in history:
-                    # 첫 실행 시 메모리 기록
-                    if not workflow_started:
-                        self.profiler.record("Workflow Executing")
-                        workflow_started = True
+                # 결과 대기
+                max_wait = 300
+                image_found = False
 
-                    outputs = history[prompt_id].get("outputs", {})
+                for wait_i in range(max_wait):
+                    try:
+                        history_response = requests.get(
+                            f"http://127.0.0.1:8188/history/{prompt_id}",
+                            timeout=10,
+                        )
+                        history = history_response.json()
 
-                    for node_id, node_output in outputs.items():
-                        if "images" in node_output:
-                            for img in node_output["images"]:
-                                img_path = f"{comfyui_dir}/output/{img['filename']}"
+                        if prompt_id in history:
+                            outputs = history[prompt_id].get("outputs", {})
 
-                                if os.path.exists(img_path):
-                                    with open(img_path, "rb") as f:
-                                        img_data = f.read()
-                                        img_base64 = base64.b64encode(img_data).decode("utf-8")
-                                        output_images.append({
-                                            "base64": img_base64,
-                                            "content_type": "image/png",
-                                            "width": width,
-                                            "height": height,
-                                        })
+                            for node_id, node_output in outputs.items():
+                                if "images" in node_output:
+                                    for img in node_output["images"]:
+                                        img_path = f"{comfyui_dir}/output/{img['filename']}"
 
-                    if output_images:
-                        self.profiler.record("After Generation Complete")
-                        print(f"Generation complete! {len(output_images)} images")
-                        break
+                                        if os.path.exists(img_path):
+                                            with open(img_path, "rb") as f:
+                                                img_data = f.read()
+                                                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                                all_images.append({
+                                                    "base64": img_base64,
+                                                    "content_type": "image/png",
+                                                    "width": width,
+                                                    "height": height,
+                                                    "status": "success",
+                                                })
+                                                image_found = True
+                                                print(f"  ✅ Image {img_idx + 1} generated successfully")
+
+                            if image_found:
+                                break
+
+                    except Exception as e:
+                        if wait_i % 30 == 0:  # 30초마다 로그
+                            print(f"  Waiting... ({wait_i}s) - {e}")
+
+                    time.sleep(1)
+
+                if not image_found:
+                    print(f"  ⚠️ Image {img_idx + 1} timed out")
+                    all_images.append({
+                        "error": "Generation timed out",
+                        "status": "failed",
+                    })
 
             except Exception as e:
-                print(f"Waiting for result... ({i+1}s) - {e}")
+                # 에러 격리: 한 이미지 실패해도 다음 이미지 계속 생성
+                print(f"  ❌ Image {img_idx + 1} failed: {e}")
+                all_images.append({
+                    "error": str(e),
+                    "status": "failed",
+                })
 
-            time.sleep(1)
+        self.profiler.record("After Batch Generation Complete")
+
+        # 성공한 이미지 수 계산
+        success_count = sum(1 for img in all_images if img.get("status") == "success")
+        print(f"\n📊 Batch generation complete: {success_count}/{count} images succeeded")
 
         # 임시 LoRA 파일 정리 (볼륨 공간 절약)
         for lora_file in [groom_lora_name, bride_lora_name]:
@@ -1075,10 +1114,11 @@ class ComfyUIServer:
             except Exception as e:
                 print(f"⚠️ Failed to clean up {lora_file}: {e}")
 
-        if not output_images:
-            return {"error": "Image generation timed out or failed"}
+        # 모든 이미지 실패 시 에러 반환
+        if success_count == 0:
+            return {"error": "All image generations failed", "images": all_images}
 
-        return {"images": output_images}
+        return {"images": all_images, "count": len(all_images)}
 
 
 @app.function(

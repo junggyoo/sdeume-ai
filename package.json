@@ -27,6 +27,7 @@
     "qstash:dev": "npx @upstash/qstash-cli@latest dev"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
     "@hookform/resolvers": "^4",
     "@mediapipe/tasks-vision": "^0.10.32",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -69,6 +70,7 @@
     "ts-pattern": "^5",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
+    "yaml": "^2.8.2",
     "zod": "^3",
     "zustand": "^4"
   },

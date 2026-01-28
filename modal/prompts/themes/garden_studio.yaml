@@ -17,15 +17,15 @@ main:
     composition: Medium close-up focusing on the upper body and faces with soft bokeh background
 
   scene:
-    background: A romantic garden setting with lush green foliage, blooming pink and white flowers, natural stone pathways, and climbing ivy on a vintage trellis
-    atmosphere: Romantic, warm, dreamy, and naturally enchanting
+    background: A romantic garden setting with lush green foliage, blooming pink and white flowers, natural stone pathways, and climbing ivy on a wooden trellis
+    atmosphere: Romantic, fresh, airy, dreamlike modern aesthetic
 
   lighting:
-    description: Golden hour sunlight filtering through leaves, creating warm backlighting with beautiful lens flares and dappled shadows
+    description: soft natural daylight with controlled fill light, minimal lens flare, gentle warm tone, face evenly lit
 
   groom_style:
     attire: Wearing an elegant light gray three-piece suit with a subtle pattern, paired with a pastel tie
-    hair: A natural, soft Korean hairstyle
+    hair: A neat, modern Korean hairstyle with texture
     pose: Standing relaxed with one hand in pocket, gentle smile facing the camera
 
   bride_style:
@@ -40,20 +40,20 @@ main:
   negative:
     style: illustration, painting, anime, cartoon, 3d render
     quality: text, watermark, low quality, worst quality, blurry
-    mood: dark, gloomy, harsh lighting
+    mood: dark, gloomy, harsh lighting, excessive lens flare, strong backlight, heavy shadow on face, orange skin tone
 
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural warm skin tones, a gentle romantic smile, soft golden lighting on the face
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural skin texture, a gentle romantic smile, soft natural lighting on the face, neutral color tone
   negative:
-    core: woman, girl, female, low quality
+    core: woman, girl, female, low quality, worst quality, oil painting, old photos, yellow skin tone, unnatural skin, distorted face
 
 bride_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup with rosy cheeks and soft pink lips, dewy glowing skin, soft golden lighting
+    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup, dewy glowing skin, soft natural lighting on the face
   negative:
-    core: man, boy, male, low quality
+    core: man, boy, male, low quality, worst quality, heavy makeup, unnatural skin, distorted face
 
 hand:
   positive: Detailed, natural-looking hands with proper anatomy
@@ -64,6 +64,37 @@ generation:
   steps: 25
   width: 896
   height: 1152
+
+# Workflow node overrides for Admin Prompt Lab
+workflow:
+  preset: flux_couple_v1
+  overrides:
+    KSampler:
+      sampler_name: euler
+      scheduler: simple
+      steps: 25
+      cfg: 1
+    GroomFaceDetailer:
+      denoise: 0.6
+      steps: 15
+      cfg: 1
+      guide_size: 1024
+    BrideFaceDetailer:
+      denoise: 0.6
+      steps: 8
+      cfg: 1
+      guide_size: 1024
+    HandDetailer:
+      denoise: 0.35
+      steps: 10
+      cfg: 8
+      guide_size: 512
+    Detector:
+      face_threshold: 0.25
+      face_dilation: 10
+      face_crop_factor: 5
+      hand_threshold: 0.4
+      hand_crop_factor: 3
 
 options:
   include_main_triggers: false

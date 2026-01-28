@@ -212,6 +212,10 @@ export interface ModalGenerateRequest {
   cfg?: number;
   steps?: number;
   seed?: number;
+
+  // Batch generation (hybrid batching)
+  /** Number of images to generate in a single container (default: 1 for backward compatibility) */
+  count?: number;
 }
 
 export interface ModalGeneratedImage {
@@ -219,6 +223,10 @@ export interface ModalGeneratedImage {
   content_type: string;
   width: number;
   height: number;
+  /** Status of individual image generation (for batch error isolation) */
+  status?: 'success' | 'failed';
+  /** Error message if status is 'failed' */
+  error?: string;
 }
 
 export interface ModalGenerateResponse {

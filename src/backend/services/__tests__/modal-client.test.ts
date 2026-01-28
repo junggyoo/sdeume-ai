@@ -311,3 +311,140 @@ describe('ModalClientConfig', () => {
     expect(config.timeoutMs).toBeLessThanOrEqual(300000);
   });
 });
+
+// =============================================================================
+// Tests: Batch Generation (count parameter)
+// =============================================================================
+
+describe('generateImages with count parameter', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should include count parameter in request body when provided', async () => {
+    // Arrange
+    const request: ModalGenerateRequest = {
+      groomLoraUrl: 'https://storage.fal.ai/lora/groom.safetensors',
+      brideLoraUrl: 'https://storage.fal.ai/lora/bride.safetensors',
+      count: 4, // Batch size
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        images: [
+          { base64: 'img1', status: 'success' },
+          { base64: 'img2', status: 'success' },
+          { base64: 'img3', status: 'success' },
+          { base64: 'img4', status: 'success' },
+        ],
+        count: 4,
+      }),
+    });
+
+    // Act
+    await generateImages(defaultConfig, request);
+
+    // Assert
+    const fetchCall = mockFetch.mock.calls[0];
+    const body = JSON.parse(fetchCall[1].body);
+    expect(body.count).toBe(4);
+  });
+
+  it('should return multiple images when count > 1', async () => {
+    // Arrange
+    const request: ModalGenerateRequest = {
+      groomLoraUrl: 'https://storage.fal.ai/lora/groom.safetensors',
+      brideLoraUrl: 'https://storage.fal.ai/lora/bride.safetensors',
+      count: 4,
+    };
+
+    const mockResponse = {
+      images: [
+        { base64: 'img1', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+        { base64: 'img2', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+        { base64: 'img3', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+        { base64: 'img4', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+      ],
+      count: 4,
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    // Act
+    const result = await generateImages(defaultConfig, request);
+
+    // Assert
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.images.length).toBe(4);
+    }
+  });
+
+  it('should handle partial failures within a batch (some images failed)', async () => {
+    // Arrange
+    const request: ModalGenerateRequest = {
+      groomLoraUrl: 'https://storage.fal.ai/lora/groom.safetensors',
+      brideLoraUrl: 'https://storage.fal.ai/lora/bride.safetensors',
+      count: 4,
+    };
+
+    // 4장 요청 중 1장 실패
+    const mockResponse = {
+      images: [
+        { base64: 'img1', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+        { error: 'GPU OOM', status: 'failed' },
+        { base64: 'img3', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+        { base64: 'img4', status: 'success', content_type: 'image/png', width: 896, height: 1152 },
+      ],
+      count: 4,
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    });
+
+    // Act
+    const result = await generateImages(defaultConfig, request);
+
+    // Assert - 요청 자체는 성공 (부분 실패는 이미지 레벨에서 처리)
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // 전체 4개 반환 (필터링은 서비스 레벨에서 처리)
+      expect(result.data.images.length).toBe(4);
+    }
+  });
+
+  it('should not include count in request body when not provided (backward compatibility)', async () => {
+    // Arrange
+    const request: ModalGenerateRequest = {
+      groomLoraUrl: 'https://storage.fal.ai/lora/groom.safetensors',
+      brideLoraUrl: 'https://storage.fal.ai/lora/bride.safetensors',
+      // count not provided
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        images: [{ base64: 'img1', content_type: 'image/png', width: 896, height: 1152 }],
+      }),
+    });
+
+    // Act
+    await generateImages(defaultConfig, request);
+
+    // Assert
+    const fetchCall = mockFetch.mock.calls[0];
+    const body = JSON.parse(fetchCall[1].body);
+    // count should be undefined or not present (backward compatibility)
+    expect(body.count).toBeUndefined();
+  });
+});
