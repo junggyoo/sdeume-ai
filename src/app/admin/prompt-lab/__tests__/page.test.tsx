@@ -768,4 +768,64 @@ describe('PromptLabPage - New UI Layout', () => {
       expect(screen.getByTestId('image-counter')).toHaveTextContent('1 / 3');
     });
   });
+
+  describe('History Image Lightbox', () => {
+    it('should open history lightbox when clicking image in history detail sheet', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Click on a history test item to open the detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Click the history preview image to open lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Lightbox should be visible with the image
+      const lightboxImage = screen.getByTestId('history-lightbox-image');
+      expect(lightboxImage).toBeInTheDocument();
+      expect(lightboxImage).toHaveAttribute('src', expect.stringContaining('img1'));
+    });
+
+    it('should show download button in history lightbox', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Open history detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Open history lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Download button should be visible
+      const downloadBtn = screen.getByTestId('history-lightbox-download');
+      expect(downloadBtn).toBeInTheDocument();
+    });
+
+    it('should close history lightbox when clicking backdrop', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Open history detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Open history lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Lightbox should be visible
+      expect(screen.getByTestId('history-lightbox-image')).toBeInTheDocument();
+
+      // Click backdrop to close
+      const backdrop = screen.getByTestId('history-lightbox-backdrop');
+      await user.click(backdrop);
+
+      // Lightbox should be closed
+      expect(screen.queryByTestId('history-lightbox-image')).not.toBeInTheDocument();
+    });
+  });
 });

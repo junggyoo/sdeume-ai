@@ -339,6 +339,7 @@ export default function PromptLabPage() {
   const [selectedHistoryTest, setSelectedHistoryTest] = useState<AdminPromptTest | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isHistoryLightboxOpen, setIsHistoryLightboxOpen] = useState(false);
 
   // === Derived State ===
   const themePrompts = useMemo(() => {
@@ -1436,7 +1437,7 @@ export default function PromptLabPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/50 z-40"
-              onClick={() => setSelectedHistoryTest(null)}
+              onClick={() => { setSelectedHistoryTest(null); setIsHistoryLightboxOpen(false); }}
             />
             {/* Sheet */}
             <motion.aside
@@ -1458,7 +1459,7 @@ export default function PromptLabPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => setSelectedHistoryTest(null)}
+                  onClick={() => { setSelectedHistoryTest(null); setIsHistoryLightboxOpen(false); }}
                   className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors rounded-lg hover:bg-zinc-800"
                 >
                   <X size={16} />
@@ -1469,12 +1470,19 @@ export default function PromptLabPage() {
               <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin">
                 {/* Image Preview */}
                 {selectedHistoryTest.images?.[0] && (
-                  <div className="relative aspect-[3/4] bg-black rounded-xl overflow-hidden border border-zinc-800 ring-1 ring-white/5">
+                  <div
+                    className="relative aspect-[3/4] bg-black rounded-xl overflow-hidden border border-zinc-800 ring-1 ring-white/5 cursor-pointer group/preview"
+                    onClick={() => setIsHistoryLightboxOpen(true)}
+                  >
                     <img
+                      data-testid="history-preview-image"
                       src={`data:${selectedHistoryTest.images[0].contentType};base64,${selectedHistoryTest.images[0].base64}`}
                       alt="History preview"
                       className="w-full h-full object-cover"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/preview:bg-black/30 transition-colors">
+                      <Maximize2 size={24} className="text-white opacity-0 group-hover/preview:opacity-80 transition-opacity" />
+                    </div>
                   </div>
                 )}
 
@@ -1647,6 +1655,55 @@ export default function PromptLabPage() {
               </div>
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* History Image Lightbox */}
+      <AnimatePresence>
+        {isHistoryLightboxOpen && selectedHistoryTest?.images?.[0] && (
+          <motion.div
+            data-testid="history-lightbox-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+            onClick={() => setIsHistoryLightboxOpen(false)}
+          >
+            <motion.img
+              data-testid="history-lightbox-image"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              src={`data:${selectedHistoryTest.images[0].contentType};base64,${selectedHistoryTest.images[0].base64}`}
+              alt="History full preview"
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setIsHistoryLightboxOpen(false)}
+              className="absolute top-6 right-6 p-2 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+            >
+              <X size={20} />
+            </button>
+            <button
+              data-testid="history-lightbox-download"
+              onClick={(e) => {
+                e.stopPropagation();
+                const img = selectedHistoryTest.images?.[0];
+                if (!img) return;
+                const link = document.createElement('a');
+                link.href = `data:${img.contentType};base64,${img.base64}`;
+                const ext = img.contentType === 'image/png' ? 'png' : 'jpg';
+                link.download = `prompt-lab-history-${selectedHistoryTest.id.slice(0, 8)}.${ext}`;
+                link.click();
+              }}
+              title="Download image"
+              className="absolute bottom-6 right-6 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+            >
+              <Download size={20} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
