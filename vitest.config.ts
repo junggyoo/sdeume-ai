@@ -16,6 +16,14 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./vitest.setup.ts'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        maxForks: 2,
+        execArgv: ['--max-old-space-size=8192'],
+      },
+    },
+    fileParallelism: false,
     exclude: [
       '**/node_modules/**',
       '**/e2e/**',

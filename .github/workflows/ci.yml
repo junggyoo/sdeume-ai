@@ -65,6 +65,7 @@ jobs:
       - name: Run unit tests
         run: pnpm test
         env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 

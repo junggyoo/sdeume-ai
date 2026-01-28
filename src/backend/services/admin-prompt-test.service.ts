@@ -185,6 +185,8 @@ interface ModalTestRequest {
   cfg: number;
   steps: number;
   seed: number;
+  groomLoraStrength: number;
+  brideLoraStrength: number;
   promptOverrides?: PromptOverrides;
   nodeOverrides?: NodeOverrides;
 }
@@ -217,6 +219,8 @@ export const buildModalRequest = (params: BuildModalRequestParams): ModalTestReq
     cfg: nodeOverrides?.cfg ?? defaults.cfg,
     steps: nodeOverrides?.steps ?? defaults.steps,
     seed: seed ?? Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+    groomLoraStrength: nodeOverrides?.groomLoraStrength ?? defaults.groomLoraStrength,
+    brideLoraStrength: nodeOverrides?.brideLoraStrength ?? defaults.brideLoraStrength,
     promptOverrides,
     nodeOverrides,
   };
@@ -321,6 +325,8 @@ export const validateNodeOverrides = (overrides?: NodeOverrides): ValidationResu
     { field: 'groomGuideSize', min: 256, max: 1024 },
     { field: 'brideGuideSize', min: 256, max: 1024 },
     { field: 'handGuideSize', min: 256, max: 1024 },
+    { field: 'groomLoraStrength', min: 0, max: 2 },
+    { field: 'brideLoraStrength', min: 0, max: 2 },
     { field: 'faceThreshold', min: 0.1, max: 0.9 },
     { field: 'handThreshold', min: 0.1, max: 0.9 },
     { field: 'faceDilation', min: 0, max: 50 },

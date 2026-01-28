@@ -1,6 +1,57 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// =============================================================================
+// Heavy dependency mocks (prevent OOM in test environment)
+// =============================================================================
+
+vi.mock('framer-motion', () => {
+  const React = require('react');
+  function makeMotion(tag: string) {
+    return React.forwardRef(function MotionMock(props: Record<string, unknown>, ref: unknown) {
+      const {
+        initial: _i, animate: _a, exit: _e, transition: _t,
+        whileHover: _wh, whileTap: _wt, variants: _v, layout: _l,
+        ...rest
+      } = props;
+      return React.createElement(tag, { ...rest, ref });
+    });
+  }
+  return {
+    motion: {
+      div: makeMotion('div'),
+      span: makeMotion('span'),
+      img: makeMotion('img'),
+      aside: makeMotion('aside'),
+      button: makeMotion('button'),
+      p: makeMotion('p'),
+      section: makeMotion('section'),
+    },
+    AnimatePresence: ({ children }: { children: unknown }) => children,
+  };
+});
+
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const icon = (name: string) =>
+    React.forwardRef(function MockIcon(props: Record<string, unknown>, ref: unknown) {
+      return React.createElement('svg', { ...props, ref, 'data-testid': `icon-${name}` });
+    });
+  return {
+    Settings: icon('Settings'), Layers: icon('Layers'), Lock: icon('Lock'),
+    Unlock: icon('Unlock'), Zap: icon('Zap'), Copy: icon('Copy'),
+    Eye: icon('Eye'), Code: icon('Code'), Star: icon('Star'),
+    Save: icon('Save'), History: icon('History'), ExternalLink: icon('ExternalLink'),
+    Loader2: icon('Loader2'), Wand2: icon('Wand2'), X: icon('X'),
+    User: icon('User'), Hand: icon('Hand'), Palette: icon('Palette'),
+    Maximize2: icon('Maximize2'), Sparkles: icon('Sparkles'), Heart: icon('Heart'),
+    Check: icon('Check'), Terminal: icon('Terminal'), ChevronDown: icon('ChevronDown'),
+    Link2: icon('Link2'),
+  };
+});
+
 import PromptLabPage from '../page';
 
 // =============================================================================
@@ -119,6 +170,19 @@ vi.mock('@/features/admin-prompt-lab/hooks/usePromptTest', () => ({
   })),
 }));
 
+vi.mock('@/features/admin-prompt-lab/hooks/useConsoleLog', () => ({
+  useConsoleLog: vi.fn(() => ({
+    logs: [],
+    elapsedTime: 0,
+    scrollRef: { current: null },
+    addLog: vi.fn(),
+    startTimer: vi.fn(),
+    stopTimer: vi.fn(),
+    clearLogs: vi.fn(),
+    getLogsByPhase: vi.fn(() => []),
+  })),
+}));
+
 vi.mock('@/features/admin-prompt-lab/hooks/useTestHistory', () => ({
   useTestHistory: vi.fn(() => ({
     tests: mockHistoryTests,
@@ -153,14 +217,21 @@ describe('PromptLabPage - New UI Layout', () => {
       expect(screen.getByText('Theme Preset')).toBeInTheDocument();
       expect(screen.getByText('Global Geometry')).toBeInTheDocument();
       expect(screen.getByText('Seed Control')).toBeInTheDocument();
-      expect(screen.getByText('External Assets')).toBeInTheDocument();
     });
 
-    it('should render center Pipeline Editor area', () => {
+    it('should not render External Assets section in sidebar (moved to pipeline)', () => {
+      render(<PromptLabPage />);
+
+      expect(screen.queryByText('External Assets')).not.toBeInTheDocument();
+    });
+
+    it('should render center Pipeline Editor area with LoRA NodeCards', () => {
       render(<PromptLabPage />);
 
       expect(screen.getByText('Pipeline Editor')).toBeInTheDocument();
       expect(screen.getByText('Base Generation')).toBeInTheDocument();
+      expect(screen.getByText('Groom LoRA')).toBeInTheDocument();
+      expect(screen.getByText('Bride LoRA')).toBeInTheDocument();
       expect(screen.getByText('Groom Face Detailer')).toBeInTheDocument();
       expect(screen.getByText('Bride Face Detailer')).toBeInTheDocument();
       expect(screen.getByText('Hand Detailer')).toBeInTheDocument();
@@ -181,7 +252,6 @@ describe('PromptLabPage - New UI Layout', () => {
     it('should display theme selector with loaded themes', () => {
       render(<PromptLabPage />);
 
-      // Theme preset section exists
       expect(screen.getByText('Theme Preset')).toBeInTheDocument();
     });
 
@@ -192,11 +262,11 @@ describe('PromptLabPage - New UI Layout', () => {
       expect(screen.getByLabelText(/height/i)).toBeInTheDocument();
     });
 
-    it('should display LoRA URL inputs', () => {
+    it('should display LoRA URL inputs in pipeline editor (not sidebar)', () => {
       render(<PromptLabPage />);
 
-      expect(screen.getByLabelText(/groom lora/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/bride lora/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/groom lora url/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/bride lora url/i)).toBeInTheDocument();
     });
 
     it('should display Generate Test button', () => {
@@ -204,13 +274,18 @@ describe('PromptLabPage - New UI Layout', () => {
 
       expect(screen.getByRole('button', { name: /generate test/i })).toBeInTheDocument();
     });
+
+    it('should display Image Count slider', () => {
+      render(<PromptLabPage />);
+
+      expect(screen.getByText('Image Count')).toBeInTheDocument();
+    });
   });
 
   describe('Center - Pipeline Editor NodeCards', () => {
     it('should display positive and negative prompt textareas for Base Generation', () => {
       render(<PromptLabPage />);
 
-      // Base generation has positive/negative prompts
       const positiveLabels = screen.getAllByText('Positive');
       const negativeLabels = screen.getAllByText('Negative');
 
@@ -228,9 +303,15 @@ describe('PromptLabPage - New UI Layout', () => {
     it('should display denoise slider for face detailers', () => {
       render(<PromptLabPage />);
 
-      // Multiple denoise labels for groom, bride, hand
       const denoiseLabels = screen.getAllByText('Denoise');
       expect(denoiseLabels.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should support Dashboard and Raw JSON view modes', () => {
+      render(<PromptLabPage />);
+
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Raw JSON')).toBeInTheDocument();
     });
   });
 
@@ -238,7 +319,6 @@ describe('PromptLabPage - New UI Layout', () => {
     it('should display preview area', () => {
       render(<PromptLabPage />);
 
-      // Preview section exists
       expect(screen.getByText('Output Analyzer')).toBeInTheDocument();
     });
 
@@ -252,7 +332,6 @@ describe('PromptLabPage - New UI Layout', () => {
       render(<PromptLabPage />);
 
       expect(screen.getByText('Artifact Observations')).toBeInTheDocument();
-      // Quality issue chips
       expect(screen.getByRole('button', { name: /broken hands/i })).toBeInTheDocument();
     });
 
@@ -272,18 +351,15 @@ describe('PromptLabPage - New UI Layout', () => {
       expect(randomButton).toBeInTheDocument();
 
       await user.click(randomButton);
-      // After click, should show LOCKED state or seed input becomes enabled
     });
 
     it('should allow editing prompt text', async () => {
       const user = userEvent.setup();
       render(<PromptLabPage />);
 
-      // Find prompt textareas specifically (not input fields)
       const textareas = screen.getAllByPlaceholderText(/prompt|constraints/i);
       expect(textareas.length).toBeGreaterThan(0);
 
-      // Find a prompt textarea and type in it
       const promptTextarea = textareas[0] as HTMLTextAreaElement;
       await user.click(promptTextarea);
       await user.type(promptTextarea, ' custom prompt text');
@@ -298,17 +374,16 @@ describe('PromptLabPage - New UI Layout', () => {
       const brokenHandsChip = screen.getByRole('button', { name: /broken hands/i });
       await user.click(brokenHandsChip);
 
-      // Chip should be selected (visually indicated)
       expect(brokenHandsChip).toHaveClass(/bg-red|border-red/);
     });
   });
 
   describe('Generation Flow', () => {
-    it('should disable generate button when LoRA URLs are empty', () => {
+    it('should enable generate button when LoRA URLs have default values', () => {
       render(<PromptLabPage />);
 
       const generateButton = screen.getByRole('button', { name: /generate test/i });
-      expect(generateButton).toBeDisabled();
+      expect(generateButton).not.toBeDisabled();
     });
 
     it('should show loading state during generation', async () => {
@@ -323,7 +398,6 @@ describe('PromptLabPage - New UI Layout', () => {
 
       render(<PromptLabPage />);
 
-      // Should show loading indicators (button and preview area)
       const loadingElements = screen.getAllByText(/generating|running/i);
       expect(loadingElements.length).toBeGreaterThanOrEqual(1);
     });
@@ -340,7 +414,6 @@ describe('PromptLabPage - New UI Layout', () => {
 
       render(<PromptLabPage />);
 
-      // Should display generated image
       const images = screen.getAllByRole('img');
       expect(images.length).toBeGreaterThan(0);
     });
@@ -360,6 +433,82 @@ describe('PromptLabPage - New UI Layout', () => {
       render(<PromptLabPage />);
 
       expect(screen.getByText(/generation failed/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('LoRA NodeCards in Pipeline Editor', () => {
+    it('should render Groom LoRA NodeCard with URL input and trigger badge', () => {
+      render(<PromptLabPage />);
+
+      expect(screen.getByText('Groom LoRA')).toBeInTheDocument();
+      expect(screen.getByText('Node 14')).toBeInTheDocument();
+      expect(screen.getByText('GROOM_SDME')).toBeInTheDocument();
+      expect(screen.getByLabelText(/groom lora url/i)).toBeInTheDocument();
+    });
+
+    it('should render Bride LoRA NodeCard with URL input and trigger badge', () => {
+      render(<PromptLabPage />);
+
+      expect(screen.getByText('Bride LoRA')).toBeInTheDocument();
+      expect(screen.getByText('Node 15')).toBeInTheDocument();
+      expect(screen.getByText('BRIDE_SDME')).toBeInTheDocument();
+      expect(screen.getByLabelText(/bride lora url/i)).toBeInTheDocument();
+    });
+
+    it('should render LoRA strength sliders with default value of 1', () => {
+      render(<PromptLabPage />);
+
+      const strengthLabels = screen.getAllByText('Strength');
+      expect(strengthLabels.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should allow editing Groom LoRA URL', () => {
+      render(<PromptLabPage />);
+
+      const groomInput = screen.getByLabelText(/groom lora url/i) as HTMLInputElement;
+      fireEvent.change(groomInput, { target: { value: 'https://example.com/groom.safetensors' } });
+
+      expect(groomInput.value).toBe('https://example.com/groom.safetensors');
+    });
+
+    it('should allow editing Bride LoRA URL', () => {
+      render(<PromptLabPage />);
+
+      const brideInput = screen.getByLabelText(/bride lora url/i) as HTMLInputElement;
+      fireEvent.change(brideInput, { target: { value: 'https://example.com/bride.safetensors' } });
+
+      expect(brideInput.value).toBe('https://example.com/bride.safetensors');
+    });
+
+    it('should allow adjusting LoRA strength via slider', () => {
+      render(<PromptLabPage />);
+
+      const strengthSliders = screen.getAllByRole('slider');
+      const loraStrengthSliders = strengthSliders.filter((slider) => {
+        const el = slider as HTMLInputElement;
+        return el.min === '0' && el.max === '2' && el.step === '0.05';
+      });
+
+      expect(loraStrengthSliders.length).toBeGreaterThanOrEqual(2);
+      expect((loraStrengthSliders[0] as HTMLInputElement).value).toBe('1');
+    });
+
+    it('should place LoRA NodeCards between Base Generation and Groom Face Detailer', () => {
+      render(<PromptLabPage />);
+
+      const allNodeTitles = screen.getAllByText(
+        /Base Generation|Groom LoRA|Bride LoRA|Groom Face Detailer|Bride Face Detailer|Hand Detailer/
+      );
+
+      const titleTexts = allNodeTitles.map((el) => el.textContent);
+      const baseIdx = titleTexts.indexOf('Base Generation');
+      const groomLoraIdx = titleTexts.indexOf('Groom LoRA');
+      const brideLoraIdx = titleTexts.indexOf('Bride LoRA');
+      const groomFaceIdx = titleTexts.indexOf('Groom Face Detailer');
+
+      expect(baseIdx).toBeLessThan(groomLoraIdx);
+      expect(groomLoraIdx).toBeLessThan(brideLoraIdx);
+      expect(brideLoraIdx).toBeLessThan(groomFaceIdx);
     });
   });
 

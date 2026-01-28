@@ -75,6 +75,10 @@ export interface NodeOverrides {
   handCfg?: number;
   handGuideSize?: number;
 
+  // LoRA Strength (Node 14, 15)
+  groomLoraStrength?: number;
+  brideLoraStrength?: number;
+
   // Detector settings (BboxDetectorSEGS)
   faceThreshold?: number;
   faceDilation?: number;
@@ -363,6 +367,10 @@ export const DEFAULT_NODE_SETTINGS = {
   handSteps: 10,
   handCfg: 8,
   handGuideSize: 512,
+
+  // LoRA Strength (Node 14, 15)
+  groomLoraStrength: 1.0,
+  brideLoraStrength: 1.0,
 
   // Detector settings
   faceThreshold: 0.25,

@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings,
-  Layers,
   Lock,
   Unlock,
   Zap,
@@ -27,6 +26,7 @@ import {
   Check,
   Terminal,
   ChevronDown,
+  Link2,
 } from 'lucide-react';
 
 import { usePromptTest } from '@/features/admin-prompt-lab/hooks/usePromptTest';
@@ -685,37 +685,6 @@ export default function PromptLabPage() {
             />
           </div>
 
-          {/* External Assets */}
-          <div className="space-y-3">
-            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest flex items-center gap-2">
-              <Layers size={12} /> External Assets
-            </label>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <label htmlFor="groom-lora" className="text-[9px] text-zinc-600 px-1">Groom LoRA</label>
-                <input
-                  id="groom-lora"
-                  type="text"
-                  value={groomLoraUrl}
-                  onChange={(e) => setGroomLoraUrl(e.target.value)}
-                  placeholder="path/to/groom_lora.safetensors"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="bride-lora" className="text-[9px] text-zinc-600 px-1">Bride LoRA</label>
-                <input
-                  id="bride-lora"
-                  type="text"
-                  value={brideLoraUrl}
-                  onChange={(e) => setBrideLoraUrl(e.target.value)}
-                  placeholder="path/to/bride_lora.safetensors"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Image Count */}
           <SliderControl
             label="Image Count"
@@ -903,6 +872,98 @@ export default function PromptLabPage() {
                 </>
               }
             />
+
+            {/* Groom LoRA (Node 14) */}
+            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <Link2 size={14} className="text-zinc-500" />
+                  <span className="text-xs font-bold text-zinc-300 uppercase tracking-tight">
+                    Groom LoRA
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">Node 14</span>
+              </div>
+              <div className="flex flex-col lg:flex-row min-h-[80px]">
+                <div className="flex-1 p-3 space-y-3 border-r border-zinc-800/50">
+                  <div className="space-y-1">
+                    <label htmlFor="groom-lora-url" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+                      Groom LoRA URL
+                    </label>
+                    <input
+                      id="groom-lora-url"
+                      type="text"
+                      value={groomLoraUrl}
+                      onChange={(e) => setGroomLoraUrl(e.target.value)}
+                      placeholder="https://storage.fal.ai/lora/groom.safetensors"
+                      className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 text-zinc-300 placeholder:text-zinc-700"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-[9px] text-zinc-600">Trigger:</span>
+                    <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                      GROOM_SDME
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full lg:w-[240px] bg-zinc-900/60 p-3 space-y-4">
+                  <SliderControl
+                    label="Strength"
+                    value={nodeOverrides.groomLoraStrength ?? DEFAULT_NODE_SETTINGS.groomLoraStrength}
+                    onChange={(v) => updateNodeOverride('groomLoraStrength', v)}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bride LoRA (Node 15) */}
+            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <Link2 size={14} className="text-zinc-500" />
+                  <span className="text-xs font-bold text-zinc-300 uppercase tracking-tight">
+                    Bride LoRA
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">Node 15</span>
+              </div>
+              <div className="flex flex-col lg:flex-row min-h-[80px]">
+                <div className="flex-1 p-3 space-y-3 border-r border-zinc-800/50">
+                  <div className="space-y-1">
+                    <label htmlFor="bride-lora-url" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+                      Bride LoRA URL
+                    </label>
+                    <input
+                      id="bride-lora-url"
+                      type="text"
+                      value={brideLoraUrl}
+                      onChange={(e) => setBrideLoraUrl(e.target.value)}
+                      placeholder="https://storage.fal.ai/lora/bride.safetensors"
+                      className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 text-zinc-300 placeholder:text-zinc-700"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-[9px] text-zinc-600">Trigger:</span>
+                    <span className="text-[10px] font-mono font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded">
+                      BRIDE_SDME
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full lg:w-[240px] bg-zinc-900/60 p-3 space-y-4">
+                  <SliderControl
+                    label="Strength"
+                    value={nodeOverrides.brideLoraStrength ?? DEFAULT_NODE_SETTINGS.brideLoraStrength}
+                    onChange={(v) => updateNodeOverride('brideLoraStrength', v)}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Groom Face Detailer */}
             <NodeCard

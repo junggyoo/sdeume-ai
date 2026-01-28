@@ -240,6 +240,28 @@ describe('buildModalRequest', () => {
 
     expect(result.promptOverrides).toEqual(promptOverrides);
   });
+
+  it('should include LoRA strength values from nodeOverrides', () => {
+    const nodeOverrides: NodeOverrides = {
+      groomLoraStrength: 0.8,
+      brideLoraStrength: 1.2,
+    };
+
+    const result = buildModalRequest({
+      ...baseParams,
+      nodeOverrides,
+    });
+
+    expect(result.nodeOverrides?.groomLoraStrength).toBe(0.8);
+    expect(result.nodeOverrides?.brideLoraStrength).toBe(1.2);
+  });
+
+  it('should use default LoRA strength (1.0) when not specified', () => {
+    const result = buildModalRequest(baseParams);
+
+    expect(result.groomLoraStrength).toBe(1.0);
+    expect(result.brideLoraStrength).toBe(1.0);
+  });
 });
 
 // =============================================================================
@@ -412,5 +434,39 @@ describe('validateNodeOverrides', () => {
     const result = validateNodeOverrides(overrides);
     expect(result.valid).toBe(false);
     expect(result.errors.some((e: string) => e.includes('must be a number'))).toBe(true);
+  });
+
+  it('should accept valid LoRA strength values', () => {
+    const overrides: NodeOverrides = {
+      groomLoraStrength: 0.8,
+      brideLoraStrength: 1.5,
+    };
+
+    const result = validateNodeOverrides(overrides);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should reject LoRA strength out of range', () => {
+    const overrides: NodeOverrides = {
+      groomLoraStrength: 2.5, // Max is 2.0
+      brideLoraStrength: -0.5, // Min is 0.0
+    };
+
+    const result = validateNodeOverrides(overrides);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e: string) => e.includes('groomLoraStrength'))).toBe(true);
+    expect(result.errors.some((e: string) => e.includes('brideLoraStrength'))).toBe(true);
+  });
+
+  it('should accept LoRA strength at boundary values (0.0 and 2.0)', () => {
+    const overrides: NodeOverrides = {
+      groomLoraStrength: 0,
+      brideLoraStrength: 2.0,
+    };
+
+    const result = validateNodeOverrides(overrides);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 });

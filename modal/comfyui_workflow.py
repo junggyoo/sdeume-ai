@@ -946,9 +946,16 @@ class ComfyUIServer:
         # 워크플로우 로드
         workflow = json.loads(WORKFLOW_JSON)
 
-        # 동적 LoRA 파일 이름 설정 (요청별 고유 파일 사용)
+        # 동적 LoRA 파일 이름 및 strength 설정 (요청별 고유 파일 사용)
+        groom_lora_strength = request.get("groomLoraStrength", 1.0)
+        bride_lora_strength = request.get("brideLoraStrength", 1.0)
+
         workflow["14"]["inputs"]["lora_name"] = groom_lora_name  # Groom LoRA
+        workflow["14"]["inputs"]["strength_model"] = groom_lora_strength
+        workflow["14"]["inputs"]["strength_clip"] = groom_lora_strength
         workflow["15"]["inputs"]["lora_name"] = bride_lora_name  # Bride LoRA
+        workflow["15"]["inputs"]["strength_model"] = bride_lora_strength
+        workflow["15"]["inputs"]["strength_clip"] = bride_lora_strength
 
         # 프롬프트 시스템으로 8개 노드 완전 교체
         workflow = apply_theme_prompts(
