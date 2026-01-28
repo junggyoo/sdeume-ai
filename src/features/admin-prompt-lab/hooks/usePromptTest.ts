@@ -29,6 +29,7 @@ interface GenerateParams {
   nodeOverrides?: NodeOverrides;
   seed?: number;
   extraStyleTags?: string;
+  count?: number;
 }
 
 interface UsePromptTestReturn {

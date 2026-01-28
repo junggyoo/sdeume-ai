@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings,
@@ -45,6 +45,7 @@ import type {
   NodeOverrides,
   QualityIssueId,
   ConsoleLog,
+  AdminPromptTest,
 } from '@/features/admin-prompt-lab/types';
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 
@@ -166,7 +167,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
             <textarea
               value={positiveValue}
               onChange={(e) => onPositiveChange(e.target.value)}
-              className="w-full h-20 bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 resize-none leading-relaxed text-zinc-300 placeholder:text-zinc-700"
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+              className="w-full min-h-[80px] bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 resize-none leading-relaxed text-zinc-300 placeholder:text-zinc-700"
               placeholder="Positive prompt data..."
             />
           </div>
@@ -177,7 +183,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
             <textarea
               value={negativeValue}
               onChange={(e) => onNegativeChange(e.target.value)}
-              className="w-full h-14 bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-red-900/30 resize-none leading-relaxed text-zinc-600 placeholder:text-zinc-800"
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+              className="w-full min-h-[56px] bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-red-900/30 resize-none leading-relaxed text-zinc-600 placeholder:text-zinc-800"
               placeholder="Negative constraints..."
             />
           </div>
@@ -293,7 +304,7 @@ export default function PromptLabPage() {
   // === Hooks ===
   const { themes, selectedTheme, selectTheme } = useThemeConfig();
   const { isGenerating, error, result, generate } = usePromptTest();
-  const { tests: historyTests, updateTest } = useTestHistory({ autoFetch: true });
+  const { tests: historyTests, updateTest, fetchHistory } = useTestHistory({ autoFetch: true });
   const {
     logs,
     elapsedTime,
@@ -310,8 +321,9 @@ export default function PromptLabPage() {
   const [extraStyleTags, setExtraStyleTags] = useState('');
   const [seed, setSeed] = useState<number | undefined>(undefined);
   const [isFixedSeed, setIsFixedSeed] = useState(false);
-  const [groomLoraUrl, setGroomLoraUrl] = useState('');
-  const [brideLoraUrl, setBrideLoraUrl] = useState('');
+  const [groomLoraUrl, setGroomLoraUrl] = useState('https://v3b.fal.media/files/b/0a8ba506/9DXzOIu7IbeXuw4gKW-v2_pytorch_lora_weights.safetensors');
+  const [brideLoraUrl, setBrideLoraUrl] = useState('https://v3b.fal.media/files/b/0a8ba50f/lJP1PgXPSuu6RotLrb_QY_pytorch_lora_weights.safetensors');
+  const [imageCount, setImageCount] = useState(1);
   const [promptOverrides, setPromptOverrides] = useState<PromptOverrides>({});
   const [nodeOverrides, setNodeOverrides] = useState<NodeOverrides>({
     ...DEFAULT_NODE_SETTINGS,
@@ -322,6 +334,7 @@ export default function PromptLabPage() {
   const [viewMode, setViewMode] = useState<'dashboard' | 'json'>('dashboard');
   const [copied, setCopied] = useState(false);
   const [isConsoleExpanded, setIsConsoleExpanded] = useState(true);
+  const [selectedHistoryTest, setSelectedHistoryTest] = useState<AdminPromptTest | null>(null);
 
   // === Derived State ===
   const themePrompts = useMemo(() => {
@@ -353,6 +366,39 @@ export default function PromptLabPage() {
 
   // === Refs for timer tracking ===
   const startTimeRef = React.useRef<number>(0);
+
+  // === Console resize ===
+  const MIN_CONSOLE_HEIGHT = 100;
+  const MAX_CONSOLE_HEIGHT = 600;
+  const [consoleHeight, setConsoleHeight] = useState(300);
+  const isResizing = useRef(false);
+  const lastMouseY = useRef(0);
+
+  const handleConsoleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    lastMouseY.current = e.clientY;
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing.current) return;
+      const delta = lastMouseY.current - moveEvent.clientY;
+      lastMouseY.current = moveEvent.clientY;
+      setConsoleHeight((prev) =>
+        Math.min(MAX_CONSOLE_HEIGHT, Math.max(MIN_CONSOLE_HEIGHT, prev + delta))
+      );
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
 
   // === Handlers ===
   const handleGenerate = useCallback(async () => {
@@ -409,6 +455,7 @@ export default function PromptLabPage() {
         nodeOverrides,
         seed: isFixedSeed ? seed : undefined,
         extraStyleTags: extraStyleTags || undefined,
+        count: imageCount,
       };
 
       addLog('info', 'progress', 'Calling Modal API...', { requestBody });
@@ -439,6 +486,7 @@ export default function PromptLabPage() {
     seed,
     isFixedSeed,
     extraStyleTags,
+    imageCount,
     generate,
     clearLogs,
     startTimer,
@@ -457,8 +505,9 @@ export default function PromptLabPage() {
         generationTimeMs: result.generationTimeMs,
         imageSize: result.images[0] ? `${result.images[0].width}×${result.images[0].height}` : null,
       });
+      fetchHistory();
     }
-  }, [result, isGenerating, stopTimer, addLog]);
+  }, [result, isGenerating, stopTimer, addLog, fetchHistory]);
 
   const toggleSeedLock = () => {
     if (!isFixedSeed) {
@@ -482,10 +531,23 @@ export default function PromptLabPage() {
   };
 
   const handleCopyPrompt = async () => {
-    if (!result?.assembledPrompts) return;
-    const text = Object.entries(result.assembledPrompts)
-      .map(([key, value]) => `[${key}]: ${value}`)
-      .join('\n');
+    let text: string;
+    if (result?.assembledPrompts) {
+      text = Object.entries(result.assembledPrompts)
+        .map(([key, value]) => `[${key}]: ${value}`)
+        .join('\n');
+    } else {
+      const keys: (keyof PromptOverrides)[] = [
+        'mainPositive', 'mainNegative',
+        'groomFacePositive', 'groomFaceNegative',
+        'brideFacePositive', 'brideFaceNegative',
+        'handPositive', 'handNegative',
+      ];
+      text = keys
+        .map((key) => `[${key}]: ${getPromptValue(key)}`)
+        .filter((_line, _i, _arr) => true)
+        .join('\n');
+    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -635,7 +697,6 @@ export default function PromptLabPage() {
                   id="groom-lora"
                   type="text"
                   value={groomLoraUrl}
-                  defaultValue="https://v3b.fal.media/files/b/0a8ba506/9DXzOIu7IbeXuw4gKW-v2_pytorch_lora_weights.safetensors"
                   onChange={(e) => setGroomLoraUrl(e.target.value)}
                   placeholder="path/to/groom_lora.safetensors"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
@@ -647,7 +708,6 @@ export default function PromptLabPage() {
                   id="bride-lora"
                   type="text"
                   value={brideLoraUrl}
-                  defaultValue="https://v3b.fal.media/files/b/0a8ba50f/lJP1PgXPSuu6RotLrb_QY_pytorch_lora_weights.safetensors"
                   onChange={(e) => setBrideLoraUrl(e.target.value)}
                   placeholder="path/to/bride_lora.safetensors"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono outline-none text-zinc-300 placeholder:text-zinc-700"
@@ -655,6 +715,15 @@ export default function PromptLabPage() {
               </div>
             </div>
           </div>
+
+          {/* Image Count */}
+          <SliderControl
+            label="Image Count"
+            value={imageCount}
+            onChange={(v) => setImageCount(v)}
+            min={1}
+            max={4}
+          />
         </div>
 
         {/* Generate Button */}
@@ -708,8 +777,7 @@ export default function PromptLabPage() {
           </div>
           <button
             onClick={handleCopyPrompt}
-            disabled={!result?.assembledPrompts}
-            className="flex items-center gap-2 text-zinc-500 hover:text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors py-1.5 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
+            className="flex items-center gap-2 text-zinc-500 hover:text-purple-400 transition-colors py-1.5 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
             <span className="text-[10px] uppercase font-bold tracking-widest">
@@ -727,6 +795,60 @@ export default function PromptLabPage() {
 
         {/* Pipeline Cards */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          {viewMode === 'json' ? (
+            <div className="max-w-5xl mx-auto">
+              <div className="relative bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+                  <span className="text-xs font-bold text-zinc-300 uppercase tracking-tight">Raw JSON</span>
+                  <button
+                    onClick={async () => {
+                      const jsonData = {
+                        promptOverrides: Object.fromEntries(
+                          (Object.keys(promptOverrides) as (keyof PromptOverrides)[])
+                            .filter((k) => promptOverrides[k])
+                            .map((k) => [k, promptOverrides[k]])
+                        ),
+                        nodeOverrides,
+                        themePrompts: themePrompts ?? {},
+                        effectivePrompts: Object.fromEntries(
+                          (['mainPositive', 'mainNegative', 'groomFacePositive', 'groomFaceNegative', 'brideFacePositive', 'brideFaceNegative', 'handPositive', 'handNegative'] as const).map(
+                            (k) => [k, getPromptValue(k)]
+                          )
+                        ),
+                      };
+                      await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+                    }}
+                    className="flex items-center gap-1.5 text-zinc-500 hover:text-purple-400 transition-colors py-1 px-2 rounded hover:bg-zinc-800"
+                  >
+                    <Copy size={12} />
+                    <span className="text-[9px] uppercase font-bold tracking-widest">Copy</span>
+                  </button>
+                </div>
+                <pre className="p-4 text-xs font-mono text-zinc-400 overflow-x-auto leading-relaxed">
+                  <code>
+                    {JSON.stringify(
+                      {
+                        promptOverrides: Object.fromEntries(
+                          (Object.keys(promptOverrides) as (keyof PromptOverrides)[])
+                            .filter((k) => promptOverrides[k])
+                            .map((k) => [k, promptOverrides[k]])
+                        ),
+                        nodeOverrides,
+                        themePrompts: themePrompts ?? {},
+                        effectivePrompts: Object.fromEntries(
+                          (['mainPositive', 'mainNegative', 'groomFacePositive', 'groomFaceNegative', 'brideFacePositive', 'brideFaceNegative', 'handPositive', 'handNegative'] as const).map(
+                            (k) => [k, getPromptValue(k)]
+                          )
+                        ),
+                      },
+                      null,
+                      2
+                    )}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          ) : (
           <div className="max-w-5xl mx-auto space-y-6">
             {/* Base Generation */}
             <NodeCard
@@ -886,10 +1008,16 @@ export default function PromptLabPage() {
               }
             />
           </div>
+          )}
         </div>
 
         {/* Console Output / Terminal */}
         <div className="border-t border-zinc-800 bg-zinc-900/50">
+          {/* Resize Handle */}
+          <div
+            className="h-1 cursor-row-resize hover:bg-purple-500/30 transition-colors"
+            onMouseDown={handleConsoleResizeStart}
+          />
           <div className="w-full px-6 py-2 flex items-center justify-between">
             <button
               onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
@@ -931,7 +1059,8 @@ export default function PromptLabPage() {
               >
                 <div
                   ref={scrollRef}
-                  className="max-h-[300px] overflow-y-auto px-6 pb-4 scrollbar-thin"
+                  className="overflow-y-auto px-6 pb-4 scrollbar-thin"
+                  style={{ height: consoleHeight }}
                 >
                   <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 font-mono text-xs space-y-3">
                     {/* Phase-based log sections */}
@@ -1131,7 +1260,16 @@ export default function PromptLabPage() {
               {historyTests.slice(0, 5).map((test) => (
                 <div
                   key={test.id}
-                  className="flex items-center gap-3 p-2 rounded-xl bg-zinc-950/50 border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer group"
+                  onClick={() =>
+                    setSelectedHistoryTest((prev) =>
+                      prev?.id === test.id ? null : test
+                    )
+                  }
+                  className={`flex items-center gap-3 p-2 rounded-xl bg-zinc-950/50 border transition-colors cursor-pointer group ${
+                    selectedHistoryTest?.id === test.id
+                      ? 'border-purple-500/50 bg-purple-500/5'
+                      : 'border-zinc-800 hover:border-zinc-700'
+                  }`}
                 >
                   <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden border border-zinc-800">
                     {test.images?.[0] && (
@@ -1161,9 +1299,235 @@ export default function PromptLabPage() {
                 <p className="text-xs text-zinc-600 text-center py-4">No history yet</p>
               )}
             </div>
+
           </section>
         </div>
       </aside>
+
+      {/* History Detail Sheet (slides from right) */}
+      <AnimatePresence>
+        {selectedHistoryTest && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setSelectedHistoryTest(null)}
+            />
+            {/* Sheet */}
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-[420px] bg-zinc-900 border-l border-zinc-800 z-50 flex flex-col shadow-2xl"
+            >
+              {/* Sheet Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50 shrink-0">
+                <div className="flex items-center gap-3">
+                  <History size={14} className="text-purple-400" />
+                  <span className="text-xs font-bold text-purple-400 font-mono">
+                    TEST_{selectedHistoryTest.id.slice(0, 8).toUpperCase()}
+                  </span>
+                  {selectedHistoryTest.isFavorite && (
+                    <Star size={12} className="text-yellow-500" fill="currentColor" />
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedHistoryTest(null)}
+                  className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors rounded-lg hover:bg-zinc-800"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Sheet Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin">
+                {/* Image Preview */}
+                {selectedHistoryTest.images?.[0] && (
+                  <div className="relative aspect-[3/4] bg-black rounded-xl overflow-hidden border border-zinc-800 ring-1 ring-white/5">
+                    <img
+                      src={`data:${selectedHistoryTest.images[0].contentType};base64,${selectedHistoryTest.images[0].base64}`}
+                      alt="History preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Basic Settings */}
+                <section className="space-y-2">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Settings</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-600">Theme</span>
+                      <span className="text-zinc-300 font-mono">{selectedHistoryTest.themeSlug}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-600">Shot</span>
+                      <span className="text-zinc-300 font-mono">{selectedHistoryTest.shotType}</span>
+                    </div>
+                    {selectedHistoryTest.seed != null && (
+                      <div className="flex justify-between">
+                        <span className="text-zinc-600">Seed</span>
+                        <span className="text-zinc-300 font-mono">{selectedHistoryTest.seed}</span>
+                      </div>
+                    )}
+                    {selectedHistoryTest.generationTimeMs != null && (
+                      <div className="flex justify-between">
+                        <span className="text-zinc-600">Time</span>
+                        <span className="text-blue-400 font-mono">{(selectedHistoryTest.generationTimeMs / 1000).toFixed(1)}s</span>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Node Overrides */}
+                {selectedHistoryTest.nodeOverrides && (
+                  <section className="space-y-2">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Node Overrides</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                      {selectedHistoryTest.nodeOverrides.width != null && selectedHistoryTest.nodeOverrides.height != null && (
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600">Size</span>
+                          <span className="text-zinc-300 font-mono">{selectedHistoryTest.nodeOverrides.width}x{selectedHistoryTest.nodeOverrides.height}</span>
+                        </div>
+                      )}
+                      {selectedHistoryTest.nodeOverrides.cfg != null && (
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600">CFG</span>
+                          <span className="text-zinc-300 font-mono">{selectedHistoryTest.nodeOverrides.cfg}</span>
+                        </div>
+                      )}
+                      {selectedHistoryTest.nodeOverrides.steps != null && (
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600">Steps</span>
+                          <span className="text-zinc-300 font-mono">{selectedHistoryTest.nodeOverrides.steps}</span>
+                        </div>
+                      )}
+                      {selectedHistoryTest.nodeOverrides.samplerName && (
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600">Sampler</span>
+                          <span className="text-zinc-300 font-mono truncate ml-2">{selectedHistoryTest.nodeOverrides.samplerName}</span>
+                        </div>
+                      )}
+                      {selectedHistoryTest.nodeOverrides.scheduler && (
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600">Scheduler</span>
+                          <span className="text-zinc-300 font-mono truncate ml-2">{selectedHistoryTest.nodeOverrides.scheduler}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Face/Hand Detailer */}
+                    {(selectedHistoryTest.nodeOverrides.groomDenoise != null ||
+                      selectedHistoryTest.nodeOverrides.brideDenoise != null ||
+                      selectedHistoryTest.nodeOverrides.handDenoise != null) && (
+                      <div className="mt-2 space-y-1.5">
+                        <div className="text-[10px] text-zinc-600 uppercase tracking-widest">Detailer</div>
+                        <div className="space-y-1 text-[11px]">
+                          {selectedHistoryTest.nodeOverrides.groomDenoise != null && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-zinc-500 w-12">Groom</span>
+                              <span className="text-zinc-400 font-mono text-[10px]">
+                                d:{selectedHistoryTest.nodeOverrides.groomDenoise}
+                                {selectedHistoryTest.nodeOverrides.groomSteps != null && ` s:${selectedHistoryTest.nodeOverrides.groomSteps}`}
+                                {selectedHistoryTest.nodeOverrides.groomCfg != null && ` c:${selectedHistoryTest.nodeOverrides.groomCfg}`}
+                              </span>
+                            </div>
+                          )}
+                          {selectedHistoryTest.nodeOverrides.brideDenoise != null && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-zinc-500 w-12">Bride</span>
+                              <span className="text-zinc-400 font-mono text-[10px]">
+                                d:{selectedHistoryTest.nodeOverrides.brideDenoise}
+                                {selectedHistoryTest.nodeOverrides.brideSteps != null && ` s:${selectedHistoryTest.nodeOverrides.brideSteps}`}
+                                {selectedHistoryTest.nodeOverrides.brideCfg != null && ` c:${selectedHistoryTest.nodeOverrides.brideCfg}`}
+                              </span>
+                            </div>
+                          )}
+                          {selectedHistoryTest.nodeOverrides.handDenoise != null && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-zinc-500 w-12">Hand</span>
+                              <span className="text-zinc-400 font-mono text-[10px]">
+                                d:{selectedHistoryTest.nodeOverrides.handDenoise}
+                                {selectedHistoryTest.nodeOverrides.handSteps != null && ` s:${selectedHistoryTest.nodeOverrides.handSteps}`}
+                                {selectedHistoryTest.nodeOverrides.handCfg != null && ` c:${selectedHistoryTest.nodeOverrides.handCfg}`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                <div className="h-[1px] bg-zinc-800 w-full" />
+
+                {/* Assembled Prompts */}
+                {selectedHistoryTest.assembledPrompts && (
+                  <section className="space-y-2">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Assembled Prompts</div>
+                    <div className="space-y-2.5">
+                      {Object.entries(selectedHistoryTest.assembledPrompts).map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-purple-400 font-mono">[{key}]</span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(value)}
+                              className="p-0.5 text-zinc-700 hover:text-zinc-400 transition-colors"
+                              aria-label={`Copy ${key}`}
+                            >
+                              <Copy size={10} />
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 leading-relaxed pl-2.5 border-l border-zinc-800">
+                            {value || <span className="text-zinc-700 italic">empty</span>}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Quality Issues */}
+                {selectedHistoryTest.qualityIssues && selectedHistoryTest.qualityIssues.length > 0 && (
+                  <section className="space-y-2">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Quality Issues</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedHistoryTest.qualityIssues.map((issue) => (
+                        <span
+                          key={issue}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 border border-red-500/30 text-red-400"
+                        >
+                          {issue}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Notes */}
+                {selectedHistoryTest.notes && (
+                  <section className="space-y-1.5">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Notes</div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">{selectedHistoryTest.notes}</p>
+                  </section>
+                )}
+              </div>
+
+              {/* Sheet Footer */}
+              <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 shrink-0">
+                <div className="text-[10px] text-zinc-600 font-mono text-right">
+                  {new Date(selectedHistoryTest.createdAt).toLocaleString('ko-KR')}
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

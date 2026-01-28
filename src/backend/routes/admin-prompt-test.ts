@@ -76,6 +76,7 @@ const generateRequestSchema = z.object({
   brideLoraUrl: z.string().url(),
   seed: z.number().optional(),
   extraStyleTags: z.string().optional(),
+  count: z.number().min(1).max(4).default(1),
 });
 
 const historyQuerySchema = z.object({
@@ -211,7 +212,7 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...modalRequest,
-            count: 1, // Single image for testing
+            count: body.count ?? 1,
           }),
           signal: controller.signal,
         });

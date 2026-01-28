@@ -111,6 +111,7 @@ export interface PromptTestGenerateRequest {
   brideLoraUrl: string;
   seed?: number;
   extraStyleTags?: string;
+  count?: number;
 }
 
 export interface PromptTestImage {
