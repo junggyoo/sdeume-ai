@@ -13,7 +13,7 @@ import {
   Star,
   Save,
   History,
-  ExternalLink,
+  Download,
   Loader2,
   Wand2,
   X,
@@ -26,6 +26,8 @@ import {
   Check,
   Terminal,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Link2,
 } from 'lucide-react';
 
@@ -335,6 +337,8 @@ export default function PromptLabPage() {
   const [copied, setCopied] = useState(false);
   const [isConsoleExpanded, setIsConsoleExpanded] = useState(true);
   const [selectedHistoryTest, setSelectedHistoryTest] = useState<AdminPromptTest | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // === Derived State ===
   const themePrompts = useMemo(() => {
@@ -494,6 +498,11 @@ export default function PromptLabPage() {
     addLog,
   ]);
 
+  // Reset selected image index when result changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [result]);
+
   // Handle result completion
   useEffect(() => {
     if (result && !isGenerating) {
@@ -564,6 +573,16 @@ export default function PromptLabPage() {
       console.error('Failed to commit:', err);
     }
   };
+
+  const handleDownloadImage = useCallback(() => {
+    const img = result?.images?.[selectedImageIndex];
+    if (!img) return;
+    const link = document.createElement('a');
+    link.href = `data:${img.contentType};base64,${img.base64}`;
+    const ext = img.contentType === 'image/png' ? 'png' : 'jpg';
+    link.download = `prompt-lab-${result.testId ?? 'output'}-${selectedImageIndex}.${ext}`;
+    link.click();
+  }, [result, selectedImageIndex]);
 
   const getPromptValue = (key: keyof PromptOverrides): string => {
     return promptOverrides[key] ?? (themePrompts?.[key as keyof typeof themePrompts] as string) ?? '';
@@ -1203,41 +1222,82 @@ export default function PromptLabPage() {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
           {/* Preview Image */}
-          <div className="relative aspect-[3/4] bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group ring-1 ring-white/5">
-            <AnimatePresence mode="wait">
-              {isGenerating ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm z-20"
-                >
-                  <Loader2 size={32} className="animate-spin text-purple-500 mb-4" />
-                  <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-zinc-500 animate-pulse">
-                    Running Tensors...
-                  </span>
-                </motion.div>
-              ) : result?.images?.[0] ? (
-                <motion.img
-                  key={result.seed}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  src={`data:${result.images[0].contentType};base64,${result.images[0].base64}`}
-                  alt="Generated result"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-zinc-700 text-xs">
-                  No preview
+          <div className="space-y-2">
+            <div className="relative aspect-[3/4] bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group ring-1 ring-white/5">
+              <AnimatePresence mode="wait">
+                {isGenerating ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm z-20"
+                  >
+                    <Loader2 size={32} className="animate-spin text-purple-500 mb-4" />
+                    <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-zinc-500 animate-pulse">
+                      Running Tensors...
+                    </span>
+                  </motion.div>
+                ) : result?.images?.[selectedImageIndex] ? (
+                  <motion.img
+                    key={`${result.seed}-${selectedImageIndex}`}
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    src={`data:${result.images[selectedImageIndex].contentType};base64,${result.images[selectedImageIndex].base64}`}
+                    alt="Generated result"
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={() => setIsLightboxOpen(true)}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-zinc-700 text-xs">
+                    No preview
+                  </div>
+                )}
+              </AnimatePresence>
+              {result?.images?.[selectedImageIndex] && (
+                <div className="absolute bottom-3 right-3 flex gap-2">
+                  <button
+                    onClick={handleDownloadImage}
+                    title="Download image"
+                    className="p-2 bg-black/60 backdrop-blur-md rounded-lg text-white hover:bg-black transition-colors border border-white/10"
+                  >
+                    <Download size={14} />
+                  </button>
                 </div>
               )}
-            </AnimatePresence>
-            {result?.images?.[0] && (
-              <div className="absolute bottom-3 right-3 flex gap-2">
-                <button className="p-2 bg-black/60 backdrop-blur-md rounded-lg text-white hover:bg-black transition-colors border border-white/10">
-                  <ExternalLink size={14} />
-                </button>
+            </div>
+
+            {/* Thumbnail Grid (multiple images) */}
+            {result?.images && result.images.length > 1 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between px-1">
+                  <span
+                    data-testid="image-counter"
+                    className="text-[10px] font-mono text-zinc-500"
+                  >
+                    {selectedImageIndex + 1} / {result.images.length}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {result.images.map((img, i) => (
+                    <button
+                      key={i}
+                      data-testid="image-thumbnail"
+                      onClick={() => setSelectedImageIndex(i)}
+                      className={`relative aspect-square w-16 rounded-lg overflow-hidden border transition-all ${
+                        selectedImageIndex === i
+                          ? 'ring-2 ring-purple-500 border-purple-500/50'
+                          : 'border-zinc-800 hover:border-zinc-600'
+                      }`}
+                    >
+                      <img
+                        src={`data:${img.contentType};base64,${img.base64}`}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1587,6 +1647,82 @@ export default function PromptLabPage() {
               </div>
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Image Lightbox */}
+      <AnimatePresence>
+        {isLightboxOpen && result?.images?.[selectedImageIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <motion.img
+              key={`lightbox-${selectedImageIndex}`}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              src={`data:${result.images[selectedImageIndex].contentType};base64,${result.images[selectedImageIndex].base64}`}
+              alt="Generated result"
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-6 right-6 p-2 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+            >
+              <X size={20} />
+            </button>
+            {/* Lightbox Navigation (multi-image only) */}
+            {result.images.length > 1 && (
+              <>
+                <button
+                  data-testid="lightbox-prev"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) =>
+                      prev > 0 ? prev - 1 : result.images.length - 1
+                    );
+                  }}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  data-testid="lightbox-next"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) =>
+                      prev < result.images.length - 1 ? prev + 1 : 0
+                    );
+                  }}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <div
+                  data-testid="lightbox-counter"
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full text-white text-sm font-mono border border-white/10"
+                >
+                  {selectedImageIndex + 1} / {result.images.length}
+                </div>
+              </>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadImage();
+              }}
+              title="Download image"
+              className="absolute bottom-6 right-6 p-3 bg-black/60 backdrop-blur-md rounded-full text-white hover:bg-black transition-colors border border-white/10"
+            >
+              <Download size={20} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
