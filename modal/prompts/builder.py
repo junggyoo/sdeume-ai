@@ -23,8 +23,11 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
     Returns:
         Assembled prompt string
     """
-    # Select shot-specific section
-    shot = main.full_body if shot_type == "full_body" else main.closeup
+    # Select shot-specific section (fallback to full_body if closeup is None)
+    if shot_type == "full_body" or main.closeup is None:
+        shot = main.full_body
+    else:
+        shot = main.closeup
 
     # Assemble parts in natural flow
     parts = []
@@ -51,8 +54,9 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
         groom_parts.append(main.groom_style.attire)
     if main.groom_style.hair:
         groom_parts.append(main.groom_style.hair)
-    if main.groom_style.pose:
-        groom_parts.append(main.groom_style.pose)
+    groom_demeanor = main.groom_style.expression or main.groom_style.pose
+    if groom_demeanor:
+        groom_parts.append(groom_demeanor)
     if groom_parts:
         parts.append(" ".join(groom_parts))
 
@@ -64,8 +68,9 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
         bride_parts.append(main.bride_style.hair)
     if main.bride_style.accessories:
         bride_parts.append(main.bride_style.accessories)
-    if main.bride_style.pose:
-        bride_parts.append(main.bride_style.pose)
+    bride_demeanor = main.bride_style.expression or main.bride_style.pose
+    if bride_demeanor:
+        bride_parts.append(bride_demeanor)
     if bride_parts:
         parts.append(" ".join(bride_parts))
 

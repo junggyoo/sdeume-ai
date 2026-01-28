@@ -42,7 +42,8 @@ class GroomStyleSection:
     """Groom styling details."""
     attire: str
     hair: str
-    pose: str
+    pose: Optional[str] = None
+    expression: Optional[str] = None
 
 
 @dataclass
@@ -50,8 +51,9 @@ class BrideStyleSection:
     """Bride styling details."""
     attire: str
     hair: str
-    accessories: str
-    pose: str
+    accessories: Optional[str] = None
+    pose: Optional[str] = None
+    expression: Optional[str] = None
 
 
 @dataclass
@@ -72,13 +74,13 @@ class NegativePrompt:
 class MainPrompt:
     """Main prompt configuration with all sections."""
     full_body: ShotSection
-    closeup: ShotSection
     scene: SceneSection
     lighting: LightingSection
     groom_style: GroomStyleSection
     bride_style: BrideStyleSection
     quality: QualitySection
     negative: NegativePrompt
+    closeup: Optional[ShotSection] = None
 
 
 @dataclass

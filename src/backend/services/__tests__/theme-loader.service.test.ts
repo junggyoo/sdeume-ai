@@ -32,9 +32,9 @@ describe('theme-loader.service', () => {
       const theme = await loadThemeFromYaml('white_studio');
 
       expect(theme.mainPositive).toBeDefined();
-      expect(theme.mainPositive.camera).toContain('front-facing full body portrait');
-      expect(theme.mainPositive.composition).toContain('Wide angle shot');
-      expect(theme.mainPositive.background).toContain('white walls');
+      expect(theme.mainPositive.camera).toContain('Professional studio portrait');
+      expect(theme.mainPositive.composition).toContain('Flexible framing');
+      expect(theme.mainPositive.background).toContain('white');
       expect(theme.mainPositive.atmosphere).toBeTruthy();
       expect(theme.mainPositive.lighting).toBeTruthy();
       expect(theme.mainPositive.groomStyle).toBeTruthy();
@@ -50,6 +50,9 @@ describe('theme-loader.service', () => {
       expect(theme.brideFacePositive).toContain('bridal makeup');
       expect(theme.brideFaceNegative).toContain('man');
       expect(theme.handPositive).toContain('natural-looking hands');
+      // Verify flat string face prompts are parsed correctly
+      expect(theme.groomFacePositive).toContain('genuine warm smile');
+      expect(theme.brideFacePositive).toContain('dewy glowing skin');
     });
 
     it('should parse generation settings', async () => {

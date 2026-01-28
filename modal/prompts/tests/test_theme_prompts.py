@@ -226,7 +226,7 @@ class TestPromptBuilder:
             assert "body" in prompt.lower() or "couple" in prompt.lower()
 
     def test_build_main_prompt_closeup(self):
-        """should build main prompt for closeup shot type"""
+        """should build main prompt for closeup shot type (fallback when closeup is None)"""
         from modal.prompts.builder import build_main_prompt
         from modal.prompts.loader import load_all_themes
 
@@ -236,8 +236,14 @@ class TestPromptBuilder:
             prompt = build_main_prompt(theme.main, "closeup")
 
             assert isinstance(prompt, str)
-            # Should include closeup-specific phrasing
-            assert "upper" in prompt.lower() or "close" in prompt.lower()
+            assert len(prompt) > 0
+            # white_studio has no closeup section, so it falls back to full_body
+            # Just verify a valid prompt is produced
+            if theme.main.closeup is None:
+                # Should use full_body content as fallback
+                assert "studio" in prompt.lower() or "portrait" in prompt.lower()
+            else:
+                assert "upper" in prompt.lower() or "close" in prompt.lower()
 
     def test_build_negative_prompt(self):
         """should build negative prompt from config"""

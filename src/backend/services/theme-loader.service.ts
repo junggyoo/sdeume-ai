@@ -29,7 +29,7 @@ interface ThemeYamlMain {
     camera: string;
     composition: string;
   };
-  closeup: {
+  closeup?: {
     camera: string;
     composition: string;
   };
@@ -43,13 +43,15 @@ interface ThemeYamlMain {
   groom_style: {
     attire: string;
     hair: string;
-    pose: string;
+    pose?: string;
+    expression?: string;
   };
   bride_style: {
     attire: string;
     hair: string;
-    accessories: string;
-    pose: string;
+    accessories?: string;
+    pose?: string;
+    expression?: string;
   };
   quality: {
     technical: string;
@@ -62,12 +64,8 @@ interface ThemeYamlMain {
 }
 
 interface ThemeYamlFace {
-  positive: {
-    core: string;
-  };
-  negative: {
-    core: string;
-  };
+  positive: { core: string } | string;
+  negative: { core: string } | string;
 }
 
 interface ThemeYamlGeneration {
@@ -152,6 +150,11 @@ let allThemesCache: ThemeConfig[] | null = null;
 // YAML Parsing Functions
 // =============================================================================
 
+const extractFaceCore = (data: { core: string } | string): string => {
+  if (typeof data === 'string') return data.trim();
+  return data.core;
+};
+
 const parseMainPositive = (main: ThemeYamlMain): ThemePromptSection => {
   return {
     camera: main.full_body.camera,
@@ -162,13 +165,13 @@ const parseMainPositive = (main: ThemeYamlMain): ThemePromptSection => {
     groomStyle: [
       main.groom_style.attire,
       main.groom_style.hair,
-      main.groom_style.pose,
+      main.groom_style.expression ?? main.groom_style.pose,
     ].filter(Boolean).join(', '),
     brideStyle: [
       main.bride_style.attire,
       main.bride_style.hair,
       main.bride_style.accessories,
-      main.bride_style.pose,
+      main.bride_style.expression ?? main.bride_style.pose,
     ].filter(Boolean).join(', '),
     quality: main.quality.technical,
   };
@@ -203,10 +206,10 @@ const transformYamlToThemeConfig = (yaml: ThemeYaml): ThemeConfig => {
     description: yaml.meta.description,
     mainPositive: parseMainPositive(yaml.main),
     mainNegative: parseMainNegative(yaml.main.negative),
-    groomFacePositive: yaml.groom_face.positive.core,
-    groomFaceNegative: yaml.groom_face.negative.core,
-    brideFacePositive: yaml.bride_face.positive.core,
-    brideFaceNegative: yaml.bride_face.negative.core,
+    groomFacePositive: extractFaceCore(yaml.groom_face.positive),
+    groomFaceNegative: extractFaceCore(yaml.groom_face.negative),
+    brideFacePositive: extractFaceCore(yaml.bride_face.positive),
+    brideFaceNegative: extractFaceCore(yaml.bride_face.negative),
     handPositive: yaml.hand.positive,
     handNegative: yaml.hand.negative || '',
     defaultSettings: {
