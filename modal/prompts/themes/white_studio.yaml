@@ -10,9 +10,9 @@ meta:
 main:
   full_body:
     camera: |
-      Professional studio portrait of Korean couple in varied compositions.
-      Choose from: frontal wide-angle full body shot, natural asymmetric pose with gentle turn,
-      close-up upper body and faces, profile/three-quarter angle, or detail-focused shots.
+      (Front-facing studio portrait:1.4) of (Korean groom and Korean bride standing side by side:1.3), 
+      both (looking directly at camera:1.4), (full body shot:1.3), (facing forward:1.3)
+
     composition: |
       Flexible framing: some images symmetrical full-body, some asymmetric with natural turning,
       some close-ups emphasizing faces and intimacy, some showing dress/suit details,
@@ -41,7 +41,10 @@ main:
 
   groom_style:
     attire: (Perfectly tailored black tuxedo:1.2) with black bow tie and (crisp white dress shirt:1.1)
-    hair: (Modern, trendy Korean hairstyle:1.3), neat and contemporary
+    hair: |
+      (2025 trending Korean men's hairstyle:1.4), (soft comma hairstyle:1.3) or (textured fringe:1.3),
+      (natural volume:1.2), (NOT two-block cut:1.3), (NOT undercut:1.3)
+
     expression: (Warm, confident, genuine smile:1.2) or (soft affectionate gaze:1.1) toward bride
 
   bride_style:
@@ -53,7 +56,9 @@ main:
     technical: |
       (8k resolution:1.2), (highly detailed fabric textures:1.2), (sharp professional focus:1.2),
       (clean minimalist aesthetic:1.3), (professional Canon R5 with 85mm lens quality:1.1),
-      (contemporary Korean luxury wedding photography style:1.3)
+      (contemporary Korean luxury wedding photography style:1.3),
+      (natural skin texture:1.3), (visible skin pores:1.2), (realistic skin details:1.2),
+      (matte skin:1.2), (photorealistic skin:1.3), (NOT airbrushed:1.2),
 
   negative:
     style: illustration, painting, anime, cartoon, 3d render
@@ -74,11 +79,14 @@ bride_face:
     (natural bridal makeup:1.2) with (dewy glowing skin:1.2) and (subtle pink lip tint:1.1),
     (soft professional lighting:1.1) on face. (Modern contemporary Korean bridal style:1.3).
     (Gentle natural smile:1.1) or (soft romantic expression:1.1), (warm affectionate gaze:1.1).
+    (Natural skin texture with visible pores:1.3), (realistic skin details:1.2), 
+    (matte skin:1.2), (photorealistic:1.2)
   negative: man, boy, male, low quality, (vintage makeup:1.2), (overdone makeup:1.2), (retro style:1.2)
 
 hand:
-  positive: (Detailed, natural-looking hands:1.2) with (proper anatomy:1.1), (elegant positioning:1.1)
-  negative: ""
+  positive: (Highly detailed natural hands:1.4) with (correct five fingers:1.3), 
+    (proper hand anatomy:1.3), (realistic skin texture on hands:1.2)
+  negative: (extra fingers:1.4), (missing fingers:1.4), (mutated hands:1.4), (fused fingers:1.3)
 
 generation:
   cfg: 1

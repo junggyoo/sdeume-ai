@@ -61,9 +61,10 @@ export const useThemeConfig = (): UseThemeConfigReturn => {
       const themeList = data.data as ThemeConfig[];
       setThemes(themeList);
 
-      // Select first theme by default (use ref to avoid stale closure)
+      // Select white_studio by default, fallback to first theme
       if (themeList.length > 0 && !selectedThemeRef.current) {
-        setSelectedTheme(themeList[0]);
+        const defaultTheme = themeList.find(t => t.slug === 'white_studio') ?? themeList[0];
+        setSelectedTheme(defaultTheme);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
