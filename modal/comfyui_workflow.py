@@ -195,20 +195,20 @@ WORKFLOW_JSON = r'''
   },
   "29": {
     "inputs": {
-      "target": "area(=w*h)",
-      "order": true,
+      "target": "x1",
+      "order": false,
       "take_start": 0,
-      "take_count": 2,
+      "take_count": 1,
       "segs": ["30", 0]
     },
     "class_type": "ImpactSEGSOrderedFilter",
-    "_meta": {"title": "SEGS Filter (ordered)"}
+    "_meta": {"title": "SEGS Filter - Groom (left)"}
   },
   "30": {
     "inputs": {
       "threshold": 0.25,
-      "dilation": 10,
-      "crop_factor": 5,
+      "dilation": 6,
+      "crop_factor": 3.0,
       "drop_size": 10,
       "labels": "all",
       "bbox_detector": ["19", 0],
@@ -269,7 +269,7 @@ WORKFLOW_JSON = r'''
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["32", 0],
-      "segs": ["29", 1],
+      "segs": ["40", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
       "vae": ["4", 2],
@@ -354,6 +354,33 @@ WORKFLOW_JSON = r'''
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
+  },
+  "40": {
+    "inputs": {
+      "target": "x1",
+      "order": false,
+      "take_start": 1,
+      "take_count": 1,
+      "segs": ["30", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "SEGS Filter - Bride (right)"}
+  },
+  "41": {
+    "inputs": {
+      "fallback_image_size": 64,
+      "segs": ["29", 0]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {"title": "Preview - Groom SEGS"}
+  },
+  "42": {
+    "inputs": {
+      "fallback_image_size": 64,
+      "segs": ["40", 0]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {"title": "Preview - Bride SEGS"}
   }
 }
 '''
@@ -1036,9 +1063,14 @@ class ComfyUIServer:
               f"crop_factor={n30['crop_factor']}, drop_size={n30['drop_size']}")
 
         n29 = workflow['29']['inputs']
-        print(f"\n[Node 29] SEGS OrderedFilter:")
+        print(f"\n[Node 29] SEGS OrderedFilter - Groom:")
         print(f"  target={n29['target']}, order={n29['order']}, "
               f"take_start={n29['take_start']}, take_count={n29['take_count']}")
+
+        n40 = workflow['40']['inputs']
+        print(f"\n[Node 40] SEGS OrderedFilter - Bride:")
+        print(f"  target={n40['target']}, order={n40['order']}, "
+              f"take_start={n40['take_start']}, take_count={n40['take_count']}")
 
         # --- Groom Face Detailer ---
         print(f"\n[Node 21] Groom Face Positive:")
