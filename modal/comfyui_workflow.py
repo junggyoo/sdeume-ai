@@ -843,6 +843,7 @@ class ComfyUIServer:
         groom_trigger = request.get("groomTrigger", "GROOM_SDME")
         bride_trigger = request.get("brideTrigger", "BRIDE_SDME")
         include_main_triggers = request.get("includeMainTriggers", False)
+        prompt_overrides = request.get("promptOverrides")
 
         # 생성 파라미터 (신규)
         width = request.get("width", 896)
@@ -966,6 +967,7 @@ class ComfyUIServer:
             groom_trigger=groom_trigger,
             bride_trigger=bride_trigger,
             include_main_triggers=include_main_triggers,
+            prompt_overrides=prompt_overrides,
         )
 
         # 생성 설정 적용 (width, height, cfg, steps, seed)
