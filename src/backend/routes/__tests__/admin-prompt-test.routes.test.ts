@@ -436,6 +436,351 @@ describe('POST /admin/prompt-test/generate', () => {
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('GENERATION_TIMEOUT');
   });
+
+  // ===========================================================================
+  // Batch parallel processing tests (count > 4)
+  // ===========================================================================
+
+  it('should split count=8 into 2 parallel batches (4+4)', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    // Each batch returns 4 images
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      });
+
+    // Mock database insert
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 8,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(8);
+    // Should have made 2 fetch calls (2 batches of 4)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should split count=12 into 3 parallel batches (4+4+4)', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    // Each batch returns 4 images
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      });
+
+    // Mock database insert
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 12,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(12);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('should split count=5 into 2 batches (4+1)', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage] }),
+      });
+
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 5,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(5);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not batch when count <= 4 (single request)', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ images: [mockImage, mockImage, mockImage] }),
+    });
+
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 3,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(3);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return partial results when one batch fails in multi-batch', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    // First batch succeeds, second batch fails
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Internal server error' }),
+      });
+
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 8,
+      }),
+    });
+
+    // Should still succeed with partial results
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(4);
+  });
+
+  it('should return 500 when all batches fail in multi-batch', async () => {
+    // Both batches fail
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Internal server error' }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Internal server error' }),
+      });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 8,
+      }),
+    });
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('GENERATION_ERROR');
+  });
+
+  it('should not batch when count=4 (boundary value, single request)', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+    });
+
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 4,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.images).toHaveLength(4);
+    // Should be a single fetch call, no batching
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return 400 when count exceeds max (13)', async () => {
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 13,
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('INVALID_INPUT');
+  });
+
+  it('should pass correct count per batch to Modal API', async () => {
+    const mockImage = { base64: 'test', content_type: 'image/png', width: 896, height: 1152 };
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage, mockImage, mockImage] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: [mockImage, mockImage] }),
+      });
+
+    mockSingle.mockResolvedValueOnce({
+      data: { id: TEST_TEST_ID },
+      error: null,
+    });
+
+    await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 6,
+      }),
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // First batch: count=4
+    const firstCallBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(firstCallBody.count).toBe(4);
+    // Second batch: count=2
+    const secondCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+    expect(secondCallBody.count).toBe(2);
+  });
 });
 
 // =============================================================================

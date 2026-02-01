@@ -711,7 +711,7 @@ export default function PromptLabPage() {
             value={imageCount}
             onChange={(v) => setImageCount(v)}
             min={1}
-            max={4}
+            max={12}
           />
         </div>
 

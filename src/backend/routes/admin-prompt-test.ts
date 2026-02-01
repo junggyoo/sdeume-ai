@@ -76,7 +76,7 @@ const generateRequestSchema = z.object({
   brideLoraUrl: z.string().url(),
   seed: z.number().optional(),
   extraStyleTags: z.string().optional(),
-  count: z.number().min(1).max(4).default(1),
+  count: z.number().min(1).max(12).default(1),
 });
 
 const historyQuerySchema = z.object({
@@ -204,34 +204,77 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
       }
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+        const BATCH_SIZE = 4;
+        const totalCount = body.count ?? 1;
 
-        const response = await fetch(endpointUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...modalRequest,
-            count: body.count ?? 1,
-          }),
-          signal: controller.signal,
-        });
+        // Build batches: split into chunks of BATCH_SIZE
+        const batches: number[] = [];
+        let remaining = totalCount;
+        while (remaining > 0) {
+          batches.push(Math.min(remaining, BATCH_SIZE));
+          remaining -= BATCH_SIZE;
+        }
 
-        clearTimeout(timeoutId);
+        type ModalImage = { base64: string; content_type: string; width: number; height: number };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+        const fetchBatch = async (batchCount: number): Promise<ModalImage[]> => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+
+          const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...modalRequest,
+              count: batchCount,
+            }),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Modal API error');
+          }
+
+          const data = await response.json();
+          return data.images;
+        };
+
+        // Execute batches in parallel
+        const results = await Promise.allSettled(batches.map((batchCount) => fetchBatch(batchCount)));
+
+        // Collect successful images
+        const allImages: ModalImage[] = [];
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            allImages.push(...result.value);
+          }
+        }
+
+        // If no images at all, return error
+        if (allImages.length === 0) {
+          // Check if any was a timeout
+          const hasTimeout = results.some(
+            (r) => r.status === 'rejected' && (r.reason?.message?.includes('abort') || r.reason?.message?.includes('AbortError'))
+          );
+          if (hasTimeout) {
+            return c.json(
+              { ok: false, error: { code: 'GENERATION_TIMEOUT', message: 'Request timed out' } },
+              408
+            );
+          }
           return c.json(
-            { ok: false, error: { code: 'GENERATION_ERROR', message: errorData.error || 'Modal API error' } },
+            { ok: false, error: { code: 'GENERATION_ERROR', message: 'All batches failed' } },
             500
           );
         }
 
-        const data = await response.json();
         const generationTimeMs = Date.now() - startTime;
 
         // Process images
-        const images: PromptTestImage[] = data.images.map((img: { base64: string; content_type: string; width: number; height: number }) => ({
+        const images: PromptTestImage[] = allImages.map((img) => ({
           base64: img.base64,
           contentType: img.content_type,
           width: img.width,
