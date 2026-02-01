@@ -843,6 +843,7 @@ class ComfyUIServer:
         groom_trigger = request.get("groomTrigger", "GROOM_SDME")
         bride_trigger = request.get("brideTrigger", "BRIDE_SDME")
         include_main_triggers = request.get("includeMainTriggers", False)
+        prompt_overrides = request.get("promptOverrides")
 
         # 생성 파라미터 (신규)
         width = request.get("width", 896)
@@ -966,6 +967,7 @@ class ComfyUIServer:
             groom_trigger=groom_trigger,
             bride_trigger=bride_trigger,
             include_main_triggers=include_main_triggers,
+            prompt_overrides=prompt_overrides,
         )
 
         # 생성 설정 적용 (width, height, cfg, steps, seed)
@@ -985,28 +987,118 @@ class ComfyUIServer:
         print(f"📝 PROMPT DEBUG - Theme: {theme_slug}, Shot: {shot_type}")
         print("=" * 60)
 
-        # Generation settings
-        print(f"\n[Settings] cfg={workflow['3']['inputs']['cfg']}, "
-              f"steps={workflow['3']['inputs']['steps']}, "
-              f"size={workflow['5']['inputs']['width']}x{workflow['5']['inputs']['height']}")
+        # --- Model & LoRA ---
+        print(f"\n[Node 4] Checkpoint:")
+        print(f"  ckpt_name={workflow['4']['inputs']['ckpt_name']}")
 
-        # Main prompts
+        print(f"\n[Node 34] Flux-Realism LoRA:")
+        print(f"  name={workflow['34']['inputs']['lora_name']}, "
+              f"strength_model={workflow['34']['inputs']['strength_model']}, "
+              f"strength_clip={workflow['34']['inputs']['strength_clip']}")
+
+        print(f"\n[Node 14] Groom LoRA:")
+        print(f"  name={workflow['14']['inputs']['lora_name']}, "
+              f"strength_model={workflow['14']['inputs']['strength_model']}, "
+              f"strength_clip={workflow['14']['inputs']['strength_clip']}")
+
+        print(f"\n[Node 15] Bride LoRA:")
+        print(f"  name={workflow['15']['inputs']['lora_name']}, "
+              f"strength_model={workflow['15']['inputs']['strength_model']}, "
+              f"strength_clip={workflow['15']['inputs']['strength_clip']}")
+
+        # --- KSampler & Latent ---
+        n3 = workflow['3']['inputs']
+        print(f"\n[Node 3] KSampler:")
+        print(f"  seed={n3['seed']}, steps={n3['steps']}, cfg={n3['cfg']}, "
+              f"sampler={n3['sampler_name']}, scheduler={n3['scheduler']}, "
+              f"denoise={n3['denoise']}")
+
+        print(f"\n[Node 5] EmptyLatentImage:")
+        print(f"  width={workflow['5']['inputs']['width']}, "
+              f"height={workflow['5']['inputs']['height']}, "
+              f"batch_size={workflow['5']['inputs']['batch_size']}")
+
+        # --- Main Prompts ---
         main_pos = workflow['6']['inputs']['text']
         main_neg = workflow['7']['inputs']['text']
         print(f"\n[Node 6] Main Positive ({len(main_pos)} chars):")
-        print(f"  {main_pos[:150]}..." if len(main_pos) > 150 else f"  {main_pos}")
-        print(f"\n[Node 7] Main Negative:")
+        print(f"  {main_pos}")
+        print(f"\n[Node 7] Main Negative ({len(main_neg)} chars):")
         print(f"  {main_neg}")
 
-        # Face prompts
+        # --- Face Detection ---
+        print(f"\n[Node 19] Face Detector:")
+        print(f"  model_name={workflow['19']['inputs']['model_name']}")
+
+        n30 = workflow['30']['inputs']
+        print(f"\n[Node 30] Face BboxDetectorSEGS:")
+        print(f"  threshold={n30['threshold']}, dilation={n30['dilation']}, "
+              f"crop_factor={n30['crop_factor']}, drop_size={n30['drop_size']}")
+
+        n29 = workflow['29']['inputs']
+        print(f"\n[Node 29] SEGS OrderedFilter:")
+        print(f"  target={n29['target']}, order={n29['order']}, "
+              f"take_start={n29['take_start']}, take_count={n29['take_count']}")
+
+        # --- Groom Face Detailer ---
         print(f"\n[Node 21] Groom Face Positive:")
         print(f"  {workflow['21']['inputs']['text']}")
+        print(f"\n[Node 26] Groom Face Negative:")
+        print(f"  {workflow['26']['inputs']['text']}")
+
+        n32 = workflow['32']['inputs']
+        print(f"\n[Node 32] Groom DetailerForEach:")
+        print(f"  guide_size={n32['guide_size']}, max_size={n32['max_size']}, "
+              f"steps={n32['steps']}, cfg={n32['cfg']}, "
+              f"sampler={n32['sampler_name']}, scheduler={n32['scheduler']}, "
+              f"denoise={n32['denoise']}")
+        print(f"  seed={n32['seed']}, feather={n32['feather']}, "
+              f"noise_mask_feather={n32['noise_mask_feather']}, "
+              f"cycle={n32['cycle']}")
+
+        # --- Bride Face Detailer ---
         print(f"\n[Node 23] Bride Face Positive:")
         print(f"  {workflow['23']['inputs']['text']}")
+        print(f"\n[Node 27] Bride Face Negative:")
+        print(f"  {workflow['27']['inputs']['text']}")
 
-        # Hand prompts
+        n33 = workflow['33']['inputs']
+        print(f"\n[Node 33] Bride DetailerForEach:")
+        print(f"  guide_size={n33['guide_size']}, max_size={n33['max_size']}, "
+              f"steps={n33['steps']}, cfg={n33['cfg']}, "
+              f"sampler={n33['sampler_name']}, scheduler={n33['scheduler']}, "
+              f"denoise={n33['denoise']}")
+        print(f"  seed={n33['seed']}, feather={n33['feather']}, "
+              f"noise_mask_feather={n33['noise_mask_feather']}, "
+              f"cycle={n33['cycle']}")
+
+        # --- Hand Detection & Detailer ---
+        print(f"\n[Node 35] Hand Detector:")
+        print(f"  model_name={workflow['35']['inputs']['model_name']}")
+
+        n36 = workflow['36']['inputs']
+        print(f"\n[Node 36] Hand BboxDetectorSEGS:")
+        print(f"  threshold={n36['threshold']}, dilation={n36['dilation']}, "
+              f"crop_factor={n36['crop_factor']}, drop_size={n36['drop_size']}")
+
         print(f"\n[Node 38] Hand Positive:")
         print(f"  {workflow['38']['inputs']['text']}")
+        print(f"\n[Node 39] Hand Negative:")
+        print(f"  {workflow['39']['inputs']['text']}")
+
+        n37 = workflow['37']['inputs']
+        print(f"\n[Node 37] Hand DetailerForEach:")
+        print(f"  guide_size={n37['guide_size']}, max_size={n37['max_size']}, "
+              f"steps={n37['steps']}, cfg={n37['cfg']}, "
+              f"sampler={n37['sampler_name']}, scheduler={n37['scheduler']}, "
+              f"denoise={n37['denoise']}")
+        print(f"  seed={n37['seed']}, feather={n37['feather']}, "
+              f"noise_mask_feather={n37['noise_mask_feather']}, "
+              f"cycle={n37['cycle']}")
+
+        # --- Output ---
+        print(f"\n[Node 24] SaveImage:")
+        print(f"  filename_prefix={workflow['24']['inputs']['filename_prefix']}")
 
         print("\n" + "=" * 60 + "\n")
         # =================================================================

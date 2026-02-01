@@ -43,11 +43,13 @@ vi.mock('lucide-react', () => {
     Settings: icon('Settings'), Layers: icon('Layers'), Lock: icon('Lock'),
     Unlock: icon('Unlock'), Zap: icon('Zap'), Copy: icon('Copy'),
     Eye: icon('Eye'), Code: icon('Code'), Star: icon('Star'),
-    Save: icon('Save'), History: icon('History'), ExternalLink: icon('ExternalLink'),
+    Save: icon('Save'), History: icon('History'), Download: icon('Download'),
+    ExternalLink: icon('ExternalLink'),
     Loader2: icon('Loader2'), Wand2: icon('Wand2'), X: icon('X'),
     User: icon('User'), Hand: icon('Hand'), Palette: icon('Palette'),
     Maximize2: icon('Maximize2'), Sparkles: icon('Sparkles'), Heart: icon('Heart'),
     Check: icon('Check'), Terminal: icon('Terminal'), ChevronDown: icon('ChevronDown'),
+    ChevronLeft: icon('ChevronLeft'), ChevronRight: icon('ChevronRight'),
     Link2: icon('Link2'),
   };
 });
@@ -518,6 +520,312 @@ describe('PromptLabPage - New UI Layout', () => {
 
       const container = screen.getByTestId('prompt-lab-container');
       expect(container).toHaveClass('bg-zinc-950');
+    });
+  });
+
+  describe('Multi-Image Display', () => {
+    const mockMultiImageResult = {
+      testId: 'test-multi',
+      images: [
+        { base64: 'img1base64', contentType: 'image/png', width: 896, height: 1152 },
+        { base64: 'img2base64', contentType: 'image/png', width: 896, height: 1152 },
+        { base64: 'img3base64', contentType: 'image/png', width: 896, height: 1152 },
+      ],
+      assembledPrompts: {
+        node6MainPositive: 'test prompt',
+        node7MainNegative: 'negative',
+      },
+      generationTimeMs: 50000,
+      seed: 99999,
+    };
+
+    it('should display thumbnail grid when result has multiple images', async () => {
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      const thumbnails = screen.getAllByTestId('image-thumbnail');
+      expect(thumbnails).toHaveLength(3);
+    });
+
+    it('should not display thumbnail grid when result has single image', async () => {
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockGenerateResult, // single image
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      expect(screen.queryAllByTestId('image-thumbnail')).toHaveLength(0);
+    });
+
+    it('should change main preview when clicking a thumbnail', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Initially shows first image
+      const mainPreview = screen.getByAltText('Generated result');
+      expect(mainPreview).toHaveAttribute('src', expect.stringContaining('img1base64'));
+
+      // Click second thumbnail
+      const thumbnails = screen.getAllByTestId('image-thumbnail');
+      await user.click(thumbnails[1]);
+
+      // Main preview should now show second image
+      const updatedPreview = screen.getByAltText('Generated result');
+      expect(updatedPreview).toHaveAttribute('src', expect.stringContaining('img2base64'));
+    });
+
+    it('should highlight the selected thumbnail with a ring and move ring on click', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      const thumbnails = screen.getAllByTestId('image-thumbnail');
+      // First thumbnail should be selected by default
+      expect(thumbnails[0]).toHaveClass('ring-2');
+      expect(thumbnails[1]).not.toHaveClass('ring-2');
+
+      // Click second thumbnail - ring should move
+      await user.click(thumbnails[1]);
+      expect(thumbnails[1]).toHaveClass('ring-2');
+      expect(thumbnails[0]).not.toHaveClass('ring-2');
+    });
+
+    it('should download the currently selected image', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Select second image
+      const thumbnails = screen.getAllByTestId('image-thumbnail');
+      await user.click(thumbnails[1]);
+
+      // Setup spy BEFORE clicking download
+      const mockAnchor = { href: '', download: '', click: vi.fn() };
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+
+      // Click download
+      const downloadButton = screen.getByTitle('Download image');
+      await user.click(downloadButton);
+
+      // Verify download was triggered with img2base64 (second image)
+      expect(createElementSpy).toHaveBeenCalledWith('a');
+      expect(mockAnchor.href).toContain('img2base64');
+      expect(mockAnchor.click).toHaveBeenCalled();
+      createElementSpy.mockRestore();
+    });
+
+    it('should show lightbox navigation arrows when multiple images exist', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Open lightbox by clicking preview image
+      const mainPreview = screen.getByAltText('Generated result');
+      await user.click(mainPreview);
+
+      // Navigation arrows should be visible
+      expect(screen.getByTestId('lightbox-next')).toBeInTheDocument();
+      expect(screen.getByTestId('lightbox-prev')).toBeInTheDocument();
+    });
+
+    it('should navigate forward in lightbox with next arrow', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Open lightbox
+      const mainPreview = screen.getByAltText('Generated result');
+      await user.click(mainPreview);
+
+      // Initially shows counter 1 / 3
+      expect(screen.getByTestId('lightbox-counter')).toHaveTextContent('1 / 3');
+
+      // Click next
+      const nextBtn = screen.getByTestId('lightbox-next');
+      await user.click(nextBtn);
+
+      // Counter should update to 2 / 3
+      expect(screen.getByTestId('lightbox-counter')).toHaveTextContent('2 / 3');
+    });
+
+    it('should navigate backward in lightbox with prev arrow', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Select second image first via thumbnail
+      const thumbnails = screen.getAllByTestId('image-thumbnail');
+      await user.click(thumbnails[1]);
+
+      // Open lightbox (should open at index 1)
+      const mainPreview = screen.getByAltText('Generated result');
+      await user.click(mainPreview);
+
+      expect(screen.getByTestId('lightbox-counter')).toHaveTextContent('2 / 3');
+
+      // Click prev
+      const prevBtn = screen.getByTestId('lightbox-prev');
+      await user.click(prevBtn);
+
+      expect(screen.getByTestId('lightbox-counter')).toHaveTextContent('1 / 3');
+    });
+
+    it('should not show lightbox navigation for single image', async () => {
+      const user = userEvent.setup();
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockGenerateResult, // single image
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      // Open lightbox
+      const mainPreview = screen.getByAltText('Generated result');
+      await user.click(mainPreview);
+
+      expect(screen.queryByTestId('lightbox-next')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('lightbox-prev')).not.toBeInTheDocument();
+    });
+
+    it('should display image counter (e.g. "1 / 3") in thumbnail area', async () => {
+      const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
+      vi.mocked(usePromptTest).mockReturnValue({
+        isGenerating: false,
+        error: null,
+        result: mockMultiImageResult,
+        generate: vi.fn(),
+        reset: vi.fn(),
+      });
+
+      render(<PromptLabPage />);
+
+      expect(screen.getByTestId('image-counter')).toHaveTextContent('1 / 3');
+    });
+  });
+
+  describe('History Image Lightbox', () => {
+    it('should open history lightbox when clicking image in history detail sheet', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Click on a history test item to open the detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Click the history preview image to open lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Lightbox should be visible with the image
+      const lightboxImage = screen.getByTestId('history-lightbox-image');
+      expect(lightboxImage).toBeInTheDocument();
+      expect(lightboxImage).toHaveAttribute('src', expect.stringContaining('img1'));
+    });
+
+    it('should show download button in history lightbox', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Open history detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Open history lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Download button should be visible
+      const downloadBtn = screen.getByTestId('history-lightbox-download');
+      expect(downloadBtn).toBeInTheDocument();
+    });
+
+    it('should close history lightbox when clicking backdrop', async () => {
+      const user = userEvent.setup();
+      render(<PromptLabPage />);
+
+      // Open history detail sheet
+      const historyItem = screen.getByText('TEST_HIST-1'.substring(0, 13).toUpperCase());
+      await user.click(historyItem);
+
+      // Open history lightbox
+      const historyPreview = screen.getByTestId('history-preview-image');
+      await user.click(historyPreview);
+
+      // Lightbox should be visible
+      expect(screen.getByTestId('history-lightbox-image')).toBeInTheDocument();
+
+      // Click backdrop to close
+      const backdrop = screen.getByTestId('history-lightbox-backdrop');
+      await user.click(backdrop);
+
+      // Lightbox should be closed
+      expect(screen.queryByTestId('history-lightbox-image')).not.toBeInTheDocument();
     });
   });
 });

@@ -226,7 +226,7 @@ class TestPromptBuilder:
             assert "body" in prompt.lower() or "couple" in prompt.lower()
 
     def test_build_main_prompt_closeup(self):
-        """should build main prompt for closeup shot type"""
+        """should build main prompt for closeup shot type (fallback when closeup is None)"""
         from modal.prompts.builder import build_main_prompt
         from modal.prompts.loader import load_all_themes
 
@@ -236,8 +236,14 @@ class TestPromptBuilder:
             prompt = build_main_prompt(theme.main, "closeup")
 
             assert isinstance(prompt, str)
-            # Should include closeup-specific phrasing
-            assert "upper" in prompt.lower() or "close" in prompt.lower()
+            assert len(prompt) > 0
+            # white_studio has no closeup section, so it falls back to full_body
+            # Just verify a valid prompt is produced
+            if theme.main.closeup is None:
+                # Should use full_body content as fallback
+                assert "studio" in prompt.lower() or "portrait" in prompt.lower()
+            else:
+                assert "upper" in prompt.lower() or "close" in prompt.lower()
 
     def test_build_negative_prompt(self):
         """should build negative prompt from config"""
@@ -704,3 +710,190 @@ class TestThemePromptsExport:
 
         assert callable(apply_theme_prompts)
         assert callable(apply_generation_settings)
+
+
+class TestPromptOverrides:
+    """Test suite for prompt_overrides parameter in apply_theme_prompts."""
+
+    @pytest.fixture
+    def sample_workflow(self):
+        """Create minimal workflow structure for testing."""
+        return {
+            "3": {"inputs": {"seed": 0, "steps": 20, "cfg": 1}},
+            "5": {"inputs": {"width": 1024, "height": 1024, "batch_size": 1}},
+            "6": {"inputs": {"text": ""}},
+            "7": {"inputs": {"text": ""}},
+            "21": {"inputs": {"text": ""}},
+            "23": {"inputs": {"text": ""}},
+            "26": {"inputs": {"text": ""}},
+            "27": {"inputs": {"text": ""}},
+            "38": {"inputs": {"text": ""}},
+            "39": {"inputs": {"text": ""}},
+        }
+
+    def test_all_overrides_applied(self, sample_workflow):
+        """should apply all prompt overrides to corresponding nodes"""
+        from modal.prompts.builder import apply_theme_prompts
+
+        overrides = {
+            "mainPositive": "custom main positive prompt",
+            "mainNegative": "custom main negative prompt",
+            "groomFacePositive": "custom groom face",
+            "groomFaceNegative": "custom groom face neg",
+            "brideFacePositive": "custom bride face",
+            "brideFaceNegative": "custom bride face neg",
+            "handPositive": "custom hand positive",
+            "handNegative": "custom hand negative",
+        }
+
+        result = apply_theme_prompts(
+            sample_workflow,
+            theme_slug="white_studio",
+            groom_trigger="GROOM_SDME",
+            bride_trigger="BRIDE_SDME",
+            prompt_overrides=overrides,
+        )
+
+        assert "custom main positive prompt" in result["6"]["inputs"]["text"]
+        assert result["7"]["inputs"]["text"] == "custom main negative prompt"
+        assert "custom groom face" in result["21"]["inputs"]["text"]
+        assert result["26"]["inputs"]["text"] == "custom groom face neg"
+        assert "custom bride face" in result["23"]["inputs"]["text"]
+        assert result["27"]["inputs"]["text"] == "custom bride face neg"
+        assert result["38"]["inputs"]["text"] == "custom hand positive"
+        assert result["39"]["inputs"]["text"] == "custom hand negative"
+
+    def test_partial_overrides_keep_theme_defaults(self, sample_workflow):
+        """should use theme defaults for keys not in overrides"""
+        from modal.prompts.builder import apply_theme_prompts
+
+        overrides = {
+            "mainPositive": "only main overridden",
+        }
+
+        result = apply_theme_prompts(
+            sample_workflow,
+            theme_slug="white_studio",
+            prompt_overrides=overrides,
+        )
+
+        # mainPositive overridden
+        assert "only main overridden" in result["6"]["inputs"]["text"]
+
+        # Other nodes should use theme defaults (non-empty, not the override)
+        assert result["7"]["inputs"]["text"] != ""
+        assert "only main overridden" not in result["7"]["inputs"]["text"]
+        assert result["21"]["inputs"]["text"] != ""
+        assert result["38"]["inputs"]["text"] != ""
+
+    def test_face_overrides_include_trigger(self, sample_workflow):
+        """should force trigger prefix in face positive overrides (nodes 21, 23)"""
+        from modal.prompts.builder import apply_theme_prompts
+
+        overrides = {
+            "groomFacePositive": "custom groom expression",
+            "brideFacePositive": "custom bride expression",
+        }
+
+        result = apply_theme_prompts(
+            sample_workflow,
+            theme_slug="white_studio",
+            groom_trigger="MY_GROOM",
+            bride_trigger="MY_BRIDE",
+            prompt_overrides=overrides,
+        )
+
+        # Trigger must be at start
+        assert result["21"]["inputs"]["text"].startswith("MY_GROOM")
+        assert "custom groom expression" in result["21"]["inputs"]["text"]
+
+        assert result["23"]["inputs"]["text"].startswith("MY_BRIDE")
+        assert "custom bride expression" in result["23"]["inputs"]["text"]
+
+    def test_none_overrides_uses_defaults(self, sample_workflow):
+        """should behave identically to no overrides when prompt_overrides is None"""
+        from modal.prompts.builder import apply_theme_prompts
+        import copy
+
+        wf_no_override = copy.deepcopy(sample_workflow)
+        wf_none_override = copy.deepcopy(sample_workflow)
+
+        result_no = apply_theme_prompts(
+            wf_no_override,
+            theme_slug="white_studio",
+            groom_trigger="GROOM_SDME",
+            bride_trigger="BRIDE_SDME",
+        )
+
+        result_none = apply_theme_prompts(
+            wf_none_override,
+            theme_slug="white_studio",
+            groom_trigger="GROOM_SDME",
+            bride_trigger="BRIDE_SDME",
+            prompt_overrides=None,
+        )
+
+        prompt_nodes = ["6", "7", "21", "23", "26", "27", "38", "39"]
+        for node_id in prompt_nodes:
+            assert result_no[node_id]["inputs"]["text"] == result_none[node_id]["inputs"]["text"]
+
+    def test_main_positive_override_with_extra_style_tags(self, sample_workflow):
+        """should apply extraStyleTags to overridden mainPositive"""
+        from modal.prompts.builder import apply_theme_prompts
+
+        overrides = {"mainPositive": "custom main prompt"}
+
+        result = apply_theme_prompts(
+            sample_workflow,
+            theme_slug="white_studio",
+            extra_style_tags="cinematic, warm",
+            prompt_overrides=overrides,
+        )
+
+        node6 = result["6"]["inputs"]["text"]
+        assert "custom main prompt" in node6
+        assert "cinematic" in node6
+
+    def test_main_positive_override_with_triggers(self, sample_workflow):
+        """should apply triggers to overridden mainPositive when include_main_triggers=True"""
+        from modal.prompts.builder import apply_theme_prompts
+
+        overrides = {"mainPositive": "custom main"}
+
+        result = apply_theme_prompts(
+            sample_workflow,
+            theme_slug="white_studio",
+            groom_trigger="G_TAG",
+            bride_trigger="B_TAG",
+            include_main_triggers=True,
+            prompt_overrides=overrides,
+        )
+
+        node6 = result["6"]["inputs"]["text"]
+        assert "G_TAG" in node6
+        assert "B_TAG" in node6
+        assert "custom main" in node6
+
+    def test_empty_overrides_dict_uses_defaults(self, sample_workflow):
+        """should use all theme defaults when overrides is empty dict"""
+        from modal.prompts.builder import apply_theme_prompts
+        import copy
+
+        wf_empty = copy.deepcopy(sample_workflow)
+        wf_none = copy.deepcopy(sample_workflow)
+
+        result_empty = apply_theme_prompts(
+            wf_empty,
+            theme_slug="white_studio",
+            prompt_overrides={},
+        )
+
+        result_none = apply_theme_prompts(
+            wf_none,
+            theme_slug="white_studio",
+            prompt_overrides=None,
+        )
+
+        prompt_nodes = ["6", "7", "21", "23", "26", "27", "38", "39"]
+        for node_id in prompt_nodes:
+            assert result_empty[node_id]["inputs"]["text"] == result_none[node_id]["inputs"]["text"]

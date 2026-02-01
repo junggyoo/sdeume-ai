@@ -79,7 +79,8 @@ def _parse_groom_style(data: dict) -> GroomStyleSection:
     return GroomStyleSection(
         attire=data.get("attire", ""),
         hair=data.get("hair", ""),
-        pose=data.get("pose", ""),
+        pose=data.get("pose"),
+        expression=data.get("expression"),
     )
 
 
@@ -88,8 +89,9 @@ def _parse_bride_style(data: dict) -> BrideStyleSection:
     return BrideStyleSection(
         attire=data.get("attire", ""),
         hair=data.get("hair", ""),
-        accessories=data.get("accessories", ""),
-        pose=data.get("pose", ""),
+        accessories=data.get("accessories"),
+        pose=data.get("pose"),
+        expression=data.get("expression"),
     )
 
 
@@ -104,26 +106,40 @@ def _parse_negative(data: dict) -> NegativePrompt:
 
 def _parse_main_prompt(data: dict) -> MainPrompt:
     """Parse main prompt section from YAML data."""
+    closeup_data = data.get("closeup")
     return MainPrompt(
         full_body=_parse_shot_section(data.get("full_body", {})),
-        closeup=_parse_shot_section(data.get("closeup", {})),
         scene=_parse_scene_section(data.get("scene", {})),
         lighting=LightingSection(description=data.get("lighting", {}).get("description", "")),
         groom_style=_parse_groom_style(data.get("groom_style", {})),
         bride_style=_parse_bride_style(data.get("bride_style", {})),
         quality=QualitySection(technical=data.get("quality", {}).get("technical", "")),
         negative=_parse_negative(data.get("negative", {})),
+        closeup=_parse_shot_section(closeup_data) if closeup_data else None,
     )
 
 
 def _parse_face_prompt(data: dict) -> FacePrompt:
-    """Parse face prompt section from YAML data."""
+    """Parse face prompt section from YAML data.
+
+    Supports both flat string and nested {core: ...} formats.
+    """
     positive_data = data.get("positive", {})
     negative_data = data.get("negative", {})
 
+    if isinstance(positive_data, str):
+        positive_core = positive_data.strip()
+    else:
+        positive_core = positive_data.get("core", "")
+
+    if isinstance(negative_data, str):
+        negative_core = negative_data.strip()
+    else:
+        negative_core = negative_data.get("core", "")
+
     return FacePrompt(
-        positive=FacePositive(core=positive_data.get("core", "")),
-        negative=FaceNegative(core=negative_data.get("core", "")),
+        positive=FacePositive(core=positive_core),
+        negative=FaceNegative(core=negative_core),
     )
 
 

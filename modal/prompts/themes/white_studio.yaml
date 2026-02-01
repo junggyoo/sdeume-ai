@@ -9,55 +9,84 @@ meta:
 
 main:
   full_body:
-    camera: A front-facing full body portrait of a Korean couple standing together, looking directly at the camera
-    composition: Wide angle shot capturing both figures from head to toe with balanced framing
+    camera: |
+      (Front-facing studio portrait:1.4) of (Korean groom and Korean bride standing side by side:1.3), 
+      both (looking directly at camera:1.4), (full body shot:1.3), (facing forward:1.3)
 
-  closeup:
-    camera: An upper body portrait shot of the Korean couple facing the camera
-    composition: Medium close-up focusing on the upper body and faces
+    composition: |
+      Flexible framing: some images symmetrical full-body, some asymmetric with natural turning,
+      some close-ups emphasizing faces and intimacy, some showing dress/suit details,
+      some with varied hand positioning and interactions. Each composition feels distinct and fresh.
 
   scene:
-    background: A luxurious minimal studio with clean white walls, subtle classic molding details, and soft diffused shadows on a pure white horizon
-    atmosphere: Elegant, sophisticated, and modern editorial aesthetic
+    background: |
+      (Professional minimal studio setting:1.4) with (clean, bright white aesthetic:1.4).
+      Variations:
+      - (Pure bright white seamless background:1.3) with (even, soft illumination:1.2)
+      - (White studio environment:1.3) with (subtle modern architectural details:1.1)
+      - (High-key bright studio space:1.3) with (gentle soft shadow gradation:1.2)
+      - (Contemporary luxury Korean wedding studio atmosphere:1.4)
+      All backgrounds maintain (clean, minimal, elegant, and modern aesthetic:1.3).
+    atmosphere: |
+      (Elegant, sophisticated, modern editorial aesthetic:1.3).
+      (Contemporary Korean bridal studio style:1.4). (Professional high-end wedding photography:1.2).
 
   lighting:
-    description: Professional softbox studio lighting creating high-key illumination with soft, even light wrapping around the subjects and gentle shadows
+    description: |
+      (Professional softbox studio lighting:1.3) creating (high-key, bright illumination:1.3).
+      Variations:
+      - (Soft even light:1.2) wrapping gently around subjects
+      - (Subtle backlighting:1.1) with (gentle rim light:1.1)
+      - (Directional softbox:1.2) with (soft, flattering shadows:1.2)
 
   groom_style:
-    attire: Wearing a perfectly tailored black tuxedo with a black bow tie and crisp white dress shirt
-    hair: A neat, modern Korean hairstyle
-    pose: Standing tall with confident posture and a gentle smile
+    attire: (Perfectly tailored black tuxedo:1.2) with black bow tie and (crisp white dress shirt:1.1)
+    hair: |
+      (2025 trending Korean men's hairstyle:1.4), (soft comma hairstyle:1.3) or (textured fringe:1.3),
+      (natural volume:1.2), (NOT two-block cut:1.3), (NOT undercut:1.3)
+
+    expression: (Warm, confident, genuine smile:1.2) or (soft affectionate gaze:1.1) toward bride
 
   bride_style:
-    attire: Wearing an elegant wedding dress with a graceful silhouette
-    hair: A sophisticated bridal hairstyle
-    accessories: Adorned with a flowing veil and delicate jewelry
-    pose: Standing gracefully with a soft, natural smile
+    attire: (Elegant wedding dress:1.2) with (graceful silhouette:1.2) and delicate details
+    hair: (Sophisticated modern bridal hairstyle:1.3), can be (updo:1.1) or (soft waves:1.1)
+    expression: (Soft natural smile:1.1) with (warm eyes:1.1), or (gentle romantic gaze:1.1)
 
   quality:
-    technical: 8k resolution, highly detailed fabric textures, sharp focus, professional photography with Canon R5 and 85mm lens
+    technical: |
+      (8k resolution:1.2), (highly detailed fabric textures:1.2), (sharp professional focus:1.2),
+      (clean minimalist aesthetic:1.3), (professional Canon R5 with 85mm lens quality:1.1),
+      (contemporary Korean luxury wedding photography style:1.3),
+      (natural skin texture:1.3), (visible skin pores:1.2), (realistic skin details:1.2),
+      (matte skin:1.2), (photorealistic skin:1.3), (NOT airbrushed:1.2),
 
   negative:
     style: illustration, painting, anime, cartoon, 3d render
     quality: text, watermark, low quality, worst quality, blurry
-    mood: dark, gloomy, casual clothes
+    mood: dark, gloomy, casual clothes, (vintage:1.2), (retro:1.2), (old-fashioned style:1.2)
 
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
-  positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, a gentle smile with natural expression, soft lighting on the face
-  negative:
-    core: woman, girl, female, low quality
+  positive: |
+    Closeup portrait with (East Asian facial features:1.2), brown eyes, black hair,
+    (genuine warm smile:1.2) with (natural expression:1.1), (soft professional lighting:1.1) on face.
+    (Modern contemporary Korean hairstyle:1.3), (trendy:1.2) and current style.
+  negative: woman, girl, female, low quality, (retro style:1.2), (old-fashioned look:1.2)
 
 bride_face:
-  positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural bridal makeup with dewy skin and subtle lip tint, soft lighting on the face
-  negative:
-    core: man, boy, male, low quality
+  positive: |
+    Closeup portrait with (East Asian facial features:1.2), brown eyes, black hair,
+    (natural bridal makeup:1.2) with (dewy glowing skin:1.2) and (subtle pink lip tint:1.1),
+    (soft professional lighting:1.1) on face. (Modern contemporary Korean bridal style:1.3).
+    (Gentle natural smile:1.1) or (soft romantic expression:1.1), (warm affectionate gaze:1.1).
+    (Natural skin texture with visible pores:1.3), (realistic skin details:1.2), 
+    (matte skin:1.2), (photorealistic:1.2)
+  negative: man, boy, male, low quality, (vintage makeup:1.2), (overdone makeup:1.2), (retro style:1.2)
 
 hand:
-  positive: Detailed, natural-looking hands with proper anatomy
-  negative: ""
+  positive: (Highly detailed natural hands:1.4) with (correct five fingers:1.3), 
+    (proper hand anatomy:1.3), (realistic skin texture on hands:1.2)
+  negative: (extra fingers:1.4), (missing fingers:1.4), (mutated hands:1.4), (fused fingers:1.3)
 
 generation:
   cfg: 1

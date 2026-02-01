@@ -23,8 +23,11 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
     Returns:
         Assembled prompt string
     """
-    # Select shot-specific section
-    shot = main.full_body if shot_type == "full_body" else main.closeup
+    # Select shot-specific section (fallback to full_body if closeup is None)
+    if shot_type == "full_body" or main.closeup is None:
+        shot = main.full_body
+    else:
+        shot = main.closeup
 
     # Assemble parts in natural flow
     parts = []
@@ -51,8 +54,9 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
         groom_parts.append(main.groom_style.attire)
     if main.groom_style.hair:
         groom_parts.append(main.groom_style.hair)
-    if main.groom_style.pose:
-        groom_parts.append(main.groom_style.pose)
+    groom_demeanor = main.groom_style.expression or main.groom_style.pose
+    if groom_demeanor:
+        groom_parts.append(groom_demeanor)
     if groom_parts:
         parts.append(" ".join(groom_parts))
 
@@ -64,8 +68,9 @@ def build_main_prompt(main: MainPrompt, shot_type: str = "full_body") -> str:
         bride_parts.append(main.bride_style.hair)
     if main.bride_style.accessories:
         bride_parts.append(main.bride_style.accessories)
-    if main.bride_style.pose:
-        bride_parts.append(main.bride_style.pose)
+    bride_demeanor = main.bride_style.expression or main.bride_style.pose
+    if bride_demeanor:
+        bride_parts.append(bride_demeanor)
     if bride_parts:
         parts.append(" ".join(bride_parts))
 
@@ -107,6 +112,7 @@ def apply_theme_prompts(
     groom_trigger: str = "GROOM_SDME",
     bride_trigger: str = "BRIDE_SDME",
     include_main_triggers: bool = False,
+    prompt_overrides: Optional[dict] = None,
 ) -> dict:
     """
     Apply theme prompts to all 8 prompt nodes in workflow.
@@ -119,6 +125,9 @@ def apply_theme_prompts(
         groom_trigger: Groom LoRA trigger word
         bride_trigger: Bride LoRA trigger word
         include_main_triggers: Whether to include triggers in main prompt (A/B test)
+        prompt_overrides: Optional dict of prompt overrides from admin UI.
+            Keys: mainPositive, mainNegative, groomFacePositive, groomFaceNegative,
+            brideFacePositive, brideFaceNegative, handPositive, handNegative
 
     Returns:
         Modified workflow dict
@@ -137,10 +146,13 @@ def apply_theme_prompts(
         extra_style_tags = sanitize_extra_tags(extra_style_tags)
         extra_style_tags = lint_and_filter_tags(extra_style_tags)
 
+    # Resolve overrides (empty dict or None → no overrides)
+    overrides = prompt_overrides or {}
+
     # =========================================================================
     # Node 6: Main Positive Prompt
     # =========================================================================
-    main_positive = build_main_prompt(theme.main, shot_type)
+    main_positive = overrides.get("mainPositive") or build_main_prompt(theme.main, shot_type)
 
     # Optional: Include triggers in main prompt (A/B testing)
     if include_main_triggers:
@@ -155,39 +167,39 @@ def apply_theme_prompts(
     # =========================================================================
     # Node 7: Main Negative Prompt
     # =========================================================================
-    workflow["7"]["inputs"]["text"] = build_negative_prompt(theme.main.negative)
+    workflow["7"]["inputs"]["text"] = overrides.get("mainNegative") or build_negative_prompt(theme.main.negative)
 
     # =========================================================================
     # Node 21: Groom Face Positive (TRIGGER FORCED)
     # =========================================================================
-    groom_face_core = theme.groom_face.positive.core
+    groom_face_core = overrides.get("groomFacePositive") or theme.groom_face.positive.core
     workflow["21"]["inputs"]["text"] = f"{groom_trigger}, {groom_face_core}"
 
     # =========================================================================
     # Node 26: Groom Face Negative
     # =========================================================================
-    workflow["26"]["inputs"]["text"] = theme.groom_face.negative.core
+    workflow["26"]["inputs"]["text"] = overrides.get("groomFaceNegative") or theme.groom_face.negative.core
 
     # =========================================================================
     # Node 23: Bride Face Positive (TRIGGER FORCED)
     # =========================================================================
-    bride_face_core = theme.bride_face.positive.core
+    bride_face_core = overrides.get("brideFacePositive") or theme.bride_face.positive.core
     workflow["23"]["inputs"]["text"] = f"{bride_trigger}, {bride_face_core}"
 
     # =========================================================================
     # Node 27: Bride Face Negative
     # =========================================================================
-    workflow["27"]["inputs"]["text"] = theme.bride_face.negative.core
+    workflow["27"]["inputs"]["text"] = overrides.get("brideFaceNegative") or theme.bride_face.negative.core
 
     # =========================================================================
     # Node 38: Hand Positive
     # =========================================================================
-    workflow["38"]["inputs"]["text"] = theme.hand.positive
+    workflow["38"]["inputs"]["text"] = overrides.get("handPositive") or theme.hand.positive
 
     # =========================================================================
     # Node 39: Hand Negative
     # =========================================================================
-    workflow["39"]["inputs"]["text"] = theme.hand.negative
+    workflow["39"]["inputs"]["text"] = overrides.get("handNegative") or theme.hand.negative
 
     return workflow
 
