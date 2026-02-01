@@ -305,7 +305,20 @@ const LogLine = React.memo<LogLineProps>(function LogLine({ log }) {
 export default function PromptLabPage() {
   // === Hooks ===
   const { themes, selectedTheme, selectTheme } = useThemeConfig();
-  const { isGenerating, error, result, generate } = usePromptTest();
+  const {
+    isGenerating,
+    status: generationStatus,
+    progress: generationProgress,
+    totalCount: generationTotalCount,
+    error,
+    images: generatedImages,
+    assembledPrompts: generatedAssembledPrompts,
+    generationTimeMs: generatedTimeMs,
+    seed: generatedSeed,
+    testId: generatedTestId,
+    generate,
+    reset: resetGeneration,
+  } = usePromptTest();
   const { tests: historyTests, updateTest, fetchHistory } = useTestHistory({ autoFetch: true });
   const {
     logs,
@@ -340,6 +353,18 @@ export default function PromptLabPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isHistoryLightboxOpen, setIsHistoryLightboxOpen] = useState(false);
+
+  // === Derived: backward-compatible result object ===
+  const result = useMemo(() => {
+    if (!generatedTestId) return null;
+    return {
+      testId: generatedTestId,
+      images: generatedImages,
+      assembledPrompts: generatedAssembledPrompts,
+      generationTimeMs: generatedTimeMs,
+      seed: generatedSeed,
+    };
+  }, [generatedTestId, generatedImages, generatedAssembledPrompts, generatedTimeMs, generatedSeed]);
 
   // === Derived State ===
   const themePrompts = useMemo(() => {
@@ -506,18 +531,18 @@ export default function PromptLabPage() {
 
   // Handle result completion
   useEffect(() => {
-    if (result && !isGenerating) {
+    if (generationStatus === 'completed' && !isGenerating) {
       stopTimer();
       const elapsed = ((Date.now() - startTimeRef.current) / 1000).toFixed(1);
       addLog('success', 'result', `Generation completed (${elapsed}s)`, {
-        testId: result.testId,
-        seed: result.seed,
-        generationTimeMs: result.generationTimeMs,
-        imageSize: result.images[0] ? `${result.images[0].width}×${result.images[0].height}` : null,
+        testId: generatedTestId,
+        seed: generatedSeed,
+        generationTimeMs: generatedTimeMs,
+        imageSize: generatedImages[0] ? `${generatedImages[0].width}×${generatedImages[0].height}` : null,
       });
       fetchHistory();
     }
-  }, [result, isGenerating, stopTimer, addLog, fetchHistory]);
+  }, [generationStatus, isGenerating, stopTimer, addLog, fetchHistory, generatedTestId, generatedSeed, generatedTimeMs, generatedImages]);
 
   const toggleSeedLock = () => {
     if (!isFixedSeed) {
@@ -711,12 +736,28 @@ export default function PromptLabPage() {
             value={imageCount}
             onChange={(v) => setImageCount(v)}
             min={1}
-            max={12}
+            max={50}
           />
         </div>
 
-        {/* Generate Button */}
-        <div className="p-4 border-t border-zinc-800">
+        {/* Generate Button + Progress */}
+        <div className="p-4 border-t border-zinc-800 space-y-3">
+          {isGenerating && generationTotalCount > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[10px] font-mono text-zinc-500">
+                <span>
+                  {generationStatus === 'queued' ? 'Queued...' : `Generating ${generationProgress}/${generationTotalCount}`}
+                </span>
+                <span>{generationTotalCount > 0 ? Math.round((generationProgress / generationTotalCount) * 100) : 0}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${generationTotalCount > 0 ? (generationProgress / generationTotalCount) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          )}
           <button
             disabled={isGenerating || !groomLoraUrl || !brideLoraUrl}
             onClick={handleGenerate}
@@ -1236,7 +1277,7 @@ export default function PromptLabPage() {
                   >
                     <Loader2 size={32} className="animate-spin text-purple-500 mb-4" />
                     <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-zinc-500 animate-pulse">
-                      Running Tensors...
+                      {generationStatus === 'queued' ? 'Queued...' : `Generating ${generationProgress}/${generationTotalCount}...`}
                     </span>
                   </motion.div>
                 ) : result?.images?.[selectedImageIndex] ? (

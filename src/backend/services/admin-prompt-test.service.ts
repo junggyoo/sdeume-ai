@@ -14,6 +14,7 @@ import type {
   PromptTestHistoryQuery,
   PromptTestHistoryResponse,
   PromptTestUpdateRequest,
+  PromptTestStatusResponse,
   ThemeConfig,
 } from '@/features/admin-prompt-lab/types';
 import {
@@ -370,9 +371,8 @@ export const insertPromptTest = async (
     extraStyleTags?: string;
     groomLoraUrl: string;
     brideLoraUrl: string;
-    images: PromptTestImage[];
-    generationTimeMs: number;
     assembledPrompts: AssembledPrompts;
+    totalCount: number;
   }
 ): Promise<HandlerResult<AdminPromptTest, AdminPromptTestError>> => {
   const { data: row, error } = await supabase
@@ -387,9 +387,13 @@ export const insertPromptTest = async (
       extra_style_tags: data.extraStyleTags ?? null,
       groom_lora_url: data.groomLoraUrl,
       bride_lora_url: data.brideLoraUrl,
-      images: data.images,
-      generation_time_ms: data.generationTimeMs,
+      images: null,
+      generation_time_ms: null,
       assembled_prompts: data.assembledPrompts,
+      status: 'queued',
+      progress: 0,
+      total_count: data.totalCount,
+      error_message: null,
       quality_issues: null,
       notes: null,
       is_favorite: false,
@@ -514,6 +518,74 @@ export const deletePromptTest = async (
   if (error) {
     console.error('Error deleting prompt test:', error);
     return failure(500, 'DELETE_ERROR', error.message);
+  }
+
+  return success(undefined);
+};
+
+// =============================================================================
+// Async Job Status Operations
+// =============================================================================
+
+export const getPromptTestStatus = async (
+  supabase: SupabaseClient,
+  testId: string
+): Promise<HandlerResult<PromptTestStatusResponse, AdminPromptTestError>> => {
+  const { data, error } = await supabase
+    .from('admin_prompt_tests')
+    .select('*')
+    .eq('id', testId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return failure(404, 'TEST_NOT_FOUND', 'Test not found');
+    }
+    console.error('Error fetching prompt test status:', error);
+    return failure(500, 'FETCH_ERROR', error.message);
+  }
+
+  const row = data as AdminPromptTestRow;
+  return success({
+    id: row.id,
+    status: row.status,
+    progress: row.progress,
+    totalCount: row.total_count,
+    images: row.images,
+    generationTimeMs: row.generation_time_ms,
+    errorMessage: row.error_message,
+    assembledPrompts: row.assembled_prompts,
+    seed: row.seed,
+  });
+};
+
+export const updatePromptTestProgress = async (
+  supabase: SupabaseClient,
+  testId: string,
+  updates: {
+    status?: string;
+    progress?: number;
+    images?: PromptTestImage[];
+    generationTimeMs?: number;
+    errorMessage?: string;
+  }
+): Promise<HandlerResult<void, AdminPromptTestError>> => {
+  const updateData: Record<string, unknown> = {};
+
+  if (updates.status !== undefined) updateData.status = updates.status;
+  if (updates.progress !== undefined) updateData.progress = updates.progress;
+  if (updates.images !== undefined) updateData.images = updates.images;
+  if (updates.generationTimeMs !== undefined) updateData.generation_time_ms = updates.generationTimeMs;
+  if (updates.errorMessage !== undefined) updateData.error_message = updates.errorMessage;
+
+  const { error } = await supabase
+    .from('admin_prompt_tests')
+    .update(updateData)
+    .eq('id', testId);
+
+  if (error) {
+    console.error('Error updating prompt test progress:', error);
+    return failure(500, 'UPDATE_ERROR', error.message);
   }
 
   return success(undefined);

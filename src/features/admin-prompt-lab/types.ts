@@ -127,10 +127,27 @@ export interface PromptTestImage {
 
 export interface PromptTestGenerateResponse {
   testId: string;
-  images: PromptTestImage[];
+  status: PromptTestStatus;
   assembledPrompts: AssembledPrompts;
-  generationTimeMs: number;
   seed: number;
+}
+
+// =============================================================================
+// Async Job Status Types
+// =============================================================================
+
+export type PromptTestStatus = 'queued' | 'generating' | 'completed' | 'failed';
+
+export interface PromptTestStatusResponse {
+  id: string;
+  status: PromptTestStatus;
+  progress: number;
+  totalCount: number;
+  images: PromptTestImage[] | null;
+  generationTimeMs: number | null;
+  errorMessage: string | null;
+  assembledPrompts: AssembledPrompts;
+  seed: number | null;
 }
 
 // =============================================================================
@@ -180,6 +197,12 @@ export interface AdminPromptTest {
   // Assembled prompts (for reproducibility)
   assembledPrompts: AssembledPrompts;
 
+  // Async job status
+  status: PromptTestStatus;
+  progress: number;
+  totalCount: number;
+  errorMessage: string | null;
+
   // Evaluation
   qualityIssues: QualityIssueId[] | null;
   notes: string | null;
@@ -216,6 +239,12 @@ export interface AdminPromptTestRow {
 
   assembled_prompts: AssembledPrompts;
 
+  // Async job status
+  status: PromptTestStatus;
+  progress: number;
+  total_count: number;
+  error_message: string | null;
+
   quality_issues: string[] | null;
   notes: string | null;
 
@@ -242,6 +271,10 @@ export const mapRowToAdminPromptTest = (row: AdminPromptTestRow): AdminPromptTes
   images: row.images,
   generationTimeMs: row.generation_time_ms,
   assembledPrompts: row.assembled_prompts,
+  status: row.status,
+  progress: row.progress,
+  totalCount: row.total_count,
+  errorMessage: row.error_message,
   qualityIssues: row.quality_issues as QualityIssueId[] | null,
   notes: row.notes,
   isFavorite: row.is_favorite,

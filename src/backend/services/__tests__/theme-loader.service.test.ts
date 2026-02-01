@@ -32,7 +32,7 @@ describe('theme-loader.service', () => {
       const theme = await loadThemeFromYaml('white_studio');
 
       expect(theme.mainPositive).toBeDefined();
-      expect(theme.mainPositive.camera).toContain('Front-facing studio portrait');
+      expect(theme.mainPositive.camera).toContain('Studio wedding portrait');
       expect(theme.mainPositive.composition).toContain('Flexible framing');
       expect(theme.mainPositive.background).toContain('white');
       expect(theme.mainPositive.atmosphere).toBeTruthy();

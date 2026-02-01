@@ -165,8 +165,15 @@ vi.mock('@/features/admin-prompt-lab/hooks/useThemeConfig', () => ({
 vi.mock('@/features/admin-prompt-lab/hooks/usePromptTest', () => ({
   usePromptTest: vi.fn(() => ({
     isGenerating: false,
+    status: null,
+    progress: 0,
+    totalCount: 0,
     error: null,
-    result: null,
+    images: [],
+    assembledPrompts: null,
+    generationTimeMs: null,
+    seed: null,
+    testId: null,
     generate: vi.fn(),
     reset: vi.fn(),
   })),
@@ -392,8 +399,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: true,
+        status: 'generating',
+        progress: 0,
+        totalCount: 0,
         error: null,
-        result: null,
+        images: [],
+        assembledPrompts: null,
+        generationTimeMs: null,
+        seed: null,
+        testId: null,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -408,8 +422,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 1,
+        totalCount: 1,
         error: null,
-        result: mockGenerateResult,
+        images: mockGenerateResult.images,
+        assembledPrompts: mockGenerateResult.assembledPrompts,
+        generationTimeMs: mockGenerateResult.generationTimeMs,
+        seed: mockGenerateResult.seed,
+        testId: mockGenerateResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -426,8 +447,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'generating',
+        progress: 0,
+        totalCount: 0,
         error: 'Generation failed: timeout',
-        result: null,
+        images: [],
+        assembledPrompts: null,
+        generationTimeMs: null,
+        seed: null,
+        testId: null,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -543,8 +571,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -559,8 +594,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 1,
+        totalCount: 1,
         error: null,
-        result: mockGenerateResult, // single image
+        images: mockGenerateResult.images,
+        assembledPrompts: mockGenerateResult.assembledPrompts,
+        generationTimeMs: mockGenerateResult.generationTimeMs,
+        seed: mockGenerateResult.seed,
+        testId: mockGenerateResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -575,8 +617,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -601,8 +650,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -625,8 +681,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -657,8 +720,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -679,8 +749,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -707,8 +784,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -737,8 +821,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 1,
+        totalCount: 1,
         error: null,
-        result: mockGenerateResult, // single image
+        images: mockGenerateResult.images,
+        assembledPrompts: mockGenerateResult.assembledPrompts,
+        generationTimeMs: mockGenerateResult.generationTimeMs,
+        seed: mockGenerateResult.seed,
+        testId: mockGenerateResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
@@ -757,8 +848,15 @@ describe('PromptLabPage - New UI Layout', () => {
       const { usePromptTest } = await import('@/features/admin-prompt-lab/hooks/usePromptTest');
       vi.mocked(usePromptTest).mockReturnValue({
         isGenerating: false,
+        status: 'completed',
+        progress: 3,
+        totalCount: 3,
         error: null,
-        result: mockMultiImageResult,
+        images: mockMultiImageResult.images,
+        assembledPrompts: mockMultiImageResult.assembledPrompts,
+        generationTimeMs: mockMultiImageResult.generationTimeMs,
+        seed: mockMultiImageResult.seed,
+        testId: mockMultiImageResult.testId,
         generate: vi.fn(),
         reset: vi.fn(),
       });
