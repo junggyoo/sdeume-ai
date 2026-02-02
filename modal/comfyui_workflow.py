@@ -159,7 +159,7 @@ WORKFLOW_JSON = r'''
   "21": {
     "inputs": {
       "text": "closeup of Korean GROOM_SDME man, (East Asian facial features:1.2), brown eyes, black hair, (trendy Guile cut hairstyle:1.3), (wet hair styling:1.2), gentle smile, (cinematic lighting, warm spotlight:1.2)\n",
-      "clip": ["34", 1]
+      "clip": ["14", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -167,7 +167,7 @@ WORKFLOW_JSON = r'''
   "23": {
     "inputs": {
       "text": "closeup of Korean BRIDE_SDME woman, (East Asian facial features:1.2), brown eyes, black hair, (modern low bun hairstyle:1.2), (wispy side bangs:1.2), soft makeup, (cinematic lighting, warm spotlight:1.2)\n",
-      "clip": ["34", 1]
+      "clip": ["15", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -180,7 +180,7 @@ WORKFLOW_JSON = r'''
   "26": {
     "inputs": {
       "text": "woman, girl, female, makeup, lipstick, feminine, low quality, worst quality, (western, caucasian, white people, foreigner, american, european:1.3), blue eyes, blonde hair",
-      "clip": ["34", 1]
+      "clip": ["14", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -188,7 +188,7 @@ WORKFLOW_JSON = r'''
   "27": {
     "inputs": {
       "text": "man, boy, male, beard, mustache, masculine, bad anatomy, distortion, low quality, worst quality, (western, caucasian, white people, foreigner, american, european:1.3), blue eyes, blonde hair,",
-      "clip": ["34", 1]
+      "clip": ["15", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -206,9 +206,9 @@ WORKFLOW_JSON = r'''
   },
   "30": {
     "inputs": {
-      "threshold": 0.25,
-      "dilation": 6,
-      "crop_factor": 3.0,
+      "threshold": 0.20,
+      "dilation": 10,
+      "crop_factor": 3.5,
       "drop_size": 10,
       "labels": "all",
       "bbox_detector": ["19", 0],
@@ -268,7 +268,7 @@ WORKFLOW_JSON = r'''
       "noise_mask_feather": 20,
       "tiled_encode": false,
       "tiled_decode": false,
-      "image": ["8", 0],
+      "image": ["32", 0],
       "segs": ["40", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
@@ -358,8 +358,8 @@ WORKFLOW_JSON = r'''
   "40": {
     "inputs": {
       "target": "x1",
-      "order": false,
-      "take_start": 0,
+      "order": true,
+      "take_start": 1,
       "take_count": 1,
       "segs": ["30", 0]
     },
@@ -875,7 +875,7 @@ class ComfyUIServer:
         # 생성 파라미터 (신규)
         width = request.get("width", 896)
         height = request.get("height", 1152)
-        cfg = request.get("cfg", 7)
+        cfg = request.get("cfg", 1)  # FLUX model requires cfg=1 (guidance-free)
         steps = request.get("steps", 25)
         seed = request.get("seed")  # None이면 랜덤
 

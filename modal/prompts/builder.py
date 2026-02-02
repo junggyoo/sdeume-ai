@@ -100,6 +100,8 @@ def build_negative_prompt(negative: NegativePrompt) -> str:
         parts.append(negative.quality)
     if negative.mood:
         parts.append(negative.mood)
+    if negative.composition:
+        parts.append(negative.composition)
 
     return ", ".join(parts)
 

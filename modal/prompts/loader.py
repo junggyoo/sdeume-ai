@@ -101,6 +101,7 @@ def _parse_negative(data: dict) -> NegativePrompt:
         style=data.get("style", ""),
         quality=data.get("quality", ""),
         mood=data.get("mood", ""),
+        composition=data.get("composition"),
     )
 
 

@@ -128,9 +128,9 @@ workflow:
       cfg: 8
       guide_size: 512
     Detector:
-      face_threshold: 0.25
-      face_dilation: 6
-      face_crop_factor: 3.0
+      face_threshold: 0.20
+      face_dilation: 10
+      face_crop_factor: 3.5
       hand_threshold: 0.4
       hand_crop_factor: 3
 
