@@ -196,7 +196,7 @@ WORKFLOW_JSON = r'''
   "29": {
     "inputs": {
       "target": "x1",
-      "order": false,
+      "order": true,
       "take_start": 0,
       "take_count": 1,
       "segs": ["30", 0]
@@ -268,7 +268,7 @@ WORKFLOW_JSON = r'''
       "noise_mask_feather": 20,
       "tiled_encode": false,
       "tiled_decode": false,
-      "image": ["32", 0],
+      "image": ["8", 0],
       "segs": ["40", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
@@ -359,7 +359,7 @@ WORKFLOW_JSON = r'''
     "inputs": {
       "target": "x1",
       "order": false,
-      "take_start": 1,
+      "take_start": 0,
       "take_count": 1,
       "segs": ["30", 0]
     },
@@ -1143,7 +1143,7 @@ class ComfyUIServer:
         all_images = []
 
         for img_idx in range(count):
-            current_seed = base_seed + (img_idx * 1000)
+            current_seed = base_seed + (img_idx * 10000)
             print(f"\n📸 Generating image {img_idx + 1}/{count} with seed: {current_seed}")
 
             try:
