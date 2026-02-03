@@ -22,6 +22,7 @@ import {
   getPromptTestStatus,
   getPromptTestHistory,
   updatePromptTest,
+  updatePromptTestProgress,
   deletePromptTest,
 } from '@/backend/services/admin-prompt-test.service';
 import { enqueuePromptTestJob } from '@/backend/services/qstash.service';
@@ -220,7 +221,14 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
         await enqueuePromptTestJob(testId);
       } catch (err) {
         console.error('Failed to enqueue prompt test job:', err);
-        // Job failed to enqueue but DB record exists - mark as failed
+        await updatePromptTestProgress(supabase, testId, {
+          status: 'failed',
+          errorMessage: `QStash enqueue failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        return c.json(
+          { ok: false, error: { code: 'ENQUEUE_FAILED', message: 'Failed to start generation job' } },
+          500
+        );
       }
 
       return c.json(

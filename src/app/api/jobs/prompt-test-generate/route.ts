@@ -2,11 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { PromptTestImage } from '@/features/admin-prompt-lab/types';
 import type { AdminPromptTestRow } from '@/features/admin-prompt-lab/types';
 import {
-  getThemeConfig,
-  assemblePrompts,
   buildModalRequest,
   updatePromptTestProgress,
 } from '@/backend/services/admin-prompt-test.service';
+import { getAppConfig } from '@/backend/config';
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 import type { PromptOverrides } from '@/features/admin-prompt-lab/types';
 
@@ -28,9 +27,10 @@ async function handler(req: Request): Promise<Response> {
       );
     }
 
+    const config = getAppConfig();
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      config.supabase.url,
+      config.supabase.serviceRoleKey
     );
 
     // Fetch test record
@@ -59,7 +59,7 @@ async function handler(req: Request): Promise<Response> {
     // Mark as generating
     await updatePromptTestProgress(supabase, testId, { status: 'generating' });
 
-    const endpointUrl = process.env.MODAL_ENDPOINT_URL;
+    const endpointUrl = config.modal.endpointUrl;
     if (!endpointUrl) {
       await updatePromptTestProgress(supabase, testId, {
         status: 'failed',

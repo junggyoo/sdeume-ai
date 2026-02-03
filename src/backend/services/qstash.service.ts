@@ -69,9 +69,9 @@ function getQStashConfig(): { token: string; baseUrl?: string } {
 }
 
 function getAppUrl(): string {
-  // Local mode: use localhost
+  // Local mode: always use localhost (QStash CLI runs on the same machine)
   if (isLocalMode()) {
-    return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return 'http://localhost:3000';
   }
 
   // Production mode: require real URL
