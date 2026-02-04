@@ -388,16 +388,16 @@ WORKFLOW_JSON = r'''
     "inputs": {
       "preset_repo_id": "rizvandwiki/gender-classification-2",
       "manual_repo_id": "",
-      "device_mode": "Prefer GPU"
+      "device_mode": "AUTO"
     },
-    "class_type": "ImpactHFTransformersClassifierProvider",
+    "class_type": "HF Transformers Classifier Provider",
     "_meta": {"title": "Gender Classifier Provider"}
   },
   "51": {
     "inputs": {
       "segs": ["30", 0],
       "classifier": ["50", 0],
-      "ref_image_opt": ["8", 0],
+      "image": ["8", 0],
       "preset_expr": "Manual expr",
       "manual_expr": "#Male > 0.5"
     },
@@ -408,7 +408,7 @@ WORKFLOW_JSON = r'''
     "inputs": {
       "segs": ["30", 0],
       "classifier": ["50", 0],
-      "ref_image_opt": ["8", 0],
+      "image": ["8", 0],
       "preset_expr": "Manual expr",
       "manual_expr": "#Female > 0.5"
     },
