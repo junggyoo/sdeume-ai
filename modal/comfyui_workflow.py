@@ -1259,7 +1259,21 @@ class ComfyUIServer:
                     json={"prompt": current_workflow},
                     timeout=30,
                 )
-                response.raise_for_status()
+
+                # 상세 에러 로깅
+                if response.status_code != 200:
+                    print(f"  ❌ ComfyUI returned status {response.status_code}")
+                    print(f"  📋 Response body: {response.text}")
+                    try:
+                        error_json = response.json()
+                        if "error" in error_json:
+                            print(f"  🔍 Error details: {error_json['error']}")
+                        if "node_errors" in error_json:
+                            print(f"  🔍 Node errors: {json.dumps(error_json['node_errors'], indent=2)}")
+                    except:
+                        pass
+                    response.raise_for_status()
+
                 prompt_id = response.json()["prompt_id"]
                 print(f"  Workflow queued: {prompt_id}")
 
