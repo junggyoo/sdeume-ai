@@ -297,8 +297,8 @@ class TestGenderBasedClassification:
         assert "50" in workflow, "Node 50 (Gender Classifier) is missing"
 
     def test_node50_class_type(self, workflow):
-        """should be HF Transformers Classifier Provider (with spaces)"""
-        assert workflow["50"]["class_type"] == "HF Transformers Classifier Provider"
+        """should be ImpactHFTransformersClassifierProvider"""
+        assert workflow["50"]["class_type"] == "ImpactHFTransformersClassifierProvider"
 
     def test_node50_uses_gender_model(self, workflow):
         """should use gender classification model"""

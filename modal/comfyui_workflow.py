@@ -387,10 +387,9 @@ WORKFLOW_JSON = r'''
   "50": {
     "inputs": {
       "preset_repo_id": "rizvandwiki/gender-classification-2",
-      "manual_repo_id": "",
       "device_mode": "AUTO"
     },
-    "class_type": "HF Transformers Classifier Provider",
+    "class_type": "ImpactHFTransformersClassifierProvider",
     "_meta": {"title": "Gender Classifier Provider"}
   },
   "51": {
@@ -919,6 +918,29 @@ class ComfyUIServer:
                 "impact_related_nodes": list(impact_nodes.keys()),
                 "impact_node_count": len(impact_nodes),
             }
+        except Exception as e:
+            return {"error": str(e)}
+
+    @modal.fastapi_endpoint(method="GET")
+    def debug_node_info(self, node_name: str = "ImpactHFTransformersClassifierProvider"):
+        """특정 노드의 입력 파라미터 확인 (디버그용)"""
+        import requests
+
+        try:
+            response = requests.get("http://127.0.0.1:8188/object_info", timeout=30)
+            response.raise_for_status()
+            all_nodes = response.json()
+
+            if node_name in all_nodes:
+                node_info = all_nodes[node_name]
+                return {
+                    "node_name": node_name,
+                    "input": node_info.get("input", {}),
+                    "output": node_info.get("output", []),
+                    "output_name": node_info.get("output_name", []),
+                }
+            else:
+                return {"error": f"Node '{node_name}' not found"}
         except Exception as e:
             return {"error": str(e)}
 
