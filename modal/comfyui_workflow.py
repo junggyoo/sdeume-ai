@@ -371,6 +371,8 @@ WORKFLOW_JSON = r'''
   "41": {
     "inputs": {
       "fallback_image_size": 64,
+      "alpha_mode": "true",
+      "min_alpha": 0.2,
       "segs": ["53", 0]
     },
     "class_type": "SEGSPreview",
@@ -379,6 +381,8 @@ WORKFLOW_JSON = r'''
   "42": {
     "inputs": {
       "fallback_image_size": 64,
+      "alpha_mode": "true",
+      "min_alpha": 0.2,
       "segs": ["54", 0]
     },
     "class_type": "SEGSPreview",
@@ -417,7 +421,7 @@ WORKFLOW_JSON = r'''
   },
   "53": {
     "inputs": {
-      "target": "area",
+      "target": "area(=w*h)",
       "order": false,
       "take_start": 0,
       "take_count": 1,
@@ -428,7 +432,7 @@ WORKFLOW_JSON = r'''
   },
   "54": {
     "inputs": {
-      "target": "area",
+      "target": "area(=w*h)",
       "order": false,
       "take_start": 0,
       "take_count": 1,
