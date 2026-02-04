@@ -397,9 +397,9 @@ WORKFLOW_JSON = r'''
     "inputs": {
       "segs": ["30", 0],
       "classifier": ["50", 0],
-      "image": ["8", 0],
-      "preset_expr": "Manual expr",
-      "manual_expr": "#Male > 0.5"
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "male > 0.5",
+      "manual_expr": ""
     },
     "class_type": "ImpactSEGSClassify",
     "_meta": {"title": "SEGS Classify - Male"}
@@ -408,9 +408,9 @@ WORKFLOW_JSON = r'''
     "inputs": {
       "segs": ["30", 0],
       "classifier": ["50", 0],
-      "image": ["8", 0],
-      "preset_expr": "Manual expr",
-      "manual_expr": "#Female > 0.5"
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "female > 0.5",
+      "manual_expr": ""
     },
     "class_type": "ImpactSEGSClassify",
     "_meta": {"title": "SEGS Classify - Female"}

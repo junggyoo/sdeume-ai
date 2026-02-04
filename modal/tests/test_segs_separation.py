@@ -188,10 +188,10 @@ class TestSEGSSeparation:
         n52 = workflow["52"]["inputs"]
 
         # Node 51: filters for male
-        assert "#Male" in n51["manual_expr"]
+        assert "male" in n51["preset_expr"].lower()
 
         # Node 52: filters for female
-        assert "#Female" in n52["manual_expr"]
+        assert "female" in n52["preset_expr"].lower()
 
     # =========================================================================
     # Node 33: Image source (chained from Node 32)
@@ -328,9 +328,9 @@ class TestGenderBasedClassification:
         assert n51["classifier"] == ["50", 0]
 
     def test_node51_filters_for_male(self, workflow):
-        """should filter for male using expression"""
+        """should filter for male using preset expression"""
         n51 = workflow["51"]["inputs"]
-        assert "#Male" in n51["manual_expr"]
+        assert "male" in n51["preset_expr"].lower()
 
     # =========================================================================
     # Node 52: Female SEGS Classify
@@ -355,9 +355,9 @@ class TestGenderBasedClassification:
         assert n52["classifier"] == ["50", 0]
 
     def test_node52_filters_for_female(self, workflow):
-        """should filter for female using expression"""
+        """should filter for female using preset expression"""
         n52 = workflow["52"]["inputs"]
-        assert "#Female" in n52["manual_expr"]
+        assert "female" in n52["preset_expr"].lower()
 
     # =========================================================================
     # Node 53: Groom Ordered Filter (largest male)
