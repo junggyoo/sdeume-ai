@@ -270,14 +270,19 @@ export const loadAllThemes = async (): Promise<ThemeConfig[]> => {
  * Returns undefined if theme not found
  */
 export const getThemeConfig = async (themeSlug: ThemeSlug): Promise<ThemeConfig | undefined> => {
-  // Check cache first
-  if (themeCache.has(themeSlug)) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Skip cache in development/test environments for hot-reload support
+  if (isProduction && themeCache.has(themeSlug)) {
     return themeCache.get(themeSlug);
   }
 
   try {
     const theme = await loadThemeFromYaml(themeSlug);
-    themeCache.set(themeSlug, theme);
+    // Only cache in production
+    if (isProduction) {
+      themeCache.set(themeSlug, theme);
+    }
     return theme;
   } catch {
     return undefined;
@@ -288,17 +293,23 @@ export const getThemeConfig = async (themeSlug: ThemeSlug): Promise<ThemeConfig 
  * Get all theme configs with caching
  */
 export const getAllThemeConfigs = async (): Promise<ThemeConfig[]> => {
-  // Check cache first
-  if (allThemesCache) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Skip cache in development/test environments for hot-reload support
+  if (isProduction && allThemesCache) {
     return allThemesCache;
   }
 
   const themes = await loadAllThemes();
-  allThemesCache = themes;
 
-  // Also populate individual cache
-  for (const theme of themes) {
-    themeCache.set(theme.slug, theme);
+  // Only cache in production
+  if (isProduction) {
+    allThemesCache = themes;
+
+    // Also populate individual cache
+    for (const theme of themes) {
+      themeCache.set(theme.slug, theme);
+    }
   }
 
   return themes;

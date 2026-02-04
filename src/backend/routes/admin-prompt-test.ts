@@ -8,7 +8,6 @@ import { getSupabase, getConfig, type AppEnv } from '@/backend/hono/context';
 import type {
   PromptOverrides,
   NodeOverrides,
-  PromptTestImage,
   QualityIssueId,
 } from '@/features/admin-prompt-lab/types';
 import {
@@ -20,10 +19,13 @@ import {
   validateNodeOverrides,
   insertPromptTest,
   getPromptTestById,
+  getPromptTestStatus,
   getPromptTestHistory,
   updatePromptTest,
+  updatePromptTestProgress,
   deletePromptTest,
 } from '@/backend/services/admin-prompt-test.service';
+import { enqueuePromptTestJob } from '@/backend/services/qstash.service';
 import type { ThemeSlug, ShotType } from '@/features/shooting/types';
 
 // =============================================================================
@@ -76,7 +78,7 @@ const generateRequestSchema = z.object({
   brideLoraUrl: z.string().url(),
   seed: z.number().optional(),
   extraStyleTags: z.string().optional(),
-  count: z.number().min(1).max(4).default(1),
+  count: z.number().min(1).max(50).default(1),
 });
 
 const historyQuerySchema = z.object({
@@ -121,7 +123,7 @@ const getAuthUser = async (
 
 export const adminPromptTestRoutes = new Hono<AppEnv>()
   // ==========================================================================
-  // POST /generate - Generate test image
+  // POST /generate - Queue async image generation
   // ==========================================================================
   .post('/generate', async (c) => {
     const supabase = getSupabase(c);
@@ -141,7 +143,6 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
     }
 
     const body = parsedBody.data;
-    const config = getConfig(c);
 
       // Validate overrides
       const promptValidation = validatePromptOverrides(body.promptOverrides as PromptOverrides);
@@ -169,7 +170,7 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
         );
       }
 
-      // Build Modal request
+      // Build Modal request (for seed/trigger extraction)
       const modalRequest = buildModalRequest({
         themeSlug: body.themeSlug as ThemeSlug,
         shotType: body.shotType as ShotType,
@@ -192,102 +193,73 @@ export const adminPromptTestRoutes = new Hono<AppEnv>()
         includeMainTriggers: modalRequest.includeMainTriggers,
       });
 
-      // Call Modal API
-      const startTime = Date.now();
-      const endpointUrl = config.modal?.endpointUrl;
+      const totalCount = body.count ?? 1;
 
-      if (!endpointUrl) {
-        return c.json(
-          { ok: false, error: { code: 'GENERATION_ERROR', message: 'Modal endpoint not configured' } },
-          500
-        );
+      // Insert queued record into DB
+      const insertResult = await insertPromptTest(supabase, {
+        userId: user.id,
+        themeSlug: body.themeSlug as ThemeSlug,
+        shotType: body.shotType as ShotType,
+        promptOverrides: body.promptOverrides as PromptOverrides,
+        nodeOverrides: body.nodeOverrides as NodeOverrides,
+        seed: modalRequest.seed,
+        extraStyleTags: body.extraStyleTags,
+        groomLoraUrl: body.groomLoraUrl,
+        brideLoraUrl: body.brideLoraUrl,
+        assembledPrompts,
+        totalCount,
+      });
+
+      if (!insertResult.ok) {
+        return respond(c, insertResult);
       }
 
+      const testId = insertResult.data.id;
+
+      // Enqueue background job via QStash
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
-
-        const response = await fetch(endpointUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...modalRequest,
-            count: body.count ?? 1,
-          }),
-          signal: controller.signal,
+        await enqueuePromptTestJob(testId);
+      } catch (err) {
+        console.error('Failed to enqueue prompt test job:', err);
+        await updatePromptTestProgress(supabase, testId, {
+          status: 'failed',
+          errorMessage: `QStash enqueue failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          return c.json(
-            { ok: false, error: { code: 'GENERATION_ERROR', message: errorData.error || 'Modal API error' } },
-            500
-          );
-        }
-
-        const data = await response.json();
-        const generationTimeMs = Date.now() - startTime;
-
-        // Process images
-        const images: PromptTestImage[] = data.images.map((img: { base64: string; content_type: string; width: number; height: number }) => ({
-          base64: img.base64,
-          contentType: img.content_type,
-          width: img.width,
-          height: img.height,
-        }));
-
-        // Save to database
-        const insertResult = await insertPromptTest(supabase, {
-          userId: user.id,
-          themeSlug: body.themeSlug as ThemeSlug,
-          shotType: body.shotType as ShotType,
-          promptOverrides: body.promptOverrides as PromptOverrides,
-          nodeOverrides: body.nodeOverrides as NodeOverrides,
-          seed: modalRequest.seed,
-          extraStyleTags: body.extraStyleTags,
-          groomLoraUrl: body.groomLoraUrl,
-          brideLoraUrl: body.brideLoraUrl,
-          images,
-          generationTimeMs,
-          assembledPrompts,
-        });
-
-        if (!insertResult.ok) {
-          return respond(c, insertResult);
-        }
-
         return c.json(
-          {
-            ok: true,
-            data: {
-              testId: insertResult.data.id,
-              images,
-              assembledPrompts,
-              generationTimeMs,
-              seed: modalRequest.seed,
-            },
-          },
-          201
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-
-        if (message.includes('abort') || message.includes('AbortError')) {
-          return c.json(
-            { ok: false, error: { code: 'GENERATION_TIMEOUT', message: 'Request timed out' } },
-            408
-          );
-        }
-
-        return c.json(
-          { ok: false, error: { code: 'GENERATION_ERROR', message } },
+          { ok: false, error: { code: 'ENQUEUE_FAILED', message: 'Failed to start generation job' } },
           500
         );
       }
+
+      return c.json(
+        {
+          ok: true,
+          data: {
+            testId,
+            status: 'queued',
+            assembledPrompts,
+            seed: modalRequest.seed,
+          },
+        },
+        201
+      );
     }
   )
+
+  // ==========================================================================
+  // GET /status/:testId - Poll generation status
+  // ==========================================================================
+  .get('/status/:testId', async (c) => {
+    const supabase = getSupabase(c);
+    const user = await getAuthUser(c, supabase);
+    if (!user) {
+      return c.json({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, 401);
+    }
+
+    const testId = c.req.param('testId');
+    const result = await getPromptTestStatus(supabase, testId);
+    return respond(c, result);
+  })
 
   // ==========================================================================
   // GET /history - Get test history

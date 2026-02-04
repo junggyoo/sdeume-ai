@@ -143,15 +143,16 @@ describe('QStash Service', () => {
         expect(result).toEqual({ messageId: 'local-msg-123' });
       });
 
-      it('should use custom app URL if provided', async () => {
+      it('should ignore NEXT_PUBLIC_APP_URL and always use localhost:3000 in local mode', async () => {
         process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:4000';
         mockPublishJSON.mockResolvedValue({ messageId: 'local-msg-456' });
 
         await enqueueTrainingJob(mockPayload);
 
+        // Local mode always uses localhost:3000 regardless of NEXT_PUBLIC_APP_URL
         expect(mockPublishJSON).toHaveBeenCalledWith(
           expect.objectContaining({
-            url: 'http://localhost:4000/api/jobs/prepare-training',
+            url: 'http://localhost:3000/api/jobs/prepare-training',
           })
         );
       });

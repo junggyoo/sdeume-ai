@@ -69,9 +69,9 @@ function getQStashConfig(): { token: string; baseUrl?: string } {
 }
 
 function getAppUrl(): string {
-  // Local mode: use localhost
+  // Local mode: always use localhost (QStash CLI runs on the same machine)
   if (isLocalMode()) {
-    return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return 'http://localhost:3000';
   }
 
   // Production mode: require real URL
@@ -105,6 +105,43 @@ export function resetQStashClient(): void {
 // =============================================================================
 // enqueueTrainingJob
 // =============================================================================
+
+/**
+ * Enqueue a training job to be processed asynchronously.
+ *
+ * Supports three modes:
+ * 1. Production: Uses Upstash QStash cloud
+ * 2. Local Mode: Uses qstash-cli local server (npx @upstash/qstash-cli@latest dev)
+ * 3. Skip Mode: In test/CI without QStash config, returns dev-mode messageId
+ */
+/**
+ * Enqueue a prompt test generation job to be processed asynchronously.
+ */
+export async function enqueuePromptTestJob(
+  testId: string
+): Promise<EnqueueResult> {
+  const hasQStashConfig = Boolean(process.env.QSTASH_TOKEN || process.env.QSTASH_URL);
+
+  if (!hasQStashConfig && process.env.NODE_ENV !== 'production') {
+    console.log('[QStash] Skipping QStash in non-production environment');
+    return { messageId: 'dev-mode' };
+  }
+
+  const appUrl = getAppUrl();
+  const qstash = getQStashClient();
+
+  if (isLocalMode()) {
+    console.log('[QStash] Using local mode for prompt test job');
+  }
+
+  const result = await qstash.publishJSON({
+    url: `${appUrl}/api/jobs/prompt-test-generate`,
+    body: { testId },
+    retries: 3,
+  });
+
+  return { messageId: result.messageId };
+}
 
 /**
  * Enqueue a training job to be processed asynchronously.

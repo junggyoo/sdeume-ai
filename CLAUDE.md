@@ -310,3 +310,21 @@ pnpm test:e2e:headed # 브라우저 표시
 **⚠️ 1-6단계: 사용자에게 "진행할까요?" 질문 금지. 무조건 완료까지 진행.**
 **⚠️ 7-8단계: 사용자 승인 필요 (선택적).**
 **⚠️ 재시도 횟수 초과 시에만 사용자 개입 요청.**
+
+---
+
+## Serena Usage (MANDATORY)
+
+Always use Serena MCP tools for code exploration and manipulation:
+
+| Tool | Purpose |
+|------|---------|
+| `find_symbol` | Locate classes, functions, variables |
+| `get_symbols_overview` | Understand file structure |
+| `find_referencing_symbols` | Check dependencies before changes |
+| `insert_after_symbol` / `insert_before_symbol` | For code insertion |
+| `replace_symbol_body` | For refactoring |
+
+**Rules:**
+- Never use grep/ripgrep when Serena can do semantic search
+- Never read entire files - use Serena to get relevant symbols only

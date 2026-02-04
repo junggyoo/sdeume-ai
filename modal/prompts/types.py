@@ -68,6 +68,7 @@ class NegativePrompt:
     style: str
     quality: str
     mood: str
+    composition: Optional[str] = None
 
 
 @dataclass

@@ -1,11 +1,15 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import type { AppEnv } from '@/backend/hono/context';
 import { adminPromptTestRoutes } from '../admin-prompt-test';
 
-// Mock fetch globally for Modal API calls
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// Mock QStash service
+vi.mock('@/backend/services/qstash.service', () => ({
+  enqueuePromptTestJob: vi.fn().mockResolvedValue({ messageId: 'mock-msg-id' }),
+}));
+
+import { enqueuePromptTestJob } from '@/backend/services/qstash.service';
 
 // =============================================================================
 // Mocks
@@ -93,7 +97,7 @@ const MOCK_GROOM_LORA_URL = 'https://storage.fal.ai/lora/groom-model.safetensors
 const MOCK_BRIDE_LORA_URL = 'https://storage.fal.ai/lora/bride-model.safetensors';
 
 // =============================================================================
-// Tests: POST /admin/prompt-test/generate
+// Tests: POST /admin/prompt-test/generate (Async - returns immediately)
 // =============================================================================
 
 describe('POST /admin/prompt-test/generate', () => {
@@ -170,24 +174,8 @@ describe('POST /admin/prompt-test/generate', () => {
     expect(body.error.code).toBe('INVALID_INPUT');
   });
 
-  it('should generate test image with default settings', async () => {
-    // Mock Modal API response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        images: [
-          {
-            base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-            content_type: 'image/png',
-            width: 896,
-            height: 1152,
-            status: 'success',
-          },
-        ],
-      }),
-    });
-
-    // Mock database insert
+  it('should return testId immediately with status=queued (async pattern)', async () => {
+    // Mock database insert - returns the queued record
     mockSingle.mockResolvedValueOnce({
       data: {
         id: TEST_TEST_ID,
@@ -200,8 +188,8 @@ describe('POST /admin/prompt-test/generate', () => {
         extra_style_tags: null,
         groom_lora_url: MOCK_GROOM_LORA_URL,
         bride_lora_url: MOCK_BRIDE_LORA_URL,
-        images: [],
-        generation_time_ms: 42000,
+        images: null,
+        generation_time_ms: null,
         assembled_prompts: {
           node6MainPositive: 'Test prompt...',
           node7MainNegative: 'illustration...',
@@ -212,6 +200,10 @@ describe('POST /admin/prompt-test/generate', () => {
           node38HandPositive: 'detailed hands...',
           node39HandNegative: '',
         },
+        status: 'queued',
+        progress: 0,
+        total_count: 1,
+        error_message: null,
         quality_issues: null,
         notes: null,
         is_favorite: false,
@@ -239,95 +231,14 @@ describe('POST /admin/prompt-test/generate', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.data.testId).toBe(TEST_TEST_ID);
-    expect(body.data.assembledPrompts).toBeDefined();
-    expect(body.data.images).toHaveLength(1);
+    expect(body.data.status).toBe('queued');
+    // Should NOT have images yet (async - generation happens in background)
+    expect(body.data.images).toBeUndefined();
+    // Should have enqueued a QStash job
+    expect(enqueuePromptTestJob).toHaveBeenCalledWith(TEST_TEST_ID);
   });
 
-  it('should apply prompt overrides when provided', async () => {
-    const promptOverrides = {
-      mainPositive: 'Custom main positive prompt',
-      groomFacePositive: 'Custom groom face prompt',
-    };
-
-    // Mock Modal API response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        images: [{ base64: 'test', content_type: 'image/png', width: 896, height: 1152 }],
-      }),
-    });
-
-    // Mock database insert
-    mockSingle.mockResolvedValueOnce({
-      data: {
-        id: TEST_TEST_ID,
-        user_id: TEST_USER_ID,
-        theme_slug: 'white_studio',
-        shot_type: 'full_body',
-        prompt_overrides: promptOverrides,
-        node_overrides: null,
-        seed: 12345,
-        extra_style_tags: null,
-        groom_lora_url: MOCK_GROOM_LORA_URL,
-        bride_lora_url: MOCK_BRIDE_LORA_URL,
-        images: [],
-        generation_time_ms: 42000,
-        assembled_prompts: {
-          node6MainPositive: 'Custom main positive prompt',
-          node7MainNegative: 'illustration...',
-          node21GroomFace: 'GROOM_SDME, Custom groom face prompt',
-          node26GroomFaceNegative: 'woman...',
-          node23BrideFace: 'BRIDE_SDME, ...',
-          node27BrideFaceNegative: 'man...',
-          node38HandPositive: 'detailed hands...',
-          node39HandNegative: '',
-        },
-        quality_issues: null,
-        notes: null,
-        is_favorite: false,
-        created_at: new Date().toISOString(),
-      },
-      error: null,
-    });
-
-    const res = await app.request('/admin/prompt-test/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer valid-token',
-      },
-      body: JSON.stringify({
-        themeSlug: 'white_studio',
-        shotType: 'full_body',
-        groomLoraUrl: MOCK_GROOM_LORA_URL,
-        brideLoraUrl: MOCK_BRIDE_LORA_URL,
-        promptOverrides,
-      }),
-    });
-
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.data.assembledPrompts.node6MainPositive).toContain('Custom main positive prompt');
-  });
-
-  it('should apply node overrides when provided', async () => {
-    const nodeOverrides = {
-      groomDenoise: 0.5,
-      brideDenoise: 0.4,
-      cfg: 2,
-      steps: 30,
-    };
-
-    // Mock Modal API response
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        images: [{ base64: 'test', content_type: 'image/png', width: 896, height: 1152 }],
-      }),
-    });
-
-    // Mock database insert
+  it('should accept count up to 50 for async pattern', async () => {
     mockSingle.mockResolvedValueOnce({
       data: {
         id: TEST_TEST_ID,
@@ -335,23 +246,27 @@ describe('POST /admin/prompt-test/generate', () => {
         theme_slug: 'white_studio',
         shot_type: 'full_body',
         prompt_overrides: null,
-        node_overrides: nodeOverrides,
+        node_overrides: null,
         seed: 12345,
         extra_style_tags: null,
         groom_lora_url: MOCK_GROOM_LORA_URL,
         bride_lora_url: MOCK_BRIDE_LORA_URL,
-        images: [],
-        generation_time_ms: 42000,
+        images: null,
+        generation_time_ms: null,
         assembled_prompts: {
-          node6MainPositive: 'Test prompt...',
-          node7MainNegative: 'illustration...',
-          node21GroomFace: 'GROOM_SDME, ...',
-          node26GroomFaceNegative: 'woman...',
-          node23BrideFace: 'BRIDE_SDME, ...',
-          node27BrideFaceNegative: 'man...',
-          node38HandPositive: 'detailed hands...',
-          node39HandNegative: '',
+          node6MainPositive: 'Test',
+          node7MainNegative: 'Test',
+          node21GroomFace: 'Test',
+          node26GroomFaceNegative: 'Test',
+          node23BrideFace: 'Test',
+          node27BrideFaceNegative: 'Test',
+          node38HandPositive: 'Test',
+          node39HandNegative: 'Test',
         },
+        status: 'queued',
+        progress: 0,
+        total_count: 50,
+        error_message: null,
         quality_issues: null,
         notes: null,
         is_favorite: false,
@@ -371,26 +286,105 @@ describe('POST /admin/prompt-test/generate', () => {
         shotType: 'full_body',
         groomLoraUrl: MOCK_GROOM_LORA_URL,
         brideLoraUrl: MOCK_BRIDE_LORA_URL,
-        nodeOverrides,
+        count: 50,
       }),
     });
 
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.ok).toBe(true);
-
-    // Verify Modal API was called with node overrides
-    expect(mockFetch).toHaveBeenCalled();
-    const fetchCallBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(fetchCallBody.nodeOverrides).toEqual(nodeOverrides);
   });
 
-  it('should handle Modal API error gracefully', async () => {
-    // Mock Modal API error
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: 'Internal server error' }),
+  it('should return 400 when count exceeds max (51)', async () => {
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+        count: 51,
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('INVALID_INPUT');
+  });
+
+  it('should return assembledPrompts in response', async () => {
+    const assembledPrompts = {
+      node6MainPositive: 'Custom main prompt',
+      node7MainNegative: 'illustration...',
+      node21GroomFace: 'GROOM_SDME, face prompt',
+      node26GroomFaceNegative: 'woman...',
+      node23BrideFace: 'BRIDE_SDME, face prompt',
+      node27BrideFaceNegative: 'man...',
+      node38HandPositive: 'detailed hands...',
+      node39HandNegative: '',
+    };
+
+    mockSingle.mockResolvedValueOnce({
+      data: {
+        id: TEST_TEST_ID,
+        user_id: TEST_USER_ID,
+        theme_slug: 'white_studio',
+        shot_type: 'full_body',
+        prompt_overrides: null,
+        node_overrides: null,
+        seed: 12345,
+        extra_style_tags: null,
+        groom_lora_url: MOCK_GROOM_LORA_URL,
+        bride_lora_url: MOCK_BRIDE_LORA_URL,
+        images: null,
+        generation_time_ms: null,
+        assembled_prompts: assembledPrompts,
+        status: 'queued',
+        progress: 0,
+        total_count: 1,
+        error_message: null,
+        quality_issues: null,
+        notes: null,
+        is_favorite: false,
+        created_at: new Date().toISOString(),
+      },
+      error: null,
+    });
+
+    const res = await app.request('/admin/prompt-test/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        themeSlug: 'white_studio',
+        shotType: 'full_body',
+        groomLoraUrl: MOCK_GROOM_LORA_URL,
+        brideLoraUrl: MOCK_BRIDE_LORA_URL,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.assembledPrompts).toBeDefined();
+    // Verify assembled prompts contain expected keys (values come from real YAML theme)
+    expect(body.data.assembledPrompts.node6MainPositive).toBeDefined();
+    expect(body.data.assembledPrompts.node7MainNegative).toBeDefined();
+    expect(body.data.assembledPrompts.node21GroomFace).toBeDefined();
+    expect(body.data.assembledPrompts.node23BrideFace).toBeDefined();
+  });
+
+  it('should handle DB insert error gracefully', async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: 'UNKNOWN', message: 'Database error' },
     });
 
     const res = await app.request('/admin/prompt-test/generate', {
@@ -410,31 +404,248 @@ describe('POST /admin/prompt-test/generate', () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.ok).toBe(false);
-    expect(body.error.code).toBe('GENERATION_ERROR');
+  });
+});
+
+// =============================================================================
+// Tests: GET /admin/prompt-test/status/:testId (Polling endpoint)
+// =============================================================================
+
+describe('GET /admin/prompt-test/status/:testId', () => {
+  let app: Hono<AppEnv>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    app = createTestApp();
+
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: TEST_USER_ID } },
+      error: null,
+    });
   });
 
-  it('should handle Modal API timeout', async () => {
-    // Mock timeout error
-    mockFetch.mockRejectedValueOnce(new Error('AbortError: Request timed out'));
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
 
-    const res = await app.request('/admin/prompt-test/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer valid-token',
-      },
-      body: JSON.stringify({
-        themeSlug: 'white_studio',
-        shotType: 'full_body',
-        groomLoraUrl: MOCK_GROOM_LORA_URL,
-        brideLoraUrl: MOCK_BRIDE_LORA_URL,
-      }),
+  it('should return 401 without authorization header', async () => {
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
     });
 
-    expect(res.status).toBe(408);
+    expect(res.status).toBe(401);
+  });
+
+  it('should return queued status with 0 progress', async () => {
+    mockSupabase.from.mockImplementation(() => {
+      const chainedMock = createChainedMock();
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: TEST_TEST_ID,
+          user_id: TEST_USER_ID,
+          theme_slug: 'white_studio',
+          shot_type: 'full_body',
+          prompt_overrides: null,
+          node_overrides: null,
+          seed: 12345,
+          extra_style_tags: null,
+          groom_lora_url: MOCK_GROOM_LORA_URL,
+          bride_lora_url: MOCK_BRIDE_LORA_URL,
+          images: null,
+          generation_time_ms: null,
+          assembled_prompts: {},
+          status: 'queued',
+          progress: 0,
+          total_count: 12,
+          error_message: null,
+          quality_issues: null,
+          notes: null,
+          is_favorite: false,
+          created_at: new Date().toISOString(),
+        },
+        error: null,
+      });
+      return chainedMock;
+    });
+
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.error.code).toBe('GENERATION_TIMEOUT');
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe('queued');
+    expect(body.data.progress).toBe(0);
+    expect(body.data.totalCount).toBe(12);
+  });
+
+  it('should return generating status with partial progress and images', async () => {
+    const partialImages = [
+      { base64: 'img1', contentType: 'image/png', width: 896, height: 1152 },
+      { base64: 'img2', contentType: 'image/png', width: 896, height: 1152 },
+    ];
+
+    mockSupabase.from.mockImplementation(() => {
+      const chainedMock = createChainedMock();
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: TEST_TEST_ID,
+          user_id: TEST_USER_ID,
+          theme_slug: 'white_studio',
+          shot_type: 'full_body',
+          prompt_overrides: null,
+          node_overrides: null,
+          seed: 12345,
+          extra_style_tags: null,
+          groom_lora_url: MOCK_GROOM_LORA_URL,
+          bride_lora_url: MOCK_BRIDE_LORA_URL,
+          images: partialImages,
+          generation_time_ms: null,
+          assembled_prompts: {},
+          status: 'generating',
+          progress: 2,
+          total_count: 12,
+          error_message: null,
+          quality_issues: null,
+          notes: null,
+          is_favorite: false,
+          created_at: new Date().toISOString(),
+        },
+        error: null,
+      });
+      return chainedMock;
+    });
+
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe('generating');
+    expect(body.data.progress).toBe(2);
+    expect(body.data.totalCount).toBe(12);
+    expect(body.data.images).toHaveLength(2);
+  });
+
+  it('should return completed status with all images', async () => {
+    const allImages = Array.from({ length: 12 }, (_, i) => ({
+      base64: `img${i}`,
+      contentType: 'image/png',
+      width: 896,
+      height: 1152,
+    }));
+
+    mockSupabase.from.mockImplementation(() => {
+      const chainedMock = createChainedMock();
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: TEST_TEST_ID,
+          user_id: TEST_USER_ID,
+          theme_slug: 'white_studio',
+          shot_type: 'full_body',
+          prompt_overrides: null,
+          node_overrides: null,
+          seed: 12345,
+          extra_style_tags: null,
+          groom_lora_url: MOCK_GROOM_LORA_URL,
+          bride_lora_url: MOCK_BRIDE_LORA_URL,
+          images: allImages,
+          generation_time_ms: 45000,
+          assembled_prompts: {},
+          status: 'completed',
+          progress: 12,
+          total_count: 12,
+          error_message: null,
+          quality_issues: null,
+          notes: null,
+          is_favorite: false,
+          created_at: new Date().toISOString(),
+        },
+        error: null,
+      });
+      return chainedMock;
+    });
+
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe('completed');
+    expect(body.data.progress).toBe(12);
+    expect(body.data.totalCount).toBe(12);
+    expect(body.data.images).toHaveLength(12);
+    expect(body.data.generationTimeMs).toBe(45000);
+  });
+
+  it('should return failed status with error message', async () => {
+    mockSupabase.from.mockImplementation(() => {
+      const chainedMock = createChainedMock();
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: TEST_TEST_ID,
+          user_id: TEST_USER_ID,
+          theme_slug: 'white_studio',
+          shot_type: 'full_body',
+          prompt_overrides: null,
+          node_overrides: null,
+          seed: 12345,
+          extra_style_tags: null,
+          groom_lora_url: MOCK_GROOM_LORA_URL,
+          bride_lora_url: MOCK_BRIDE_LORA_URL,
+          images: null,
+          generation_time_ms: null,
+          assembled_prompts: {},
+          status: 'failed',
+          progress: 0,
+          total_count: 12,
+          error_message: 'All batches failed',
+          quality_issues: null,
+          notes: null,
+          is_favorite: false,
+          created_at: new Date().toISOString(),
+        },
+        error: null,
+      });
+      return chainedMock;
+    });
+
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.status).toBe('failed');
+    expect(body.data.errorMessage).toBe('All batches failed');
+  });
+
+  it('should return 404 when test not found', async () => {
+    mockSupabase.from.mockImplementation(() => {
+      const chainedMock = createChainedMock();
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { code: 'PGRST116', message: 'No rows found' },
+      });
+      return chainedMock;
+    });
+
+    const res = await app.request(`/admin/prompt-test/status/${TEST_TEST_ID}`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(404);
   });
 });
 
@@ -515,6 +726,10 @@ describe('GET /admin/prompt-test/history', () => {
         images: [],
         generation_time_ms: 42000,
         assembled_prompts: {},
+        status: 'completed',
+        progress: 1,
+        total_count: 1,
+        error_message: null,
         quality_issues: null,
         notes: null,
         is_favorite: false,
@@ -692,6 +907,10 @@ describe('GET /admin/prompt-test/history/:id', () => {
         node38HandPositive: 'detailed hands...',
         node39HandNegative: '',
       },
+      status: 'completed',
+      progress: 1,
+      total_count: 1,
+      error_message: null,
       quality_issues: ['finger_broken'],
       notes: 'Test notes',
       is_favorite: true,
@@ -760,6 +979,10 @@ describe('PUT /admin/prompt-test/history/:id', () => {
       images: [],
       generation_time_ms: 42000,
       assembled_prompts: {},
+      status: 'completed',
+      progress: 1,
+      total_count: 1,
+      error_message: null,
       quality_issues: ['finger_broken', 'hand_distorted'],
       notes: null,
       is_favorite: false,
@@ -807,6 +1030,10 @@ describe('PUT /admin/prompt-test/history/:id', () => {
       images: [],
       generation_time_ms: 42000,
       assembled_prompts: {},
+      status: 'completed',
+      progress: 1,
+      total_count: 1,
+      error_message: null,
       quality_issues: null,
       notes: 'Updated notes',
       is_favorite: false,
@@ -854,6 +1081,10 @@ describe('PUT /admin/prompt-test/history/:id', () => {
       images: [],
       generation_time_ms: 42000,
       assembled_prompts: {},
+      status: 'completed',
+      progress: 1,
+      total_count: 1,
+      error_message: null,
       quality_issues: null,
       notes: null,
       is_favorite: true,

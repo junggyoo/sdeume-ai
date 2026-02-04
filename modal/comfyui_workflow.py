@@ -11,6 +11,9 @@ import json
 import time
 import base64
 import subprocess
+import hashlib
+from concurrent.futures import ThreadPoolExecutor
+from filelock import FileLock, Timeout as FileLockTimeout
 
 # Modal 앱 정의
 app = modal.App("sdeume-ai-comfyui")
@@ -53,6 +56,9 @@ image = (
         "nvidia-ml-py3",  # GPU 프로파일링용 추가
         "safetensors",  # LoRA 형식 변환용
         "pyyaml",  # 프롬프트 YAML 로딩용
+        "transformers",  # Gender classification 모델용
+        "accelerate",  # GPU inference 최적화용
+        "filelock",  # LoRA 캐싱 동시성 제어용
     )
     .run_commands(
         # ComfyUI 설치
@@ -159,7 +165,7 @@ WORKFLOW_JSON = r'''
   "21": {
     "inputs": {
       "text": "closeup of Korean GROOM_SDME man, (East Asian facial features:1.2), brown eyes, black hair, (trendy Guile cut hairstyle:1.3), (wet hair styling:1.2), gentle smile, (cinematic lighting, warm spotlight:1.2)\n",
-      "clip": ["34", 1]
+      "clip": ["14", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -167,7 +173,7 @@ WORKFLOW_JSON = r'''
   "23": {
     "inputs": {
       "text": "closeup of Korean BRIDE_SDME woman, (East Asian facial features:1.2), brown eyes, black hair, (modern low bun hairstyle:1.2), (wispy side bangs:1.2), soft makeup, (cinematic lighting, warm spotlight:1.2)\n",
-      "clip": ["34", 1]
+      "clip": ["15", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -180,7 +186,7 @@ WORKFLOW_JSON = r'''
   "26": {
     "inputs": {
       "text": "woman, girl, female, makeup, lipstick, feminine, low quality, worst quality, (western, caucasian, white people, foreigner, american, european:1.3), blue eyes, blonde hair",
-      "clip": ["34", 1]
+      "clip": ["14", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
@@ -188,27 +194,27 @@ WORKFLOW_JSON = r'''
   "27": {
     "inputs": {
       "text": "man, boy, male, beard, mustache, masculine, bad anatomy, distortion, low quality, worst quality, (western, caucasian, white people, foreigner, american, european:1.3), blue eyes, blonde hair,",
-      "clip": ["34", 1]
+      "clip": ["15", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
   },
   "29": {
     "inputs": {
-      "target": "area(=w*h)",
-      "order": true,
+      "target": "x1",
+      "order": false,
       "take_start": 0,
-      "take_count": 2,
+      "take_count": 1,
       "segs": ["30", 0]
     },
     "class_type": "ImpactSEGSOrderedFilter",
-    "_meta": {"title": "SEGS Filter (ordered)"}
+    "_meta": {"title": "SEGS Filter - Groom (left)"}
   },
   "30": {
     "inputs": {
-      "threshold": 0.25,
+      "threshold": 0.20,
       "dilation": 10,
-      "crop_factor": 5,
+      "crop_factor": 3.5,
       "drop_size": 10,
       "labels": "all",
       "bbox_detector": ["19", 0],
@@ -238,7 +244,7 @@ WORKFLOW_JSON = r'''
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["8", 0],
-      "segs": ["29", 0],
+      "segs": ["53", 0],
       "model": ["14", 0],
       "clip": ["14", 1],
       "vae": ["4", 2],
@@ -254,7 +260,7 @@ WORKFLOW_JSON = r'''
       "guide_size_for": true,
       "max_size": 1024,
       "seed": 733073276389082,
-      "steps": 8,
+      "steps": 10,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -269,7 +275,7 @@ WORKFLOW_JSON = r'''
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["32", 0],
-      "segs": ["29", 1],
+      "segs": ["54", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
       "vae": ["4", 2],
@@ -315,7 +321,7 @@ WORKFLOW_JSON = r'''
       "max_size": 1024,
       "seed": 964000217776175,
       "steps": 10,
-      "cfg": 8,
+      "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 0.35,
@@ -354,6 +360,90 @@ WORKFLOW_JSON = r'''
     },
     "class_type": "CLIPTextEncode",
     "_meta": {"title": "CLIP 텍스트 인코딩 (프롬프트)"}
+  },
+  "40": {
+    "inputs": {
+      "target": "x1",
+      "order": false,
+      "take_start": 1,
+      "take_count": 1,
+      "segs": ["30", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "SEGS Filter - Bride (right)"}
+  },
+  "41": {
+    "inputs": {
+      "fallback_image_size": 64,
+      "alpha_mode": "true",
+      "min_alpha": 0.2,
+      "segs": ["53", 0]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {"title": "Preview - Groom SEGS"}
+  },
+  "42": {
+    "inputs": {
+      "fallback_image_size": 64,
+      "alpha_mode": "true",
+      "min_alpha": 0.2,
+      "segs": ["54", 0]
+    },
+    "class_type": "SEGSPreview",
+    "_meta": {"title": "Preview - Bride SEGS"}
+  },
+  "50": {
+    "inputs": {
+      "preset_repo_id": "rizvandwiki/gender-classification-2",
+      "manual_repo_id": "",
+      "device_mode": "AUTO"
+    },
+    "class_type": "ImpactHFTransformersClassifierProvider",
+    "_meta": {"title": "Gender Classifier Provider"}
+  },
+  "51": {
+    "inputs": {
+      "segs": ["30", 0],
+      "classifier": ["50", 0],
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "male > 0.5",
+      "manual_expr": ""
+    },
+    "class_type": "ImpactSEGSClassify",
+    "_meta": {"title": "SEGS Classify - Male"}
+  },
+  "52": {
+    "inputs": {
+      "segs": ["30", 0],
+      "classifier": ["50", 0],
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "female > 0.5",
+      "manual_expr": ""
+    },
+    "class_type": "ImpactSEGSClassify",
+    "_meta": {"title": "SEGS Classify - Female"}
+  },
+  "53": {
+    "inputs": {
+      "target": "area(=w*h)",
+      "order": false,
+      "take_start": 0,
+      "take_count": 1,
+      "segs": ["51", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "Groom SEGS (Largest Male)"}
+  },
+  "54": {
+    "inputs": {
+      "target": "area(=w*h)",
+      "order": false,
+      "take_start": 0,
+      "take_count": 1,
+      "segs": ["52", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "Bride SEGS (Largest Female)"}
   }
 }
 '''
@@ -730,6 +820,70 @@ def convert_diffusers_to_comfyui_flux_lora(input_path: str, output_path: str) ->
         return False
 
 
+# =============================================================================
+# LoRA 캐싱 헬퍼 함수 (URL 해시 기반 캐싱 + 파일 잠금)
+# =============================================================================
+
+def get_lora_cache_path(url: str, models_dir: str) -> str:
+    """URL 해시 기반 캐시 경로 생성"""
+    url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+    return f"{models_dir}/loras/cached_{url_hash}.safetensors"
+
+
+def get_cached_or_download_lora(url: str, role: str, models_dir: str) -> str:
+    """캐시된 LoRA 반환 또는 다운로드 (스레드 안전)"""
+    import uuid
+
+    cache_path = get_lora_cache_path(url, models_dir)
+    lock_path = f"{cache_path}.lock"
+    temp_path = None
+
+    try:
+        with FileLock(lock_path, timeout=120):  # 최대 2분 대기
+            # 다른 프로세스가 이미 다운로드 완료했는지 확인
+            if os.path.exists(cache_path):
+                print(f"✅ Cache hit for {role} LoRA: {os.path.basename(cache_path)}")
+                return os.path.basename(cache_path)
+
+            # 캐시 미스 - 다운로드 및 변환
+            print(f"⬇️ Downloading & Converting {role} LoRA...")
+            temp_path = f"{models_dir}/loras/{role}_temp_{uuid.uuid4().hex[:8]}.safetensors"
+
+            if not download_file(url, temp_path):
+                raise RuntimeError(f"Failed to download {role} LoRA from {url}")
+
+            if convert_diffusers_to_comfyui_flux_lora(temp_path, cache_path):
+                print(f"✅ {role} LoRA converted and cached: {os.path.basename(cache_path)}")
+            else:
+                # 변환 실패시 원본 사용 (이미 ComfyUI 형식일 수 있음)
+                print(f"ℹ️ {role} LoRA conversion skipped, using original format")
+                os.rename(temp_path, cache_path)
+                temp_path = None  # 이미 rename됨
+
+    except FileLockTimeout:
+        print(f"❌ Lock timeout for {role} LoRA - another process may be stuck")
+        raise RuntimeError(f"Failed to acquire lock for {role} LoRA within 120 seconds")
+
+    except Exception as e:
+        # 실패 시 불완전한 캐시 파일 삭제
+        if os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+            except OSError:
+                pass
+        raise
+
+    finally:
+        # 임시 파일 정리 (성공/실패 무관)
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+    return os.path.basename(cache_path)
+
+
 @app.cls(
     image=image,
     gpu="A100-80GB",
@@ -738,7 +892,7 @@ def convert_diffusers_to_comfyui_flux_lora(input_path: str, output_path: str) ->
     volumes={"/models": models_volume},
     enable_memory_snapshot=True,
 )
-@modal.concurrent(max_inputs=12)  # 12로 증가 (36장 확장 대비)
+@modal.concurrent(max_inputs=1)  # ComfyUI는 단일 프로세스 순차 처리, 동시 요청 시 스케일 아웃
 class ComfyUIServer:
     """ComfyUI 서버 클래스 (프로파일링 포함)"""
 
@@ -819,6 +973,50 @@ class ComfyUIServer:
             self.process.wait()
             print("ComfyUI server stopped")
 
+    @modal.fastapi_endpoint(method="GET")
+    def debug_nodes(self):
+        """ComfyUI에서 사용 가능한 노드 목록 확인 (디버그용)"""
+        import requests
+
+        try:
+            response = requests.get("http://127.0.0.1:8188/object_info", timeout=30)
+            response.raise_for_status()
+            all_nodes = response.json()
+
+            # Impact Pack 관련 노드만 필터링
+            impact_nodes = {k: v for k, v in all_nodes.items() if "impact" in k.lower() or "segs" in k.lower() or "hf" in k.lower() or "classifier" in k.lower()}
+
+            return {
+                "total_nodes": len(all_nodes),
+                "impact_related_nodes": list(impact_nodes.keys()),
+                "impact_node_count": len(impact_nodes),
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    @modal.fastapi_endpoint(method="GET")
+    def debug_node_info(self, node_name: str = "ImpactHFTransformersClassifierProvider"):
+        """특정 노드의 입력 파라미터 확인 (디버그용)"""
+        import requests
+
+        try:
+            response = requests.get("http://127.0.0.1:8188/object_info", timeout=30)
+            response.raise_for_status()
+            all_nodes = response.json()
+
+            if node_name in all_nodes:
+                node_info = all_nodes[node_name]
+                return {
+                    "node_name": node_name,
+                    "input": node_info.get("input", {}),
+                    "output": node_info.get("output", []),
+                    "output_name": node_info.get("output_name", []),
+                }
+            else:
+                return {"error": f"Node '{node_name}' not found"}
+        except Exception as e:
+            return {"error": str(e)}
+
     @modal.fastapi_endpoint(method="POST")
     def generate(self, request: dict):
         """이미지 생성 API 엔드포인트 (프로파일링 포함)"""
@@ -848,7 +1046,7 @@ class ComfyUIServer:
         # 생성 파라미터 (신규)
         width = request.get("width", 896)
         height = request.get("height", 1152)
-        cfg = request.get("cfg", 7)
+        cfg = request.get("cfg", 1)  # FLUX model requires cfg=1 (guidance-free)
         steps = request.get("steps", 25)
         seed = request.get("seed")  # None이면 랜덤
 
@@ -860,60 +1058,33 @@ class ComfyUIServer:
 
         self.profiler.record("Before LoRA Download")
 
-        # 요청별 고유 ID 생성 (병렬 요청 시 파일 충돌 방지)
-        import uuid
-        request_id = str(uuid.uuid4())[:8]
+        # LoRA 캐싱 + 병렬 다운로드 (파일 잠금으로 동시성 안전)
+        groom_lora_name = None
+        bride_lora_name = None
 
-        # 요청별 고유 LoRA 파일 경로
-        groom_lora_name = f"groom_lora_{request_id}.safetensors"
-        bride_lora_name = f"bride_lora_{request_id}.safetensors"
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = {}
 
-        # 동적 LoRA 다운로드 및 형식 변환 (매번 새로 다운로드 - 사용자별 LoRA가 다름)
-        if groom_lora_url:
-            groom_lora_temp = f"{models_dir}/loras/groom_lora_temp_{request_id}.safetensors"
-            groom_lora_path = f"{models_dir}/loras/{groom_lora_name}"
-            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
-            for path in [groom_lora_temp, groom_lora_path]:
+            if groom_lora_url:
+                futures['groom'] = executor.submit(
+                    get_cached_or_download_lora, groom_lora_url, 'groom', models_dir
+                )
+            if bride_lora_url:
+                futures['bride'] = executor.submit(
+                    get_cached_or_download_lora, bride_lora_url, 'bride', models_dir
+                )
+
+            # 결과 수집 (에러 핸들링 포함)
+            for role, future in futures.items():
                 try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except FileNotFoundError:
-                    pass  # 다른 요청이 이미 삭제함
-            print(f"Downloading groom LoRA from {groom_lora_url} -> {groom_lora_name}")
-            if download_file(groom_lora_url, groom_lora_temp):
-                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
-                if convert_diffusers_to_comfyui_flux_lora(groom_lora_temp, groom_lora_path):
-                    try:
-                        os.remove(groom_lora_temp)
-                    except FileNotFoundError:
-                        pass
-                else:
-                    # 변환 실패시 원본 사용
-                    print("  ℹ️ Conversion failed, using original file")
-                    os.rename(groom_lora_temp, groom_lora_path)
-
-        if bride_lora_url:
-            bride_lora_temp = f"{models_dir}/loras/bride_lora_temp_{request_id}.safetensors"
-            bride_lora_path = f"{models_dir}/loras/{bride_lora_name}"
-            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
-            for path in [bride_lora_temp, bride_lora_path]:
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except FileNotFoundError:
-                    pass  # 다른 요청이 이미 삭제함
-            print(f"Downloading bride LoRA from {bride_lora_url} -> {bride_lora_name}")
-            if download_file(bride_lora_url, bride_lora_temp):
-                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
-                if convert_diffusers_to_comfyui_flux_lora(bride_lora_temp, bride_lora_path):
-                    try:
-                        os.remove(bride_lora_temp)
-                    except FileNotFoundError:
-                        pass
-                else:
-                    # 변환 실패시 원본 사용
-                    print("  ℹ️ Conversion failed, using original file")
-                    os.rename(bride_lora_temp, bride_lora_path)
+                    result = future.result(timeout=180)  # 최대 3분 대기
+                    if role == 'groom':
+                        groom_lora_name = result
+                    else:
+                        bride_lora_name = result
+                except Exception as e:
+                    print(f"❌ Failed to load {role} LoRA: {e}")
+                    raise RuntimeError(f"LoRA loading failed for {role}: {e}")
 
         # =================================================================
         # [추가할 코드] Flux-Realism.safetensors 자동 변환 로직
@@ -1036,9 +1207,14 @@ class ComfyUIServer:
               f"crop_factor={n30['crop_factor']}, drop_size={n30['drop_size']}")
 
         n29 = workflow['29']['inputs']
-        print(f"\n[Node 29] SEGS OrderedFilter:")
+        print(f"\n[Node 29] SEGS OrderedFilter - Groom:")
         print(f"  target={n29['target']}, order={n29['order']}, "
               f"take_start={n29['take_start']}, take_count={n29['take_count']}")
+
+        n40 = workflow['40']['inputs']
+        print(f"\n[Node 40] SEGS OrderedFilter - Bride:")
+        print(f"  target={n40['target']}, order={n40['order']}, "
+              f"take_start={n40['take_start']}, take_count={n40['take_count']}")
 
         # --- Groom Face Detailer ---
         print(f"\n[Node 21] Groom Face Positive:")
@@ -1111,7 +1287,7 @@ class ComfyUIServer:
         all_images = []
 
         for img_idx in range(count):
-            current_seed = base_seed + (img_idx * 1000)
+            current_seed = base_seed + (img_idx * 10000)
             print(f"\n📸 Generating image {img_idx + 1}/{count} with seed: {current_seed}")
 
             try:
@@ -1128,7 +1304,21 @@ class ComfyUIServer:
                     json={"prompt": current_workflow},
                     timeout=30,
                 )
-                response.raise_for_status()
+
+                # 상세 에러 로깅
+                if response.status_code != 200:
+                    print(f"  ❌ ComfyUI returned status {response.status_code}")
+                    print(f"  📋 Response body: {response.text}")
+                    try:
+                        error_json = response.json()
+                        if "error" in error_json:
+                            print(f"  🔍 Error details: {error_json['error']}")
+                        if "node_errors" in error_json:
+                            print(f"  🔍 Node errors: {json.dumps(error_json['node_errors'], indent=2)}")
+                    except:
+                        pass
+                    response.raise_for_status()
+
                 prompt_id = response.json()["prompt_id"]
                 print(f"  Workflow queued: {prompt_id}")
 
@@ -1196,15 +1386,8 @@ class ComfyUIServer:
         success_count = sum(1 for img in all_images if img.get("status") == "success")
         print(f"\n📊 Batch generation complete: {success_count}/{count} images succeeded")
 
-        # 임시 LoRA 파일 정리 (볼륨 공간 절약)
-        for lora_file in [groom_lora_name, bride_lora_name]:
-            lora_path = f"{models_dir}/loras/{lora_file}"
-            try:
-                if os.path.exists(lora_path):
-                    os.remove(lora_path)
-                    print(f"🗑️ Cleaned up: {lora_file}")
-            except Exception as e:
-                print(f"⚠️ Failed to clean up {lora_file}: {e}")
+        # 캐시된 LoRA 파일은 삭제하지 않음 (재사용을 위해 유지)
+        # 오래된 캐시는 scheduled_cache_cleanup Cron job이 72시간 후 정리
 
         # 모든 이미지 실패 시 에러 반환
         if success_count == 0:
@@ -1236,6 +1419,39 @@ def check_models():
             result[key].extend(files)
 
     return result
+
+
+@app.function(
+    image=image,
+    volumes={"/models": models_volume},
+    schedule=modal.Cron("0 4 * * *")  # 매일 새벽 4시 실행
+)
+def scheduled_cache_cleanup():
+    """72시간 이상 된 캐시 파일 삭제 (Cron Job)"""
+    import time
+
+    print("🧹 Starting scheduled cache cleanup...")
+    cache_dir = "/models/loras"
+    now = time.time()
+    max_age_seconds = 72 * 3600  # 72시간
+
+    cleaned_count = 0
+    for f in os.listdir(cache_dir):
+        if f.startswith("cached_"):
+            path = os.path.join(cache_dir, f)
+            try:
+                if now - os.path.getmtime(path) > max_age_seconds:
+                    os.remove(path)
+                    # 잠금 파일도 함께 삭제
+                    lock_path = f"{path}.lock"
+                    if os.path.exists(lock_path):
+                        os.remove(lock_path)
+                    print(f"🗑️ Removed old cache: {f}")
+                    cleaned_count += 1
+            except Exception as e:
+                print(f"⚠️ Failed to remove {f}: {e}")
+
+    print(f"✅ Cache cleanup completed. Removed {cleaned_count} files.")
 
 
 if __name__ == "__main__":
