@@ -892,7 +892,7 @@ def get_cached_or_download_lora(url: str, role: str, models_dir: str) -> str:
     volumes={"/models": models_volume},
     enable_memory_snapshot=True,
 )
-@modal.concurrent(max_inputs=12)  # 12로 증가 (36장 확장 대비)
+@modal.concurrent(max_inputs=1)  # ComfyUI는 단일 프로세스 순차 처리, 동시 요청 시 스케일 아웃
 class ComfyUIServer:
     """ComfyUI 서버 클래스 (프로파일링 포함)"""
 
