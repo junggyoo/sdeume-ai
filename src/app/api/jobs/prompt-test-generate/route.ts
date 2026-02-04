@@ -42,6 +42,71 @@ export function splitIntoBatches(totalCount: number, batchSize: number): number[
   return batches;
 }
 
+type ModalImage = { base64: string; content_type: string; width: number; height: number };
+
+/**
+ * 배치 처리 옵션 타입
+ */
+export interface ProcessBatchesOptions {
+  batches: number[];
+  fetcher: (count: number) => Promise<ModalImage[]>;
+  onProgress: (totalImages: number, images: PromptTestImage[]) => Promise<void> | void;
+  timeoutMs: number;
+}
+
+/**
+ * 배치를 순차적으로 처리하여 Modal 동시 요청 충돌 방지
+ *
+ * 문제: 동시 Modal 요청 시 컨테이너 스케일 아웃으로 GPU 경합 발생
+ * 해결: 배치를 순차적으로 처리하여 한 번에 하나의 Modal 요청만 처리
+ *
+ * @param options 배치 처리 옵션
+ * @returns 수집된 모든 이미지 배열
+ */
+export async function processBatchesSequentially(
+  options: ProcessBatchesOptions
+): Promise<PromptTestImage[]> {
+  const { batches, fetcher, onProgress, timeoutMs } = options;
+  const allImages: PromptTestImage[] = [];
+
+  for (const batchCount of batches) {
+    try {
+      // 타임아웃 처리를 위한 AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      // Promise.race로 타임아웃 구현
+      const fetchPromise = fetcher(batchCount);
+      const timeoutPromise = new Promise<ModalImage[]>((_, reject) => {
+        controller.signal.addEventListener('abort', () => {
+          reject(new Error('Batch timeout'));
+        });
+      });
+
+      const batchImages = await Promise.race([fetchPromise, timeoutPromise]);
+      clearTimeout(timeoutId);
+
+      // 이미지 변환 및 수집
+      for (const img of batchImages) {
+        allImages.push({
+          base64: img.base64,
+          contentType: img.content_type,
+          width: img.width,
+          height: img.height,
+        });
+      }
+
+      // 진행률 업데이트
+      await onProgress(allImages.length, allImages);
+    } catch (error) {
+      // 에러 발생해도 다음 배치 계속 진행
+      console.error(`Batch error:`, error);
+    }
+  }
+
+  return allImages;
+}
+
 async function handler(req: Request): Promise<Response> {
   try {
     const payload = await req.json();
@@ -116,61 +181,35 @@ async function handler(req: Request): Promise<Response> {
     // Build batches using exported utility function
     const batches = splitIntoBatches(totalCount, BATCH_SIZE);
 
-    type ModalImage = { base64: string; content_type: string; width: number; height: number };
+    // Process batches sequentially to prevent Modal container conflicts
+    const allImages = await processBatchesSequentially({
+      batches,
+      fetcher: async (batchCount) => {
+        const response = await fetch(endpointUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...modalRequest,
+            count: batchCount,
+          }),
+        });
 
-    const allImages: PromptTestImage[] = [];
-
-    // Process batches (parallel per batch group of 4 concurrent)
-    for (let i = 0; i < batches.length; i += BATCH_SIZE) {
-      const batchGroup = batches.slice(i, i + BATCH_SIZE);
-
-      const results = await Promise.allSettled(
-        batchGroup.map(async (batchCount) => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 300000);
-
-          const response = await fetch(endpointUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...modalRequest,
-              count: batchCount,
-            }),
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Modal API error');
-          }
-
-          const data = await response.json();
-          return data.images as ModalImage[];
-        })
-      );
-
-      // Collect successful images from this batch group
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          for (const img of result.value) {
-            allImages.push({
-              base64: img.base64,
-              contentType: img.content_type,
-              width: img.width,
-              height: img.height,
-            });
-          }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Modal API error');
         }
-      }
 
-      // Update progress incrementally
-      await updatePromptTestProgress(supabase, testId, {
-        progress: allImages.length,
-        images: allImages,
-      });
-    }
+        const data = await response.json();
+        return data.images;
+      },
+      onProgress: async (progress, images) => {
+        await updatePromptTestProgress(supabase, testId, {
+          progress,
+          images,
+        });
+      },
+      timeoutMs: 300000,
+    });
 
     const generationTimeMs = Date.now() - startTime;
 
