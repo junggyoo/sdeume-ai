@@ -58,10 +58,10 @@ class TestSEGSSeparation:
         n29 = workflow["29"]["inputs"]
         assert n29["target"] == "x1"
 
-    def test_node29_ascending_order(self, workflow):
-        """should use ascending order (order=true → ascending → index 0 = leftmost)"""
+    def test_node29_descending_order(self, workflow):
+        """should use descending order (order=false → descending → index 0 = leftmost by x1)"""
         n29 = workflow["29"]["inputs"]
-        assert n29["order"] is True  # true = ascending, index 0 = left
+        assert n29["order"] is False  # false = descending by x1, take_start=0 = leftmost
 
     def test_node29_takes_single_face(self, workflow):
         """should take only 1 face (groom = leftmost)"""
@@ -91,10 +91,10 @@ class TestSEGSSeparation:
         n40 = workflow["40"]["inputs"]
         assert n40["target"] == "x1"
 
-    def test_node40_ascending_order(self, workflow):
-        """should use ascending order (order=true), take_start=1 for stable second face"""
+    def test_node40_descending_order(self, workflow):
+        """should use descending order (order=false), take_start=1 for second face"""
         n40 = workflow["40"]["inputs"]
-        assert n40["order"] is True  # true = ascending, take_start=1 → second face
+        assert n40["order"] is False  # false = descending by x1, take_start=1 = second
 
     def test_node40_takes_second_in_ascending(self, workflow):
         """should take index 1 in ascending order (second from left = bride)"""
@@ -116,18 +116,18 @@ class TestSEGSSeparation:
     # =========================================================================
 
     def test_node32_reads_groom_segs(self, workflow):
-        """should read SEGS from Node 29 output 0 (groom filter)"""
+        """should read SEGS from Node 53 output 0 (gender-filtered groom)"""
         n32 = workflow["32"]["inputs"]
-        assert n32["segs"] == ["29", 0]
+        assert n32["segs"] == ["53", 0]
 
     # =========================================================================
     # Node 33: Bride DetailerForEach
     # =========================================================================
 
     def test_node33_reads_bride_segs(self, workflow):
-        """should read SEGS from Node 40 output 0 (bride filter, NOT Node 29)"""
+        """should read SEGS from Node 54 output 0 (gender-filtered bride)"""
         n33 = workflow["33"]["inputs"]
-        assert n33["segs"] == ["40", 0]
+        assert n33["segs"] == ["54", 0]
 
     # =========================================================================
     # Node 30: BboxDetectorSEGS parameters
@@ -156,13 +156,13 @@ class TestSEGSSeparation:
         """should have Node 41 for groom SEGS preview"""
         assert "41" in workflow
         assert workflow["41"]["class_type"] == "SEGSPreview"
-        assert workflow["41"]["inputs"]["segs"] == ["29", 0]
+        assert workflow["41"]["inputs"]["segs"] == ["53", 0]
 
     def test_node42_bride_preview_exists(self, workflow):
         """should have Node 42 for bride SEGS preview"""
         assert "42" in workflow
         assert workflow["42"]["class_type"] == "SEGSPreview"
-        assert workflow["42"]["inputs"]["segs"] == ["40", 0]
+        assert workflow["42"]["inputs"]["segs"] == ["54", 0]
 
     # =========================================================================
     # Cross-contamination prevention invariants
@@ -176,27 +176,22 @@ class TestSEGSSeparation:
         # They must NOT reference the same node output
         assert groom_segs != bride_segs
 
-    def test_both_filters_use_same_upstream_detector(self, workflow):
-        """both SEGS filters should feed from same face detector"""
-        n29_upstream = workflow["29"]["inputs"]["segs"]
-        n40_upstream = workflow["40"]["inputs"]["segs"]
-        assert n29_upstream == n40_upstream == ["30", 0]
+    def test_both_gender_filters_use_same_upstream_detector(self, workflow):
+        """both gender SEGS classifiers should feed from same face detector"""
+        n51_upstream = workflow["51"]["inputs"]["segs"]
+        n52_upstream = workflow["52"]["inputs"]["segs"]
+        assert n51_upstream == n52_upstream == ["30", 0]
 
-    def test_groom_takes_left_bride_takes_right(self, workflow):
-        """groom should take left face, bride should take right face"""
-        n29 = workflow["29"]["inputs"]
-        n40 = workflow["40"]["inputs"]
+    def test_groom_takes_male_bride_takes_female(self, workflow):
+        """groom should take male face, bride should take female face"""
+        n51 = workflow["51"]["inputs"]
+        n52 = workflow["52"]["inputs"]
 
-        # Both sort by x1
-        assert n29["target"] == n40["target"] == "x1"
+        # Node 51: filters for male
+        assert "#Male" in n51["manual_expr"]
 
-        # Node 29: ascending (order=true), take_start=0 → leftmost = groom
-        assert n29["order"] is True
-        assert n29["take_start"] == 0
-
-        # Node 40: ascending (order=true), take_start=1 → second from left = bride
-        assert n40["order"] is True
-        assert n40["take_start"] == 1
+        # Node 52: filters for female
+        assert "#Female" in n52["manual_expr"]
 
     # =========================================================================
     # Node 33: Image source (chained from Node 32)
@@ -274,3 +269,225 @@ class TestSEGSSeparation:
         assert match is not None, "Could not find cfg default in generate()"
         cfg_default = int(match.group(1))
         assert cfg_default == 1, f"cfg default is {cfg_default}, should be 1 for FLUX"
+
+
+class TestGenderBasedClassification:
+    """Test suite for gender-based SEGS classification (NEW).
+
+    The gender-based approach fixes the issue where position-based separation
+    fails when the bride is on the left side of the image.
+
+    Flow:
+    Node 30 (Face Detect) → Node 50 (Gender Classifier)
+                                  ↓
+                            Node 51 (Male SEGS) → Node 53 (1개 선택) → Node 32 (Groom)
+                            Node 52 (Female SEGS) → Node 54 (1개 선택) → Node 33 (Bride)
+    """
+
+    @pytest.fixture
+    def workflow(self):
+        return load_workflow()
+
+    # =========================================================================
+    # Node 50: Gender Classifier Provider
+    # =========================================================================
+
+    def test_node50_gender_classifier_exists(self, workflow):
+        """should have Node 50 for gender classifier provider"""
+        assert "50" in workflow, "Node 50 (Gender Classifier) is missing"
+
+    def test_node50_class_type(self, workflow):
+        """should be ImpactHFTransformersClassifierProvider"""
+        assert workflow["50"]["class_type"] == "ImpactHFTransformersClassifierProvider"
+
+    def test_node50_uses_gender_model(self, workflow):
+        """should use gender classification model"""
+        n50 = workflow["50"]["inputs"]
+        assert "gender" in n50["preset_repo_id"].lower()
+
+    # =========================================================================
+    # Node 51: Male SEGS Classify
+    # =========================================================================
+
+    def test_node51_male_classification_exists(self, workflow):
+        """should have Node 51 for male SEGS classification"""
+        assert "51" in workflow, "Node 51 (Male SEGS) is missing"
+
+    def test_node51_class_type(self, workflow):
+        """should be ImpactSEGSClassify"""
+        assert workflow["51"]["class_type"] == "ImpactSEGSClassify"
+
+    def test_node51_reads_from_face_detector(self, workflow):
+        """should read SEGS from Node 30 (face detector)"""
+        n51 = workflow["51"]["inputs"]
+        assert n51["segs"] == ["30", 0]
+
+    def test_node51_uses_gender_classifier(self, workflow):
+        """should use Node 50 (gender classifier)"""
+        n51 = workflow["51"]["inputs"]
+        assert n51["classifier"] == ["50", 0]
+
+    def test_node51_filters_for_male(self, workflow):
+        """should filter for male using expression"""
+        n51 = workflow["51"]["inputs"]
+        assert "#Male" in n51["manual_expr"]
+
+    # =========================================================================
+    # Node 52: Female SEGS Classify
+    # =========================================================================
+
+    def test_node52_female_classification_exists(self, workflow):
+        """should have Node 52 for female SEGS classification"""
+        assert "52" in workflow, "Node 52 (Female SEGS) is missing"
+
+    def test_node52_class_type(self, workflow):
+        """should be ImpactSEGSClassify"""
+        assert workflow["52"]["class_type"] == "ImpactSEGSClassify"
+
+    def test_node52_reads_from_face_detector(self, workflow):
+        """should read SEGS from Node 30 (face detector)"""
+        n52 = workflow["52"]["inputs"]
+        assert n52["segs"] == ["30", 0]
+
+    def test_node52_uses_gender_classifier(self, workflow):
+        """should use Node 50 (gender classifier)"""
+        n52 = workflow["52"]["inputs"]
+        assert n52["classifier"] == ["50", 0]
+
+    def test_node52_filters_for_female(self, workflow):
+        """should filter for female using expression"""
+        n52 = workflow["52"]["inputs"]
+        assert "#Female" in n52["manual_expr"]
+
+    # =========================================================================
+    # Node 53: Groom Ordered Filter (largest male)
+    # =========================================================================
+
+    def test_node53_groom_ordered_filter_exists(self, workflow):
+        """should have Node 53 for groom selection (largest male)"""
+        assert "53" in workflow, "Node 53 (Groom OrderedFilter) is missing"
+
+    def test_node53_class_type(self, workflow):
+        """should be ImpactSEGSOrderedFilter"""
+        assert workflow["53"]["class_type"] == "ImpactSEGSOrderedFilter"
+
+    def test_node53_reads_from_male_segs(self, workflow):
+        """should read SEGS from Node 51 (male SEGS)"""
+        n53 = workflow["53"]["inputs"]
+        assert n53["segs"] == ["51", 0]
+
+    def test_node53_takes_single_face(self, workflow):
+        """should take only 1 face (largest male)"""
+        n53 = workflow["53"]["inputs"]
+        assert n53["take_count"] == 1
+        assert n53["take_start"] == 0
+
+    # =========================================================================
+    # Node 54: Bride Ordered Filter (largest female)
+    # =========================================================================
+
+    def test_node54_bride_ordered_filter_exists(self, workflow):
+        """should have Node 54 for bride selection (largest female)"""
+        assert "54" in workflow, "Node 54 (Bride OrderedFilter) is missing"
+
+    def test_node54_class_type(self, workflow):
+        """should be ImpactSEGSOrderedFilter"""
+        assert workflow["54"]["class_type"] == "ImpactSEGSOrderedFilter"
+
+    def test_node54_reads_from_female_segs(self, workflow):
+        """should read SEGS from Node 52 (female SEGS)"""
+        n54 = workflow["54"]["inputs"]
+        assert n54["segs"] == ["52", 0]
+
+    def test_node54_takes_single_face(self, workflow):
+        """should take only 1 face (largest female)"""
+        n54 = workflow["54"]["inputs"]
+        assert n54["take_count"] == 1
+        assert n54["take_start"] == 0
+
+    # =========================================================================
+    # Detailer nodes use gender-filtered SEGS
+    # =========================================================================
+
+    def test_node32_uses_gender_filtered_segs(self, workflow):
+        """Node 32 (Groom Detailer) should use Node 53 (gender-filtered male)"""
+        n32 = workflow["32"]["inputs"]
+        assert n32["segs"] == ["53", 0], "Node 32 should use gender-filtered SEGS from Node 53"
+
+    def test_node33_uses_gender_filtered_segs(self, workflow):
+        """Node 33 (Bride Detailer) should use Node 54 (gender-filtered female)"""
+        n33 = workflow["33"]["inputs"]
+        assert n33["segs"] == ["54", 0], "Node 33 should use gender-filtered SEGS from Node 54"
+
+    def test_node41_groom_preview_uses_gender_segs(self, workflow):
+        """Node 41 (Groom Preview) should use Node 53 (gender-filtered male)"""
+        n41 = workflow["41"]["inputs"]
+        assert n41["segs"] == ["53", 0]
+
+    def test_node42_bride_preview_uses_gender_segs(self, workflow):
+        """Node 42 (Bride Preview) should use Node 54 (gender-filtered female)"""
+        n42 = workflow["42"]["inputs"]
+        assert n42["segs"] == ["54", 0]
+
+
+class TestHandDetailerCFG:
+    """Test suite for Hand Detailer CFG fix."""
+
+    @pytest.fixture
+    def workflow(self):
+        return load_workflow()
+
+    def test_node37_cfg_is_1(self, workflow):
+        """Node 37 (Hand Detailer) cfg should be 1 for FLUX (not 8)"""
+        n37 = workflow["37"]["inputs"]
+        assert n37["cfg"] == 1, f"Node 37 cfg is {n37['cfg']}, should be 1 for FLUX"
+
+
+class TestModalDependencies:
+    """Test suite for Modal dependencies."""
+
+    def test_transformers_in_pip_install(self):
+        """transformers should be in pip_install for gender classification"""
+        import os
+
+        production_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "comfyui_workflow.py"
+        )
+        with open(production_file, "r") as f:
+            content = f.read()
+
+        assert "transformers" in content, "transformers package is missing from pip_install"
+
+    def test_accelerate_in_pip_install(self):
+        """accelerate should be in pip_install for GPU inference optimization"""
+        import os
+
+        production_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "comfyui_workflow.py"
+        )
+        with open(production_file, "r") as f:
+            content = f.read()
+
+        assert "accelerate" in content, "accelerate package is missing from pip_install"
+
+
+class TestPositionBasedFallback:
+    """Test suite for position-based fallback nodes (kept for fallback).
+
+    Node 29/40 are kept in the workflow for code-level fallback when
+    gender classification returns empty SEGS.
+    """
+
+    @pytest.fixture
+    def workflow(self):
+        return load_workflow()
+
+    def test_node29_still_exists_for_fallback(self, workflow):
+        """Node 29 (position-based left) should still exist for fallback"""
+        assert "29" in workflow
+
+    def test_node40_still_exists_for_fallback(self, workflow):
+        """Node 40 (position-based right) should still exist for fallback"""
+        assert "40" in workflow

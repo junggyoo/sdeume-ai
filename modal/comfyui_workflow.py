@@ -53,6 +53,8 @@ image = (
         "nvidia-ml-py3",  # GPU 프로파일링용 추가
         "safetensors",  # LoRA 형식 변환용
         "pyyaml",  # 프롬프트 YAML 로딩용
+        "transformers",  # Gender classification 모델용
+        "accelerate",  # GPU inference 최적화용
     )
     .run_commands(
         # ComfyUI 설치
@@ -238,7 +240,7 @@ WORKFLOW_JSON = r'''
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["8", 0],
-      "segs": ["29", 0],
+      "segs": ["53", 0],
       "model": ["14", 0],
       "clip": ["14", 1],
       "vae": ["4", 2],
@@ -269,7 +271,7 @@ WORKFLOW_JSON = r'''
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["32", 0],
-      "segs": ["40", 0],
+      "segs": ["54", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
       "vae": ["4", 2],
@@ -315,7 +317,7 @@ WORKFLOW_JSON = r'''
       "max_size": 1024,
       "seed": 964000217776175,
       "steps": 10,
-      "cfg": 8,
+      "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 0.35,
@@ -369,7 +371,7 @@ WORKFLOW_JSON = r'''
   "41": {
     "inputs": {
       "fallback_image_size": 64,
-      "segs": ["29", 0]
+      "segs": ["53", 0]
     },
     "class_type": "SEGSPreview",
     "_meta": {"title": "Preview - Groom SEGS"}
@@ -377,10 +379,63 @@ WORKFLOW_JSON = r'''
   "42": {
     "inputs": {
       "fallback_image_size": 64,
-      "segs": ["40", 0]
+      "segs": ["54", 0]
     },
     "class_type": "SEGSPreview",
     "_meta": {"title": "Preview - Bride SEGS"}
+  },
+  "50": {
+    "inputs": {
+      "preset_repo_id": "rizvandwiki/gender-classification-2",
+      "manual_repo_id": "",
+      "device_mode": "Prefer GPU"
+    },
+    "class_type": "ImpactHFTransformersClassifierProvider",
+    "_meta": {"title": "Gender Classifier Provider"}
+  },
+  "51": {
+    "inputs": {
+      "segs": ["30", 0],
+      "classifier": ["50", 0],
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "Manual expr",
+      "manual_expr": "#Male > 0.5"
+    },
+    "class_type": "ImpactSEGSClassify",
+    "_meta": {"title": "SEGS Classify - Male"}
+  },
+  "52": {
+    "inputs": {
+      "segs": ["30", 0],
+      "classifier": ["50", 0],
+      "ref_image_opt": ["8", 0],
+      "preset_expr": "Manual expr",
+      "manual_expr": "#Female > 0.5"
+    },
+    "class_type": "ImpactSEGSClassify",
+    "_meta": {"title": "SEGS Classify - Female"}
+  },
+  "53": {
+    "inputs": {
+      "target": "area",
+      "order": false,
+      "take_start": 0,
+      "take_count": 1,
+      "segs": ["51", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "Groom SEGS (Largest Male)"}
+  },
+  "54": {
+    "inputs": {
+      "target": "area",
+      "order": false,
+      "take_start": 0,
+      "take_count": 1,
+      "segs": ["52", 0]
+    },
+    "class_type": "ImpactSEGSOrderedFilter",
+    "_meta": {"title": "Bride SEGS (Largest Female)"}
   }
 }
 '''
