@@ -11,6 +11,9 @@ import json
 import time
 import base64
 import subprocess
+import hashlib
+from concurrent.futures import ThreadPoolExecutor
+from filelock import FileLock, Timeout as FileLockTimeout
 
 # Modal 앱 정의
 app = modal.App("sdeume-ai-comfyui")
@@ -55,6 +58,7 @@ image = (
         "pyyaml",  # 프롬프트 YAML 로딩용
         "transformers",  # Gender classification 모델용
         "accelerate",  # GPU inference 최적화용
+        "filelock",  # LoRA 캐싱 동시성 제어용
     )
     .run_commands(
         # ComfyUI 설치
@@ -256,7 +260,7 @@ WORKFLOW_JSON = r'''
       "guide_size_for": true,
       "max_size": 1024,
       "seed": 733073276389082,
-      "steps": 8,
+      "steps": 10,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -816,6 +820,70 @@ def convert_diffusers_to_comfyui_flux_lora(input_path: str, output_path: str) ->
         return False
 
 
+# =============================================================================
+# LoRA 캐싱 헬퍼 함수 (URL 해시 기반 캐싱 + 파일 잠금)
+# =============================================================================
+
+def get_lora_cache_path(url: str, models_dir: str) -> str:
+    """URL 해시 기반 캐시 경로 생성"""
+    url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+    return f"{models_dir}/loras/cached_{url_hash}.safetensors"
+
+
+def get_cached_or_download_lora(url: str, role: str, models_dir: str) -> str:
+    """캐시된 LoRA 반환 또는 다운로드 (스레드 안전)"""
+    import uuid
+
+    cache_path = get_lora_cache_path(url, models_dir)
+    lock_path = f"{cache_path}.lock"
+    temp_path = None
+
+    try:
+        with FileLock(lock_path, timeout=120):  # 최대 2분 대기
+            # 다른 프로세스가 이미 다운로드 완료했는지 확인
+            if os.path.exists(cache_path):
+                print(f"✅ Cache hit for {role} LoRA: {os.path.basename(cache_path)}")
+                return os.path.basename(cache_path)
+
+            # 캐시 미스 - 다운로드 및 변환
+            print(f"⬇️ Downloading & Converting {role} LoRA...")
+            temp_path = f"{models_dir}/loras/{role}_temp_{uuid.uuid4().hex[:8]}.safetensors"
+
+            if not download_file(url, temp_path):
+                raise RuntimeError(f"Failed to download {role} LoRA from {url}")
+
+            if convert_diffusers_to_comfyui_flux_lora(temp_path, cache_path):
+                print(f"✅ {role} LoRA converted and cached: {os.path.basename(cache_path)}")
+            else:
+                # 변환 실패시 원본 사용 (이미 ComfyUI 형식일 수 있음)
+                print(f"ℹ️ {role} LoRA conversion skipped, using original format")
+                os.rename(temp_path, cache_path)
+                temp_path = None  # 이미 rename됨
+
+    except FileLockTimeout:
+        print(f"❌ Lock timeout for {role} LoRA - another process may be stuck")
+        raise RuntimeError(f"Failed to acquire lock for {role} LoRA within 120 seconds")
+
+    except Exception as e:
+        # 실패 시 불완전한 캐시 파일 삭제
+        if os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+            except OSError:
+                pass
+        raise
+
+    finally:
+        # 임시 파일 정리 (성공/실패 무관)
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+    return os.path.basename(cache_path)
+
+
 @app.cls(
     image=image,
     gpu="A100-80GB",
@@ -990,60 +1058,33 @@ class ComfyUIServer:
 
         self.profiler.record("Before LoRA Download")
 
-        # 요청별 고유 ID 생성 (병렬 요청 시 파일 충돌 방지)
-        import uuid
-        request_id = str(uuid.uuid4())[:8]
+        # LoRA 캐싱 + 병렬 다운로드 (파일 잠금으로 동시성 안전)
+        groom_lora_name = None
+        bride_lora_name = None
 
-        # 요청별 고유 LoRA 파일 경로
-        groom_lora_name = f"groom_lora_{request_id}.safetensors"
-        bride_lora_name = f"bride_lora_{request_id}.safetensors"
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = {}
 
-        # 동적 LoRA 다운로드 및 형식 변환 (매번 새로 다운로드 - 사용자별 LoRA가 다름)
-        if groom_lora_url:
-            groom_lora_temp = f"{models_dir}/loras/groom_lora_temp_{request_id}.safetensors"
-            groom_lora_path = f"{models_dir}/loras/{groom_lora_name}"
-            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
-            for path in [groom_lora_temp, groom_lora_path]:
+            if groom_lora_url:
+                futures['groom'] = executor.submit(
+                    get_cached_or_download_lora, groom_lora_url, 'groom', models_dir
+                )
+            if bride_lora_url:
+                futures['bride'] = executor.submit(
+                    get_cached_or_download_lora, bride_lora_url, 'bride', models_dir
+                )
+
+            # 결과 수집 (에러 핸들링 포함)
+            for role, future in futures.items():
                 try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except FileNotFoundError:
-                    pass  # 다른 요청이 이미 삭제함
-            print(f"Downloading groom LoRA from {groom_lora_url} -> {groom_lora_name}")
-            if download_file(groom_lora_url, groom_lora_temp):
-                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
-                if convert_diffusers_to_comfyui_flux_lora(groom_lora_temp, groom_lora_path):
-                    try:
-                        os.remove(groom_lora_temp)
-                    except FileNotFoundError:
-                        pass
-                else:
-                    # 변환 실패시 원본 사용
-                    print("  ℹ️ Conversion failed, using original file")
-                    os.rename(groom_lora_temp, groom_lora_path)
-
-        if bride_lora_url:
-            bride_lora_temp = f"{models_dir}/loras/bride_lora_temp_{request_id}.safetensors"
-            bride_lora_path = f"{models_dir}/loras/{bride_lora_name}"
-            # 기존 파일 삭제 (race condition 방지를 위해 try-except 사용)
-            for path in [bride_lora_temp, bride_lora_path]:
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except FileNotFoundError:
-                    pass  # 다른 요청이 이미 삭제함
-            print(f"Downloading bride LoRA from {bride_lora_url} -> {bride_lora_name}")
-            if download_file(bride_lora_url, bride_lora_temp):
-                # PEFT → ComfyUI 형식 변환 (sparse matrix 방식)
-                if convert_diffusers_to_comfyui_flux_lora(bride_lora_temp, bride_lora_path):
-                    try:
-                        os.remove(bride_lora_temp)
-                    except FileNotFoundError:
-                        pass
-                else:
-                    # 변환 실패시 원본 사용
-                    print("  ℹ️ Conversion failed, using original file")
-                    os.rename(bride_lora_temp, bride_lora_path)
+                    result = future.result(timeout=180)  # 최대 3분 대기
+                    if role == 'groom':
+                        groom_lora_name = result
+                    else:
+                        bride_lora_name = result
+                except Exception as e:
+                    print(f"❌ Failed to load {role} LoRA: {e}")
+                    raise RuntimeError(f"LoRA loading failed for {role}: {e}")
 
         # =================================================================
         # [추가할 코드] Flux-Realism.safetensors 자동 변환 로직
@@ -1345,15 +1386,8 @@ class ComfyUIServer:
         success_count = sum(1 for img in all_images if img.get("status") == "success")
         print(f"\n📊 Batch generation complete: {success_count}/{count} images succeeded")
 
-        # 임시 LoRA 파일 정리 (볼륨 공간 절약)
-        for lora_file in [groom_lora_name, bride_lora_name]:
-            lora_path = f"{models_dir}/loras/{lora_file}"
-            try:
-                if os.path.exists(lora_path):
-                    os.remove(lora_path)
-                    print(f"🗑️ Cleaned up: {lora_file}")
-            except Exception as e:
-                print(f"⚠️ Failed to clean up {lora_file}: {e}")
+        # 캐시된 LoRA 파일은 삭제하지 않음 (재사용을 위해 유지)
+        # 오래된 캐시는 scheduled_cache_cleanup Cron job이 72시간 후 정리
 
         # 모든 이미지 실패 시 에러 반환
         if success_count == 0:
@@ -1385,6 +1419,39 @@ def check_models():
             result[key].extend(files)
 
     return result
+
+
+@app.function(
+    image=image,
+    volumes={"/models": models_volume},
+    schedule=modal.Cron("0 4 * * *")  # 매일 새벽 4시 실행
+)
+def scheduled_cache_cleanup():
+    """72시간 이상 된 캐시 파일 삭제 (Cron Job)"""
+    import time
+
+    print("🧹 Starting scheduled cache cleanup...")
+    cache_dir = "/models/loras"
+    now = time.time()
+    max_age_seconds = 72 * 3600  # 72시간
+
+    cleaned_count = 0
+    for f in os.listdir(cache_dir):
+        if f.startswith("cached_"):
+            path = os.path.join(cache_dir, f)
+            try:
+                if now - os.path.getmtime(path) > max_age_seconds:
+                    os.remove(path)
+                    # 잠금 파일도 함께 삭제
+                    lock_path = f"{path}.lock"
+                    if os.path.exists(lock_path):
+                        os.remove(lock_path)
+                    print(f"🗑️ Removed old cache: {f}")
+                    cleaned_count += 1
+            except Exception as e:
+                print(f"⚠️ Failed to remove {f}: {e}")
+
+    print(f"✅ Cache cleanup completed. Removed {cleaned_count} files.")
 
 
 if __name__ == "__main__":
