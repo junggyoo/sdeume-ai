@@ -15,6 +15,33 @@ import type { PromptOverrides } from '@/features/admin-prompt-lab/types';
  * QStash background job handler for generating prompt test images.
  * Receives { testId } payload, processes batches, updates DB incrementally.
  */
+
+/**
+ * 배치 크기 상수
+ * Vercel 타임아웃(300초) 내 안전하게 처리하기 위해 2로 설정
+ * - 이미지당 최대 90초 소요 가정
+ * - 2 * 90초 = 180초 (40% 안전 마진)
+ */
+export const BATCH_SIZE = 2;
+
+/**
+ * 총 개수를 배치 크기로 분할
+ * @param totalCount 총 이미지 수
+ * @param batchSize 배치당 이미지 수
+ * @returns 배치 배열 (각 요소는 해당 배치의 이미지 수)
+ */
+export function splitIntoBatches(totalCount: number, batchSize: number): number[] {
+  if (totalCount <= 0) return [];
+
+  const batches: number[] = [];
+  let remaining = totalCount;
+  while (remaining > 0) {
+    batches.push(Math.min(remaining, batchSize));
+    remaining -= batchSize;
+  }
+  return batches;
+}
+
 async function handler(req: Request): Promise<Response> {
   try {
     const payload = await req.json();
@@ -83,17 +110,11 @@ async function handler(req: Request): Promise<Response> {
       extraStyleTags: test.extra_style_tags ?? undefined,
     });
 
-    const BATCH_SIZE = 4;
     const totalCount = test.total_count;
     const startTime = Date.now();
 
-    // Build batches
-    const batches: number[] = [];
-    let remaining = totalCount;
-    while (remaining > 0) {
-      batches.push(Math.min(remaining, BATCH_SIZE));
-      remaining -= BATCH_SIZE;
-    }
+    // Build batches using exported utility function
+    const batches = splitIntoBatches(totalCount, BATCH_SIZE);
 
     type ModalImage = { base64: string; content_type: string; width: number; height: number };
 
