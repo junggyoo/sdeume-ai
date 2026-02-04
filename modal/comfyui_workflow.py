@@ -196,7 +196,7 @@ WORKFLOW_JSON = r'''
   "29": {
     "inputs": {
       "target": "x1",
-      "order": true,
+      "order": false,
       "take_start": 0,
       "take_count": 1,
       "segs": ["30", 0]
@@ -358,7 +358,7 @@ WORKFLOW_JSON = r'''
   "40": {
     "inputs": {
       "target": "x1",
-      "order": true,
+      "order": false,
       "take_start": 1,
       "take_count": 1,
       "segs": ["30", 0]
