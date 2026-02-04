@@ -901,6 +901,27 @@ class ComfyUIServer:
             self.process.wait()
             print("ComfyUI server stopped")
 
+    @modal.fastapi_endpoint(method="GET")
+    def debug_nodes(self):
+        """ComfyUI에서 사용 가능한 노드 목록 확인 (디버그용)"""
+        import requests
+
+        try:
+            response = requests.get("http://127.0.0.1:8188/object_info", timeout=30)
+            response.raise_for_status()
+            all_nodes = response.json()
+
+            # Impact Pack 관련 노드만 필터링
+            impact_nodes = {k: v for k, v in all_nodes.items() if "impact" in k.lower() or "segs" in k.lower() or "hf" in k.lower() or "classifier" in k.lower()}
+
+            return {
+                "total_nodes": len(all_nodes),
+                "impact_related_nodes": list(impact_nodes.keys()),
+                "impact_node_count": len(impact_nodes),
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
     @modal.fastapi_endpoint(method="POST")
     def generate(self, request: dict):
         """이미지 생성 API 엔드포인트 (프로파일링 포함)"""
