@@ -387,6 +387,7 @@ WORKFLOW_JSON = r'''
   "50": {
     "inputs": {
       "preset_repo_id": "rizvandwiki/gender-classification-2",
+      "manual_repo_id": "",
       "device_mode": "AUTO"
     },
     "class_type": "ImpactHFTransformersClassifierProvider",
