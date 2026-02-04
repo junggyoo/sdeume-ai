@@ -360,5 +360,74 @@ describe('prompt-test-generate 배치 분할', () => {
         ])
       );
     });
+
+    it('should pass batchIndex to fetcher for unique seed generation', async () => {
+      const batches = [2, 2, 2];
+      const receivedBatchIndices: number[] = [];
+
+      const mockFetcher = vi
+        .fn()
+        .mockImplementation(async (count: number, batchIndex: number) => {
+          receivedBatchIndices.push(batchIndex);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          return Array.from({ length: count }, () => ({
+            base64: 'base64',
+            content_type: 'image/png',
+            width: 512,
+            height: 512,
+          }));
+        });
+
+      const resultPromise = processBatchesSequentially({
+        batches,
+        fetcher: mockFetcher,
+        onProgress: vi.fn(),
+        timeoutMs: 300000,
+      });
+
+      await vi.advanceTimersByTimeAsync(150);
+      await resultPromise;
+
+      // fetcher가 각 배치의 인덱스를 순차적으로 받아야 함
+      expect(receivedBatchIndices).toEqual([0, 1, 2]);
+      expect(mockFetcher).toHaveBeenNthCalledWith(1, 2, 0);
+      expect(mockFetcher).toHaveBeenNthCalledWith(2, 2, 1);
+      expect(mockFetcher).toHaveBeenNthCalledWith(3, 2, 2);
+    });
+
+    it('should allow fetcher to compute unique seed per batch using batchIndex', async () => {
+      const batches = [2, 2];
+      const baseSeed = 12345;
+      const usedSeeds: number[] = [];
+
+      const mockFetcher = vi
+        .fn()
+        .mockImplementation(async (count: number, batchIndex: number) => {
+          // 실제 구현과 동일한 seed 계산 로직
+          const batchSeed = baseSeed + batchIndex * BATCH_SIZE * 1000;
+          usedSeeds.push(batchSeed);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          return Array.from({ length: count }, () => ({
+            base64: 'base64',
+            content_type: 'image/png',
+            width: 512,
+            height: 512,
+          }));
+        });
+
+      const resultPromise = processBatchesSequentially({
+        batches,
+        fetcher: mockFetcher,
+        onProgress: vi.fn(),
+        timeoutMs: 300000,
+      });
+
+      await vi.advanceTimersByTimeAsync(100);
+      await resultPromise;
+
+      // 각 배치가 서로 다른 seed를 사용해야 함 (중복 이미지 방지)
+      expect(usedSeeds).toEqual([12345, 12345 + 2 * 1000]); // [12345, 14345]
+      expect(usedSeeds[0]).not.toBe(usedSeeds[1]);
+    });
   });
 });

@@ -49,7 +49,7 @@ type ModalImage = { base64: string; content_type: string; width: number; height:
  */
 export interface ProcessBatchesOptions {
   batches: number[];
-  fetcher: (count: number) => Promise<ModalImage[]>;
+  fetcher: (count: number, batchIndex: number) => Promise<ModalImage[]>;
   onProgress: (totalImages: number, images: PromptTestImage[]) => Promise<void> | void;
   timeoutMs: number;
 }
@@ -69,14 +69,15 @@ export async function processBatchesSequentially(
   const { batches, fetcher, onProgress, timeoutMs } = options;
   const allImages: PromptTestImage[] = [];
 
-  for (const batchCount of batches) {
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batchCount = batches[batchIndex];
     try {
       // 타임아웃 처리를 위한 AbortController
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       // Promise.race로 타임아웃 구현
-      const fetchPromise = fetcher(batchCount);
+      const fetchPromise = fetcher(batchCount, batchIndex);
       const timeoutPromise = new Promise<ModalImage[]>((_, reject) => {
         controller.signal.addEventListener('abort', () => {
           reject(new Error('Batch timeout'));
@@ -181,15 +182,23 @@ async function handler(req: Request): Promise<Response> {
     // Build batches using exported utility function
     const batches = splitIntoBatches(totalCount, BATCH_SIZE);
 
+    // Base seed for unique image generation across batches
+    const baseSeed = modalRequest.seed;
+
     // Process batches sequentially to prevent Modal container conflicts
     const allImages = await processBatchesSequentially({
       batches,
-      fetcher: async (batchCount) => {
+      fetcher: async (batchCount, batchIndex) => {
+        // Calculate unique seed per batch to prevent duplicate images
+        // Each batch gets a seed offset of (batchIndex * BATCH_SIZE * 1000)
+        const batchSeed = baseSeed !== undefined ? baseSeed + batchIndex * BATCH_SIZE * 1000 : undefined;
+
         const response = await fetch(endpointUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...modalRequest,
+            seed: batchSeed,
             count: batchCount,
           }),
         });
