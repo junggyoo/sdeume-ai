@@ -68,6 +68,9 @@ main:
     style: illustration, painting, anime, cartoon, 3d render
     quality: text, watermark, low quality, worst quality, blurry
     mood: dark, gloomy, casual clothes, (vintage:1.2), (retro:1.2), (old-fashioned style:1.2)
+    posture: |
+      (rigid stance:1.3), (military posture:1.3), (stiff pose:1.3),
+      (awkward posture:1.2), (formal rigid standing:1.2)
     composition: |
       (looking at each other:1.5), (facing each other:1.5),
       (turned toward each other:1.4), (intimate gaze:1.4),
@@ -83,7 +86,13 @@ groom_face:
     Closeup portrait with (East Asian facial features:1.2), brown eyes, black hair,
     (genuine warm smile:1.2) with (natural expression:1.1), (soft professional lighting:1.1) on face.
     (Modern contemporary Korean hairstyle:1.3), (trendy:1.2) and current style.
-  negative: woman, girl, female, low quality, (retro style:1.2), (old-fashioned look:1.2)
+    (Korean editorial wedding studio:1.3), (Seoul studio look:1.2).
+  negative: |
+    woman, girl, female, makeup, lipstick, low quality,
+    (beard:1.4), (stubble:1.4), (facial hair:1.4), (mustache:1.3), (5 o'clock shadow:1.3),
+    (retro style:1.2), (old-fashioned look:1.2),
+    (excessive smile:1.3), (grinning:1.3), (toothy grin:1.3),
+    (exaggerated expression:1.2), (awkward smile:1.3)
 
 bride_face:
   positive: |
@@ -91,9 +100,12 @@ bride_face:
     (natural bridal makeup:1.2) with (dewy glowing skin:1.2) and (subtle pink lip tint:1.1),
     (soft professional lighting:1.1) on face. (Modern contemporary Korean bridal style:1.3).
     (Gentle natural smile:1.1) or (soft romantic expression:1.1), (warm affectionate gaze:1.1).
-    (Natural skin texture with visible pores:1.3), (realistic skin details:1.2), 
-    (matte skin:1.2), (photorealistic:1.2)
-  negative: man, boy, male, low quality, (vintage makeup:1.2), (overdone makeup:1.2), (retro style:1.2)
+    (Natural skin texture with visible pores:1.3), (realistic skin details:1.2),
+    (matte skin:1.2), (photorealistic:1.2).
+    (Korean editorial wedding studio:1.3), (Seoul studio look:1.2).
+  negative: |
+    man, boy, male, low quality, (vintage makeup:1.2), (overdone makeup:1.2), (retro style:1.2),
+    (excessive smile:1.2), (forced smile:1.2), (awkward expression:1.2)
 
 hand:
   positive: (Highly detailed natural hands:1.4) with (correct five fingers:1.3), 
@@ -116,24 +128,29 @@ workflow:
       steps: 25
       cfg: 1
     GroomFaceDetailer:
-      denoise: 0.6
+      denoise: 0.42
       steps: 15
       cfg: 1
-      guide_size: 1024
+      guide_size: 512
+      feather: 3
+      noise_mask_feather: 10
     BrideFaceDetailer:
-      denoise: 0.6
-      steps: 8
+      denoise: 0.42
+      steps: 15
       cfg: 1
-      guide_size: 1024
+      guide_size: 512
+      feather: 3
+      noise_mask_feather: 10
     HandDetailer:
       denoise: 0.35
       steps: 10
       cfg: 8
       guide_size: 512
     Detector:
-      face_threshold: 0.20
-      face_dilation: 10
-      face_crop_factor: 3.5
+      face_threshold: 0.25
+      face_dilation: 6
+      face_crop_factor: 2.4
+      face_drop_size: 5
       hand_threshold: 0.4
       hand_crop_factor: 3
 

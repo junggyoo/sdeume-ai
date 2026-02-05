@@ -212,10 +212,10 @@ WORKFLOW_JSON = r'''
   },
   "30": {
     "inputs": {
-      "threshold": 0.20,
-      "dilation": 10,
-      "crop_factor": 3.5,
-      "drop_size": 10,
+      "threshold": 0.25,
+      "dilation": 6,
+      "crop_factor": 2.4,
+      "drop_size": 5,
       "labels": "all",
       "bbox_detector": ["19", 0],
       "image": ["8", 0]
@@ -225,7 +225,7 @@ WORKFLOW_JSON = r'''
   },
   "32": {
     "inputs": {
-      "guide_size": 1024,
+      "guide_size": 512,
       "guide_size_for": true,
       "max_size": 1024,
       "seed": 163068160694334,
@@ -233,18 +233,18 @@ WORKFLOW_JSON = r'''
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
-      "denoise": 0.6,
-      "feather": 5,
+      "denoise": 0.42,
+      "feather": 3,
       "noise_mask": true,
       "force_inpaint": true,
       "wildcard": "",
       "cycle": 1,
       "inpaint_model": false,
-      "noise_mask_feather": 20,
+      "noise_mask_feather": 10,
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["8", 0],
-      "segs": ["53", 0],
+      "segs": ["29", 0],
       "model": ["14", 0],
       "clip": ["14", 1],
       "vae": ["4", 2],
@@ -252,30 +252,30 @@ WORKFLOW_JSON = r'''
       "negative": ["26", 0]
     },
     "class_type": "DetailerForEach",
-    "_meta": {"title": "디테일러 (SEGS)"}
+    "_meta": {"title": "디테일러 (SEGS) - Groom Left"}
   },
   "33": {
     "inputs": {
-      "guide_size": 1024,
+      "guide_size": 512,
       "guide_size_for": true,
       "max_size": 1024,
       "seed": 733073276389082,
-      "steps": 10,
+      "steps": 15,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
-      "denoise": 0.6,
-      "feather": 5,
+      "denoise": 0.42,
+      "feather": 3,
       "noise_mask": true,
       "force_inpaint": true,
       "wildcard": "",
       "cycle": 1,
       "inpaint_model": false,
-      "noise_mask_feather": 20,
+      "noise_mask_feather": 10,
       "tiled_encode": false,
       "tiled_decode": false,
       "image": ["32", 0],
-      "segs": ["54", 0],
+      "segs": ["40", 0],
       "model": ["15", 0],
       "clip": ["15", 1],
       "vae": ["4", 2],
@@ -283,7 +283,7 @@ WORKFLOW_JSON = r'''
       "negative": ["27", 0]
     },
     "class_type": "DetailerForEach",
-    "_meta": {"title": "디테일러 (SEGS)"}
+    "_meta": {"title": "디테일러 (SEGS) - Bride Right"}
   },
   "34": {
     "inputs": {
@@ -1294,9 +1294,9 @@ class ComfyUIServer:
                 # 각 이미지별로 seed 업데이트
                 current_workflow = json.loads(json.dumps(workflow))  # Deep copy
                 current_workflow["3"]["inputs"]["seed"] = current_seed
-                current_workflow["32"]["inputs"]["seed"] = current_seed
-                current_workflow["33"]["inputs"]["seed"] = current_seed + 100
-                current_workflow["37"]["inputs"]["seed"] = current_seed + 200
+                current_workflow["32"]["inputs"]["seed"] = current_seed + 100003
+                current_workflow["33"]["inputs"]["seed"] = current_seed + 200003
+                current_workflow["37"]["inputs"]["seed"] = current_seed + 300007
 
                 # ComfyUI에 워크플로우 전송
                 response = requests.post(

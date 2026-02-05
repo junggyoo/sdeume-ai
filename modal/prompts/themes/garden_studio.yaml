@@ -41,19 +41,36 @@ main:
     style: illustration, painting, anime, cartoon, 3d render
     quality: text, watermark, low quality, worst quality, blurry
     mood: dark, gloomy, harsh lighting, excessive lens flare, strong backlight, heavy shadow on face, orange skin tone
+    posture: |
+      (rigid stance:1.3), (military posture:1.3), (stiff pose:1.3),
+      (awkward posture:1.2), (formal rigid standing:1.2)
 
 # Face prompts (NO BACKGROUND KEYWORDS!)
 groom_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural skin texture, a gentle romantic smile, soft natural lighting on the face, neutral color tone
+    core: |
+      A closeup portrait showing East Asian facial features, brown eyes, black hair, natural skin texture,
+      a gentle romantic smile, soft natural lighting on the face, neutral color tone.
+      (Korean editorial wedding studio:1.3), (Seoul studio look:1.2).
   negative:
-    core: woman, girl, female, low quality, worst quality, oil painting, old photos, yellow skin tone, unnatural skin, distorted face
+    core: |
+      woman, girl, female, makeup, lipstick, low quality, worst quality, oil painting, old photos,
+      yellow skin tone, unnatural skin, distorted face,
+      (beard:1.4), (stubble:1.4), (facial hair:1.4), (mustache:1.3), (5 o'clock shadow:1.3),
+      (retro style:1.2), (old-fashioned look:1.2),
+      (excessive smile:1.3), (grinning:1.3), (toothy grin:1.3),
+      (exaggerated expression:1.2), (awkward smile:1.3)
 
 bride_face:
   positive:
-    core: A closeup portrait showing East Asian facial features, brown eyes, black hair, natural romantic bridal makeup, dewy glowing skin, soft natural lighting on the face
+    core: |
+      A closeup portrait showing East Asian facial features, brown eyes, black hair,
+      natural romantic bridal makeup, dewy glowing skin, soft natural lighting on the face.
+      (Korean editorial wedding studio:1.3), (Seoul studio look:1.2).
   negative:
-    core: man, boy, male, low quality, worst quality, heavy makeup, unnatural skin, distorted face
+    core: |
+      man, boy, male, low quality, worst quality, heavy makeup, unnatural skin, distorted face,
+      (excessive smile:1.2), (forced smile:1.2), (awkward expression:1.2)
 
 hand:
   positive: Detailed, natural-looking hands with proper anatomy
@@ -75,24 +92,29 @@ workflow:
       steps: 25
       cfg: 1
     GroomFaceDetailer:
-      denoise: 0.6
+      denoise: 0.42
       steps: 15
       cfg: 1
-      guide_size: 1024
+      guide_size: 512
+      feather: 3
+      noise_mask_feather: 10
     BrideFaceDetailer:
-      denoise: 0.6
-      steps: 8
+      denoise: 0.42
+      steps: 15
       cfg: 1
-      guide_size: 1024
+      guide_size: 512
+      feather: 3
+      noise_mask_feather: 10
     HandDetailer:
       denoise: 0.35
       steps: 10
       cfg: 8
       guide_size: 512
     Detector:
-      face_threshold: 0.20
-      face_dilation: 10
-      face_crop_factor: 3.5
+      face_threshold: 0.25
+      face_dilation: 6
+      face_crop_factor: 2.4
+      face_drop_size: 5
       hand_threshold: 0.4
       hand_crop_factor: 3
 
