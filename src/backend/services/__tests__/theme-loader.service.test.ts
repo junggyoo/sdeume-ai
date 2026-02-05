@@ -76,16 +76,16 @@ describe('theme-loader.service', () => {
       expect(theme.workflowOverrides?.KSampler?.sampler_name).toBe('euler');
       expect(theme.workflowOverrides?.KSampler?.scheduler).toBe('simple');
 
-      // Face detailer overrides
-      expect(theme.workflowOverrides?.GroomFaceDetailer?.denoise).toBe(0.6);
-      expect(theme.workflowOverrides?.BrideFaceDetailer?.steps).toBe(8);
+      // Face detailer overrides (updated for correction mode)
+      expect(theme.workflowOverrides?.GroomFaceDetailer?.denoise).toBe(0.42);
+      expect(theme.workflowOverrides?.BrideFaceDetailer?.steps).toBe(15);
 
       // Hand detailer overrides
       expect(theme.workflowOverrides?.HandDetailer?.denoise).toBe(0.35);
       expect(theme.workflowOverrides?.HandDetailer?.cfg).toBe(8);
 
-      // Detector settings
-      expect(theme.workflowOverrides?.Detector?.face_threshold).toBe(0.2);
+      // Detector settings (updated for tighter SEGS)
+      expect(theme.workflowOverrides?.Detector?.face_threshold).toBe(0.25);
       expect(theme.workflowOverrides?.Detector?.hand_threshold).toBe(0.4);
     });
 
